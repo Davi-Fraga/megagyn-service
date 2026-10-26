@@ -1,0 +1,40 @@
+# F0.5 — pipeline mínimo: lint, typecheck, testes unitários e build.
+# Testes de banco (RLS) e E2E precisam do Supabase local (Docker) e rodam na máquina de desenvolvimento:
+#   npm run test:db  |  npx playwright test  (ver README).
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test
+      - name: Build de produção
+        run: npm run build
+        env:
+          # Valores de exemplo, não segredos: o build não acessa o Supabase.
+          NEXT_PUBLIC_SUPABASE_URL: http://127.0.0.1:55421
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-placeholder
+          SUPABASE_SERVICE_ROLE_KEY: ci-placeholder
+          APP_URL: http://localhost:3000
+          NEXT_TELEMETRY_DISABLED: "1"
