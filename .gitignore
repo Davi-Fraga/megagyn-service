@@ -1,0 +1,39 @@
+# dependências e build
+node_modules/
+.next/
+out/
+build/
+*.tsbuildinfo
+next-env.d.ts
+
+# testes
+coverage/
+playwright-report/
+test-results/
+tests/e2e/.auth/
+tests/e2e/.fixtures/
+
+# ambiente e segredos (nunca versionar)
+.env
+.env.*
+!.env.example
+
+# Supabase local
+supabase/.branches
+supabase/.temp
+supabase/signing_keys.json
+
+# backups locais gerados pelos scripts
+backups/
+
+# ferramentas locais
+.superpowers/
+.vscode/
+.idea/
+*.log
+
+# Documentos de referência com dados reais de clientes/empresa (não publicar)
+/Escopo Sistema Megagyn Service.docx
+/Relatório de Serviços setembro 2026 - Megagyn Reformas.pdf
+/Orçamento - Megagyn Reformas.pdf
+/Prompt.md
