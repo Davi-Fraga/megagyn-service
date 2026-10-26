@@ -1,0 +1,104 @@
+@import "tailwindcss";
+
+/*
+ * Megagyn Service — tokens.
+ * Concreto (fundo frio), grafite (texto), laranja Megagyn escurecido para contraste AA em texto/botões.
+ * O laranja vivo aparece só em elementos não textuais (faixa zebrada de alerta, marcadores).
+ */
+@theme {
+  --color-concreto: #eef0f1;
+  --color-concreto-2: #e2e5e7;
+  --color-papel: #ffffff;
+  --color-grafite: #1e2326;
+  --color-grafite-2: #3a4247;
+  --color-muted: #545e64;
+  --color-linha: #cbd1d4;
+  --color-laranja: #c2410c;
+  --color-laranja-escuro: #9a3412;
+  --color-laranja-vivo: #f28c28;
+  --color-laranja-claro: #fdebdd;
+  --color-ok: #1b6e45;
+  --color-ok-claro: #e2f1e8;
+  --color-alerta: #94530a;
+  --color-alerta-claro: #fcefd8;
+  --color-erro: #b42318;
+  --color-erro-claro: #fde7e5;
+  --color-info: #1d4e89;
+  --color-info-claro: #e4edf8;
+
+  --font-sans: var(--font-archivo), "Segoe UI", system-ui, sans-serif;
+  --radius-ctl: 6px;
+  --radius-panel: 10px;
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+  body {
+    background: var(--color-concreto);
+    color: var(--color-grafite);
+    font-family: var(--font-sans);
+    font-size: 1rem;
+    line-height: 1.5;
+    font-variant-numeric: tabular-nums;
+  }
+  :focus-visible {
+    outline: 3px solid var(--color-info);
+    outline-offset: 2px;
+  }
+  h1,
+  h2,
+  h3 {
+    line-height: 1.2;
+    text-wrap: balance;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+@layer components {
+  /* Fita zebrada: só para impedimentos e prazos vencidos (sinal de alerta da obra). */
+  .faixa-alerta {
+    background-image: repeating-linear-gradient(
+      -45deg,
+      var(--color-laranja-vivo) 0 7px,
+      var(--color-grafite) 7px 14px
+    );
+  }
+  /* Largura expandida da Archivo para números de OS e ações de campo. */
+  .tipo-placa {
+    font-stretch: 118%;
+    font-weight: 750;
+    letter-spacing: -0.01em;
+  }
+  .campo-input {
+    width: 100%;
+    border: 1.5px solid var(--color-linha);
+    background: var(--color-papel);
+    border-radius: var(--radius-ctl);
+    min-height: 2.75rem;
+    padding: 0.7rem 0.8rem;
+    font-size: 1rem;
+    color: var(--color-grafite);
+  }
+  .campo-input:focus {
+    border-color: var(--color-info);
+  }
+  .campo-input[aria-invalid="true"] {
+    border-color: var(--color-erro);
+    background: var(--color-erro-claro);
+  }
+}
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+}

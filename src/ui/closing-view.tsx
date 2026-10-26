@@ -1,0 +1,201 @@
+import { formatUnits } from "@/domain/billing";
+import { formatDateBR, formatDateTimeBR } from "@/domain/dates";
+import { formatBRL } from "@/domain/money";
+import type { ClosingPayload, ClosingRequestItem } from "@/server/closings";
+import { Panel } from "./page";
+import { PhotoGrid } from "./photo-grid";
+
+function RequestTable({ title, note, items, detail }: { title: string; note?: string; items: ClosingRequestItem[]; detail: (i: ClosingRequestItem) => React.ReactNode }) {
+  return (
+    <div className="space-y-2">
+      <h3 className="font-bold">
+        {title} <span className="font-normal text-muted">({items.length})</span>
+      </h3>
+      {note && <p className="text-sm text-muted">{note}</p>}
+      {items.length === 0 ? (
+        <p className="text-sm text-muted">Nenhum.</p>
+      ) : (
+        <ul className="divide-y divide-linha rounded-ctl border border-linha">
+          {items.map((i) => (
+            <li key={i.id} className="space-y-0.5 px-3 py-2">
+              <p>
+                <span className="tipo-placa mr-2 text-laranja-escuro">{i.number}</span>
+                <span className="font-semibold">{i.title}</span>
+              </p>
+              <p className="text-sm text-muted">
+                {[i.siteName, i.areaName].filter(Boolean).join(" · ")} · situação no fim do mês: {i.statusLabel}
+              </p>
+              <div className="text-sm">{detail(i)}</div>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+function pending(i: ClosingRequestItem) {
+  if (i.pending) {
+    return (
+      <span>
+        Motivo: {i.pending.reason ?? "—"} · {i.pending.explanation} · Providência: {i.pending.nextAction} ({i.pending.ownerName}) · Previsão:{" "}
+        {formatDateBR(i.pending.expectedReturnDate)}
+      </span>
+    );
+  }
+  if (i.schedule?.scheduledDate) {
+    return (
+      <span>
+        Programado para {formatDateBR(i.schedule.scheduledDate)}
+        {i.schedule.assigneeNames.length ? ` · ${i.schedule.assigneeNames.join(", ")}` : ""}
+      </span>
+    );
+  }
+  return <span>Aguardando triagem.</span>;
+}
+
+/** Visualização na tela do mesmo payload usado no PDF (prévia ou versão emitida). */
+export function ClosingView({ payload }: { payload: ClosingPayload }) {
+  const r = payload.requests;
+  const s = payload.summary;
+  const tiles: Array<[number, string]> = [
+    [s.herdados, "pendências de meses anteriores"],
+    [s.novos, "abertos no mês"],
+    [s.concluidos, "concluídos no mês"],
+    [s.emAbertoTotal, "em aberto no fim do mês"],
+    [s.aguardandoValidacao, "aguardando validação"],
+    [s.cancelados, "cancelados"],
+    [s.reabertos, "reabertos"],
+    [s.dias, "dias com serviço"],
+  ];
+  const open = [...r.emAberto.pendente, ...r.emAberto.em_execucao, ...r.emAberto.programada, ...r.emAberto.aberta];
+
+  return (
+    <div className="space-y-5">
+      <Panel title={`Resumo — ${payload.period.title}`}>
+        <dl className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+          {tiles.map(([n, label]) => (
+            <div key={label} className="rounded-ctl border border-linha px-3 py-2">
+              <dt className="text-sm text-muted">{label}</dt>
+              <dd className="tipo-placa text-2xl">{n}</dd>
+            </div>
+          ))}
+        </dl>
+        <p className="mt-3 text-sm text-muted">
+          Situação apurada pelos registros até {formatDateBR(payload.period.lastDay)} às 23:59:59 (horário de Brasília). Um chamado pode aparecer em mais de uma
+          seção. Reaberturas e cancelamentos não contam como novas solicitações. Atividades e chamados são contados separadamente.
+        </p>
+      </Panel>
+
+      <Panel title="Chamados">
+        <div className="space-y-5">
+          <RequestTable title="Pendências de meses anteriores" items={r.herdados} detail={(i) => `Aberto em ${formatDateBR(i.openedAt.slice(0, 10))}`} />
+          <RequestTable title="Abertos no mês" items={r.novos} detail={(i) => `Aberto em ${formatDateTimeBR(i.openedAt)}`} />
+          <RequestTable
+            title="Concluídos no mês"
+            note="Inclui chamados solicitados antes do mês."
+            items={r.concluidos}
+            detail={(i) => (
+              <div className="space-y-2">
+                <p>
+                  Concluído em {i.validatedAt ? formatDateTimeBR(i.validatedAt) : "—"}
+                  {i.openedBeforePeriod ? " · aberto em mês anterior" : ""} · Solução: {i.solution ?? "—"}
+                </p>
+                {i.resultPhotos.length > 0 && <PhotoGrid photos={i.resultPhotos.map((p) => ({ ...p, role: "resultado" }))} />}
+              </div>
+            )}
+          />
+          <RequestTable title="Em aberto no fim do mês" note="Motivo, providência, responsável e previsão." items={open} detail={pending} />
+          <RequestTable title="Executados aguardando validação" items={r.aguardandoValidacao} detail={(i) => `Execução informada em ${i.executedAt ? formatDateTimeBR(i.executedAt) : "—"}`} />
+          <RequestTable title="Cancelados no mês" items={r.cancelados} detail={(i) => `Motivo: ${i.cancelReason ?? "—"}`} />
+          <RequestTable title="Reabertos no mês" items={r.reabertos} detail={(i) => `Motivo: ${i.reopenReason ?? "—"}`} />
+        </div>
+      </Panel>
+
+      {payload.sites.map((site) => (
+        <Panel key={site.id} title={`Diário de serviços — ${site.name}`}>
+          {site.days.length === 0 ? (
+            <p className="text-muted">Nenhum serviço registrado no período.</p>
+          ) : (
+            <ol className="space-y-5">
+              {site.days.map((d, idx) => (
+                <li key={d.date} className="space-y-2">
+                  <p className="rounded-ctl bg-grafite px-3 py-2 font-bold text-white">
+                    {idx + 1}. Data: {formatDateBR(d.date)}
+                    {d.hoursByPerson.length > 0 && (
+                      <span className="float-right font-semibold">
+                        {d.hoursByPerson.map((h) => `${h.name.split(" ")[0]} ${String(h.hours).replace(".", ",")} h`).join(" · ")}
+                      </span>
+                    )}
+                  </p>
+                  <ul className="list-disc space-y-1 pl-6">
+                    {d.activities.map((a) => (
+                      <li key={a.id}>
+                        {a.text}
+                        {a.areaName && <span className="text-muted"> ({a.areaName})</span>}
+                        {a.requestNumber && <span className="text-muted"> — chamado {a.requestNumber}</span>}
+                        {a.outcome !== "executado" && (
+                          <span className="text-alerta">
+                            {" "}
+                            — {a.outcome === "parcial" ? "feito em parte" : "não realizado"}
+                            {a.blockerReason ? `: ${a.blockerReason}` : ""}
+                          </span>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                  <PhotoGrid photos={d.activities.flatMap((a) => a.photos.map((p) => ({ ...p, caption: p.caption ?? a.text })))} emptyText="Sem fotos neste dia." />
+                </li>
+              ))}
+            </ol>
+          )}
+        </Panel>
+      ))}
+
+      {payload.billing && (
+        <Panel title="Demonstrativo de diárias/horas (valor de serviço)">
+          {payload.billing.statements.length === 0 ? (
+            <p className="text-muted">Sem regra de valor ou sem jornada faturável no período.</p>
+          ) : (
+            payload.billing.statements.map((st) => (
+              <div key={st.siteName} className="mb-4 overflow-x-auto">
+                <h3 className="mb-2 font-bold">{st.siteName}</h3>
+                <table className="w-full min-w-[32rem] text-left text-[0.95rem]">
+                  <thead className="border-b border-linha text-sm text-muted">
+                    <tr>
+                      <th className="py-1">Data</th>
+                      <th className="py-1 text-right">{st.unitType === "diaria" ? "Diárias" : "Horas"}</th>
+                      <th className="py-1 text-right">Valor unitário</th>
+                      <th className="py-1 text-right">Total</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-linha">
+                    {st.lines.map((l) => (
+                      <tr key={l.date}>
+                        <td className="py-1">{formatDateBR(l.date)}</td>
+                        <td className="py-1 text-right">{formatUnits(l.unitsCenti)}</td>
+                        <td className="py-1 text-right">{formatBRL(l.unitPriceCents)}</td>
+                        <td className="py-1 text-right">{formatBRL(l.totalCents)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                  <tfoot className="border-t-2 border-grafite font-bold">
+                    <tr>
+                      <td className="py-1">Total</td>
+                      <td className="py-1 text-right">{formatUnits(st.unitsTotalCenti)}</td>
+                      <td />
+                      <td className="py-1 text-right">{formatBRL(st.totalCents)}</td>
+                    </tr>
+                  </tfoot>
+                </table>
+                {st.missingRuleDates.length > 0 && (
+                  <p className="mt-1 text-sm text-alerta">Dias sem regra de valor vigente (fora do total): {st.missingRuleDates.map(formatDateBR).join(", ")}.</p>
+                )}
+              </div>
+            ))
+          )}
+        </Panel>
+      )}
+    </div>
+  );
+}
