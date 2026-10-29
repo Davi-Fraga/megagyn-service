@@ -140,7 +140,7 @@ Requisitos que pesam: A4 paginado, 30+ páginas, grade de fotos com legenda, tab
 |-------|------|---------|----------|
 | **HTML/CSS + Chromium headless (Playwright)** | Mesmo CSS da pré-visualização na tela; `@page`, `break-inside: avoid`, header/footer templates com `pageNumber/totalPages`; fotos e tabelas sem esforço | Precisa de Chromium no servidor (~300 MB); não roda em serverless padrão | **Escolhido**. Roda no worker (Docker) |
 | `@react-pdf/renderer` | Sem navegador, leve | Layout próprio (sem CSS real), quebras de página e tabelas longas trabalhosas | Alternativa se Chromium for inviável no hosting |
-| Gotenberg (container) | Chromium isolado via HTTP | Mais um container para operar | Alternativa aceitável se o hosting for serverless (ex.: Vercel) |
+| Gotenberg (container) | Chromium isolado via HTTP | Mais um container para operar | Alternativa para hosting serverless (ex.: Vercel); verificada em 29/10/2026 com o PDF longo de 37 páginas |
 | Screenshot de tela | — | Não é PDF paginado real | Rejeitado (Prompt §4) |
 
 Fluxo: botão **"Exportar PDF"** → `report_artifacts(status='na_fila')` → worker renderiza template com o **payload congelado da versão** (não consulta estado atual) → envia ao bucket `reports` → `status='pronto'` → UI (polling/Realtime) habilita "Baixar". Falha → `status='falhou'` com mensagem e botão de repetir. Pré-visualização usa o mesmo HTML na tela (modo `print` via CSS).

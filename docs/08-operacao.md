@@ -10,7 +10,7 @@
 | Worker | retoma PDFs na fila, com falha (até 3 tentativas) ou interrompidos | mesmo container, comando `npm run worker` |
 | Supabase | PostgreSQL + RLS, Auth (login e recuperação de senha), Storage privado | projeto Supabase (homologação e produção separados) |
 
-O Chromium (para os PDFs) já vem na imagem base do `Dockerfile` (`mcr.microsoft.com/playwright`). Hospedagens serverless sem Chromium podem usar `PDF_RENDERER=gotenberg` com um serviço Gotenberg (**não verificado neste ambiente**).
+O Chromium (para os PDFs) já vem na imagem base do `Dockerfile` (`mcr.microsoft.com/playwright`). Hospedagens serverless sem Chromium (ex.: Vercel) usam `PDF_RENDERER=gotenberg` com um serviço Gotenberg (`gotenberg/gotenberg:8`) acessível pelo app via `GOTENBERG_URL`. Verificado em 29/10/2026: o teste do PDF longo (`tests/db/pdf-long.test.ts`) gerou as mesmas 37 páginas, com cabeçalho e numeração, pelos dois renderizadores. Nesse cenário o worker (`npm run worker`) não roda; a retomada de PDFs fica por conta do botão "Tentar de novo" ou de um agendamento externo que chame a geração.
 
 ## 2. Implantação (passo a passo)
 
@@ -20,7 +20,19 @@ O Chromium (para os PDFs) já vem na imagem base do `Dockerfile` (`mcr.microsoft
 4. **Imagem:** `docker build -t megagyn .` e executar dois containers: o app (`docker run --env-file .env.production -p 3000:3000 megagyn`) e o worker (`... megagyn npm run worker`). Colocar o app atrás de HTTPS (proxy reverso ou plataforma com TLS).
 5. **Primeiro acesso:** criar o primeiro usuário administrador no painel do Supabase (Auth → Add user) e inserir o perfil (`insert into profiles (id, full_name, email, role) values (...,'admin')`). Depois disso, todos os demais usuários são criados pela tela **Usuários**: com a senha em branco, a pessoa recebe um convite por e-mail e cria a própria senha (o link vale 1 hora; "Enviar link para criar nova senha" reenvia). A senha provisória fica para quem não pode usar o e-mail no momento.
 6. **Segurança no navegador (já no código):** cookies de sessão `HttpOnly` e `SameSite=Lax`, com `Secure` quando `APP_URL` começa com `https://` (por isso o `APP_URL` de produção precisa ser https). As páginas saem com CSP sem origens externas. Script ainda exige `'unsafe-inline'` (scripts de hidratação do Next sem nonce). Anexos de imagem saem com CSP `sandbox`. Foto original (com EXIF da câmera) só para administração; os demais recebem a versão sem metadados.
-7. **Configurações da empresa:** preencher razão social, CNPJ, endereço, site, responsável técnico, CREA, logotipo e assinatura em **Configurações**. Os documentos de referência trazem dados divergentes; confirmar com a Megagyn antes de emitir relatórios (Q2).
+7. **Configurações da empresa:** preencher razão social, CNPJ, endereço, site, responsável técnico, CREA, logotipo e assinatura em **Configurações**. O seed de demonstração já carrega o logotipo oficial (`src/assets/brand/logo.png`); em produção, envie-o em Configurações. Os documentos de referência trazem dados divergentes; confirmar com a Megagyn antes de emitir relatórios (Q2).
+
+## 2a. Piloto gratuito: Vercel + Gotenberg no Render + Supabase Free
+
+Caminho escolhido em 29/10/2026 (`docs/13-plano-implantacao-piloto.md`). Sem cartão e sem custo; nada adormece enquanto o monitor externo estiver ativo.
+
+1. **Supabase:** passos 1 a 3 da seção 2, com o projeto na região São Paulo. Depois do deploy, ajustar Site URL e URLs de retorno para o endereço da Vercel.
+2. **Gotenberg no Render:** New → Web Service → "Existing image" → `gotenberg/gotenberg:8`, instância Free, região Ohio ou Virginia. Variável `PORT=3000` (porta em que a imagem escuta) e Health Check Path `/health`. Anotar a URL `https://<nome>.onrender.com`.
+3. **Vercel:** importar o repositório do GitHub (branch `main`). Variáveis de ambiente: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `APP_URL` (o endereço https da Vercel), `APP_TIMEZONE=America/Sao_Paulo`, `PDF_RENDERER=gotenberg`, `GOTENBERG_URL`, `CRON_SECRET` (gerar com `openssl rand -hex 32`). O `vercel.json` agenda `/api/jobs/reports` uma vez por dia, o máximo do plano Hobby; o cron da Vercel envia o `CRON_SECRET` sozinho.
+4. **Despertador:** criar um monitor gratuito no UptimeRobot ou no cron-job.org em `https://<app>/api/health`, a cada 5 minutos. Essa rota toca o banco (o Supabase Free pausa após 7 dias sem atividade) e o Gotenberg (o Render Free dorme após 15 minutos). O workflow `despertador.yml` faz um ping diário como reserva; ele precisa da variável de repositório `APP_URL` no GitHub.
+5. **Limites a configurar:** em Configurações, limite de PDF de comprovante em 4 MB (a Vercel recusa corpo acima de 4,5 MB); fotos já chegam menores. O worker contínuo não roda na Vercel: PDFs interrompidos voltam pelo botão "Tentar de novo" ou pelo cron diário.
+6. **Como o Gotenberg frio se comporta:** o primeiro PDF do dia pode levar cerca de 1 minuto, porque o app espera o serviço acordar (`waitForService`, até 2 min) dentro dos 300 s da função. Com o monitor ativo isso não acontece.
+7. **Conferir no ar:** `GET /api/health` responde `{"ok":true,"db":true,"renderer":"gotenberg","rendererUp":true}`; login, chamado com foto e PDF de fechamento pelo roteiro de `docs/13`, etapa E5.
 
 ## 3. Limites e dimensionamento (pressupostos, ajustáveis em Configurações)
 

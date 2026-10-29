@@ -47,7 +47,7 @@ Para testar no celular pela rede local, acesse `http://<ip-do-computador>:3000`.
 | `npm run db:types` | regenera `src/server/db/database.types.ts` |
 | `npm run backup` · `npm run restore:test` | cópia de segurança do banco e dos arquivos; restauração verificada em ambiente descartável |
 
-A CI do GitHub (`.github/workflows/ci.yml`) roda lint, typecheck, testes de regras e build a cada push. Testes de banco e E2E precisam do Supabase local e rodam na máquina de desenvolvimento.
+A CI do GitHub (`.github/workflows/ci.yml`) roda lint, typecheck, testes de regras e build a cada push. O workflow `despertador.yml` faz um ping diário em `/api/health` quando a variável de repositório `APP_URL` existe (piloto gratuito, ver `docs/08-operacao.md` §2a). Testes de banco e E2E precisam do Supabase local e rodam na máquina de desenvolvimento.
 
 ## Estrutura
 
