@@ -1,0 +1,16 @@
+node_modules
+.next
+.env
+.env.*
+!.env.example
+backups
+test-results
+playwright-report
+.superpowers
+supabase/.temp
+supabase/.branches
+*.log
+/Escopo Sistema Megagyn Service.docx
+/Relatório de Serviços setembro 2026 - Megagyn Reformas.pdf
+/Orçamento - Megagyn Reformas.pdf
+/Prompt.md
