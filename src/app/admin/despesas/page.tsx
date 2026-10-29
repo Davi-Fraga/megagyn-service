@@ -20,6 +20,9 @@ import { GenerateReportButton } from "@/ui/report-button";
 import { Badge } from "@/ui/status";
 import { listExpenses } from "./expense-list";
 
+// Esta página pede PDFs; a geração roda após a resposta e precisa caber no tempo da função (Vercel Hobby: até 300 s).
+export const maxDuration = 300;
+
 export const metadata: Metadata = { title: "Compras e despesas" };
 
 const SHOW_ROWS = 300;

@@ -17,6 +17,9 @@ import { GenerateReportButton } from "@/ui/report-button";
 import { Badge } from "@/ui/status";
 import { rowOrNotFound } from "@/server/query";
 
+// Esta página pede PDFs; a geração roda após a resposta e precisa caber no tempo da função (Vercel Hobby: até 300 s).
+export const maxDuration = 300;
+
 export const metadata: Metadata = { title: "Fechamento" };
 
 export default async function ClosingDetailPage({

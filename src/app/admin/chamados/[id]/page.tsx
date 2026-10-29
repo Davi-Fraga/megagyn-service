@@ -24,6 +24,9 @@ import { RequestTimeline } from "@/ui/request-timeline";
 import { AlertTape, StatusBadge } from "@/ui/status";
 import { GenerateReportButton } from "@/ui/report-button";
 
+// Esta página pede PDFs; a geração roda após a resposta e precisa caber no tempo da função (Vercel Hobby: até 300 s).
+export const maxDuration = 300;
+
 export const metadata: Metadata = { title: "Chamado" };
 
 const ORIGIN_LABEL: Record<string, string> = {

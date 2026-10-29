@@ -2,6 +2,7 @@
  * Worker de relatórios (npm run worker). O app já gera cada PDF logo após o pedido;
  * este processo retoma pedidos que ficaram na fila, falharam (até 3 tentativas) ou
  * foram interrompidos (processando há mais de 10 minutos), por exemplo após um reinício.
+ * Em hospedagem sem processo contínuo, a rota /api/jobs/reports faz a mesma passada.
  */
 import { existsSync, readFileSync } from "node:fs";
 
@@ -18,24 +19,9 @@ let stopping = false;
 
 async function tick() {
   const { createSupabaseAdmin } = await import("../src/server/supabase/admin");
-  const { processReport } = await import("../src/server/reports/jobs");
-  const admin = createSupabaseAdmin();
-  const staleBefore = new Date(Date.now() - 10 * 60_000).toISOString();
-  const { data, error } = await admin
-    .from("report_artifacts")
-    .select("id, status, attempts, started_at")
-    .or(`status.eq.na_fila,and(status.eq.falhou,attempts.lt.3),and(status.eq.processando,started_at.lt.${staleBefore})`)
-    .order("requested_at")
-    .limit(5);
-  if (error) {
-    console.error(JSON.stringify({ level: "error", event: "worker.query_fail", message: error.message }));
-    return;
-  }
-  for (const job of data ?? []) {
-    if (stopping) break;
-    const result = await processReport(job.id);
-    console.log(JSON.stringify({ level: "info", event: "worker.job", id: job.id, result }));
-  }
+  const { runQueueTick } = await import("../src/server/reports/queue");
+  const { processed } = await runQueueTick(createSupabaseAdmin(), { limit: 5, shouldStop: () => stopping });
+  for (const job of processed) console.log(JSON.stringify({ level: "info", event: "worker.job", ...job }));
 }
 
 async function main() {

@@ -10,6 +10,9 @@ import { ActionForm, TextAreaField } from "@/ui/form";
 import { Notice, PageHeader, Panel } from "@/ui/page";
 import { GenerateReportButton } from "@/ui/report-button";
 
+// Esta página pede PDFs; a geração roda após a resposta e precisa caber no tempo da função (Vercel Hobby: até 300 s).
+export const maxDuration = 300;
+
 export const metadata: Metadata = { title: "Apuração do fechamento" };
 
 export default async function ClosingPreviewPage({

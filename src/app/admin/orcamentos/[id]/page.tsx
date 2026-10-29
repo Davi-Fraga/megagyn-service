@@ -30,6 +30,9 @@ import { QuoteStatusBadge } from "../quote-status-badge";
 import { QuotePhotos } from "./quote-photos";
 import { QuoteView } from "./quote-view";
 
+// Esta página pede PDFs; a geração roda após a resposta e precisa caber no tempo da função (Vercel Hobby: até 300 s).
+export const maxDuration = 300;
+
 export const metadata: Metadata = { title: "Orçamento" };
 
 const DONE_MESSAGE: Record<string, string> = {

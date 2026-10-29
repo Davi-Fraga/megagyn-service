@@ -1,0 +1,24 @@
+# Despertador diário: toca o banco pela rota de saúde para o Supabase Free não pausar por inatividade.
+# O ping frequente (a cada 5 min, que também mantém o Gotenberg acordado) fica num monitor externo
+# gratuito (UptimeRobot ou cron-job.org): no GitHub Actions ele gastaria os minutos gratuitos do mês.
+# Requer a variável de repositório APP_URL (Settings → Secrets and variables → Actions → Variables).
+name: Despertador
+
+on:
+  schedule:
+    - cron: "0 9 * * *"
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  ping:
+    if: ${{ vars.APP_URL != '' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Rota de saúde do app
+        run: |
+          code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 120 "${{ vars.APP_URL }}/api/health")
+          echo "status $code"
+          test "$code" = "200"

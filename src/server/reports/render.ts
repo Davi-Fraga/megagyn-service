@@ -5,6 +5,7 @@ import { pathToFileURL } from "node:url";
 import type { Browser } from "playwright";
 import { PDF_MARGINS } from "@/reports/layout";
 import { env } from "@/server/env";
+import { waitForService } from "./wait-for-service";
 
 export type RenderInput = {
   html: string;
@@ -71,9 +72,12 @@ export async function renderPdf(input: RenderInput): Promise<Buffer> {
   }
 }
 
-/** Alternativa para hospedagem sem Chromium local (ex.: serverless). Não verificada neste ambiente. */
+/** Alternativa para hospedagem sem Chromium local (ex.: Vercel). Verificada em 29/10/2026 com gotenberg/gotenberg:8 (mesmo PDF de 37 páginas do teste pdf-long). */
 async function renderWithGotenberg(input: RenderInput): Promise<Buffer> {
   if (!env.gotenbergUrl) throw new Error("GOTENBERG_URL não configurada.");
+  const base = env.gotenbergUrl.replace(/\/$/, "");
+  // Em plano gratuito o Gotenberg dorme; espera-se ele acordar em vez de falhar.
+  await waitForService(`${base}/health`);
   const form = new FormData();
   const wrap = (body: string) => `<!doctype html><html><head><meta charset="utf-8"></head><body>${body}</body></html>`;
   form.append("files", new Blob([input.html], { type: "text/html" }), "index.html");
@@ -88,7 +92,7 @@ async function renderWithGotenberg(input: RenderInput): Promise<Buffer> {
   form.append("marginLeft", mm(PDF_MARGINS.left));
   form.append("marginRight", mm(PDF_MARGINS.right));
   form.append("printBackground", "true");
-  const res = await fetch(`${env.gotenbergUrl.replace(/\/$/, "")}/forms/chromium/convert/html`, { method: "POST", body: form });
+  const res = await fetch(`${base}/forms/chromium/convert/html`, { method: "POST", body: form });
   if (!res.ok) throw new Error(`Gotenberg respondeu ${res.status}`);
   return Buffer.from(await res.arrayBuffer());
 }
