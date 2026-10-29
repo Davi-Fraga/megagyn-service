@@ -113,7 +113,7 @@ Portal do cliente: login, abertura de chamado pelo cliente, comentários do clie
 | CNPJ | — | 42.232.243/0001-03 | 42.232.243/0001-06 | **Divergente** (dígitos finais) |
 | Resp. técnico / CREA | — | Eng. Márcio Roberto P. Leite, "Crea 1018014640-GO" (capa) e "CREA 1018014640 AP" (assinatura) | "CREA 1018014640 AP" | **Divergente** dentro do próprio PDF |
 | Telefone | — | (62) 98409-2546 | (62) 98409-2546 | Coerente |
-| Identidade visual | — | Logo laranja/cinza "MEGAGYN REFORMAS" com telhado | mesmo logo | Logo embutido tem 206×105 px (baixa qualidade) → **upload de logo real na configuração** |
+| Identidade visual | — | Logo laranja/cinza "MEGAGYN REFORMAS" com telhado | mesmo logo | Logo embutido tem 206×105 px (baixa qualidade). Logo oficial "Megagyn Service" recebida em 29/10/2026 (CorelDRAW): aplicada no app (marca e login, `src/assets/brand/`) e carregada pelo seed em Configurações para os PDFs |
 | Cobrança | — | 24 diárias × R$ 333,00 = R$ 7.992,00; cada dia "09 horas" | item global R$ 7.600,00 | Exemplos, **não tarifas padrão** |
 | Valor por extenso | — | — | "R$ 7.600,00 (setembro mil, seiscentos reais)" — **errado** | Sistema gera extenso por função testada |
 | Perfil do cliente | Previsto, abre e acompanha chamados | — | — | **Pendente** (dúvida informal posterior) |

@@ -173,6 +173,51 @@ async function historicalRequest(opts: {
   return req.id;
 }
 
+/** Logotipo oficial (src/assets/brand/logo.png) no bucket de marca, como a tela Configurações faria. */
+async function ensureLogo(adminId: string) {
+  const { data: settings } = await svc.from("company_settings").select("logo_attachment_id").eq("id", 1).single();
+  if (settings?.logo_attachment_id) return;
+  const original = readFileSync("src/assets/brand/logo.png");
+  const meta = await sharp(original).metadata();
+  const medium = await sharp(original).resize({ width: 1600, height: 1600, fit: "inside", withoutEnlargement: true }).jpeg({ quality: 86 }).toBuffer();
+  const thumb = await sharp(original).resize({ width: 480, height: 480, fit: "inside" }).jpeg({ quality: 76 }).toBuffer();
+  const id = randomUUID();
+  const folder = `${adminId}/2026/09`;
+  const keys = { original: `${folder}/${id}.png`, medium: `${folder}/${id}_medium.jpg`, thumb: `${folder}/${id}_thumb.jpg` };
+  for (const [key, bytes, contentType] of [
+    [keys.original, original, "image/png"],
+    [keys.medium, medium, "image/jpeg"],
+    [keys.thumb, thumb, "image/jpeg"],
+  ] as const) {
+    const up = await svc.storage.from("branding").upload(key, bytes, { contentType, upsert: true });
+    if (up.error) throw up.error;
+  }
+  must(
+    await svc
+      .from("attachments")
+      .insert({
+        id,
+        bucket: "branding",
+        storage_key: keys.original,
+        site_id: null,
+        original_name: "logo-megagyn-service.png",
+        mime_type: "image/png",
+        size_bytes: original.length,
+        width: meta.width ?? null,
+        height: meta.height ?? null,
+        derivatives: { thumb: keys.thumb, medium: keys.medium },
+        uploaded_by: adminId,
+        client_upload_id: randomUUID(),
+        visibility: "internal",
+      })
+      .select("id")
+      .single(),
+    "logotipo",
+  );
+  await svc.from("company_settings").update({ logo_attachment_id: id }).eq("id", 1);
+  console.log("Logotipo oficial carregado em Configurações.");
+}
+
 async function main() {
   console.log("Criando dados de demonstração fictícios…");
   await svc
@@ -195,6 +240,7 @@ async function main() {
     .eq("id", 1);
 
   const admin = await ensureUser("admin@demo.megagyn.local", "Ana Administração (demo)", "admin");
+  await ensureLogo(admin);
   const foreman = await ensureUser("encarregado@demo.megagyn.local", "Carlos Encarregado (demo)", "foreman");
   const worker1 = await ensureUser("joao@demo.megagyn.local", "João Funcionário (demo)", "worker");
   const worker2 = await ensureUser("pedro@demo.megagyn.local", "Pedro Funcionário (demo)", "worker");
