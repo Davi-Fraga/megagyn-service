@@ -113,6 +113,19 @@ export async function finishOccurrenceAction(_: ActionState, fd: FormData): Prom
   redirect(`/campo/tarefas/${fdUuid(fd, "occurrence_id")}?feito=finalizada`);
 }
 
+/** Pela agenda da administração: mesma regra do campo, mas a resposta fica na própria agenda. */
+export async function markOccurrenceNotDoneAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  await requireProfile(["admin"]);
+  const db = await createSupabaseServer();
+  const { error } = await db.rpc("task_occurrence_not_done", {
+    p_occurrence_id: nul(fdUuid(fd, "occurrence_id")),
+    p_reason: fdStr(fd, "reason") ?? "",
+  });
+  if (error) return fail(error, "task.not_done_fail");
+  refresh();
+  return { ok: true, message: "Registrado que a tarefa não foi realizada, com o motivo." };
+}
+
 export async function notDoneOccurrenceAction(_: ActionState, fd: FormData): Promise<ActionState> {
   await requireProfile(["admin", "worker", "foreman"]);
   const db = await createSupabaseServer();
