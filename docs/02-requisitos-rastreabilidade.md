@@ -203,7 +203,7 @@
 | D-08 | Planilha de diárias | 25 linhas de data (uma em branco, item 5) para "24 dias trabalhados"; 24 × 333 = 7.992 confere com os 24 dias narrados (01,02,03,04,05,08–11,14–19,21–26,28–30) | — | Demonstrativo gerado a partir de `time_entries`, sem digitação |
 | D-09 | Numeração dos dias no relatório | Itens 1–7 numerados, depois "•" sem número (p.10 em diante) | — | Numeração automática |
 | D-10 | Carga horária | Todos os 24 dias "09 horas", mas cobrança por diária | — | `hours` e `billing_units` separados (R-34) |
-| D-11 | Resolução das fotos | Fotos embutidas em ~255×340 px | ~400×380 px | Preservar original + gerar derivadas para PDF (ex.: 1200 px lado maior) |
+| D-11 | Resolução das fotos | Fotos embutidas em ~255×340 px | ~400×380 px | Decisão de 30/10/2026: versão única de 1600 px sem metadados + miniatura, para caber no plano gratuito. Fotos anteriores mantêm original + derivadas |
 | D-12 | Endereço do cliente no orçamento | — | "Av. Castelo Branco, Qd. 16-B,, lt. Goiânia - GO" (lote ausente, vírgula dupla) | Campos estruturados de endereço |
 
 ### 4.2 Ambiguidades do escopo (hipóteses adotadas, detalhadas em 07)

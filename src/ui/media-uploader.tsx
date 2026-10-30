@@ -6,7 +6,7 @@ import { newId } from "@/domain/ids";
 import { buttonClass } from "./button";
 import { cn } from "./cn";
 import { useFieldError, useFormBusy } from "./form";
-import { uploadErrorMessage } from "@/domain/upload";
+import { MAX_IMAGE_SIDE, uploadErrorMessage } from "@/domain/upload";
 
 type Purpose = "photo" | "receipt" | "logo" | "quote";
 type Item = {
@@ -19,7 +19,6 @@ type Item = {
   error?: string;
 };
 
-const MAX_SIDE: Record<Purpose, number> = { photo: 2560, receipt: 3200, logo: 1600, quote: 2560 };
 
 /**
  * Reduz fotos grandes antes do envio (rede móvel) mantendo legibilidade.
@@ -29,7 +28,7 @@ async function prepare(file: File, purpose: Purpose): Promise<Blob> {
   if (!file.type.startsWith("image/") || typeof createImageBitmap !== "function") return file;
   try {
     const bitmap = await createImageBitmap(file, { imageOrientation: "from-image" });
-    const max = MAX_SIDE[purpose];
+    const max = MAX_IMAGE_SIDE[purpose];
     const scale = Math.min(1, max / Math.max(bitmap.width, bitmap.height));
     if (scale === 1 && file.size < 3 * 1024 * 1024) {
       bitmap.close();

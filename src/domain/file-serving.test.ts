@@ -31,6 +31,14 @@ describe("planFileResponse", () => {
     expect(planFileResponse({ ...photo, derivatives: {}, variant: "medium", isAdmin: true })?.key).toBe("s/2026/09/a.jpg");
   });
 
+  it("foto de arquivo único: original e média são o mesmo arquivo, para qualquer pessoa", () => {
+    const single = { mime: "image/jpeg", storageKey: "s/2026/10/b.jpg", derivatives: { thumb: "s/2026/10/b_thumb.jpg" } };
+    expect(planFileResponse({ ...single, variant: "medium", isAdmin: false })?.key).toBe("s/2026/10/b.jpg");
+    expect(planFileResponse({ ...single, variant: "original", isAdmin: false })?.key).toBe("s/2026/10/b.jpg");
+    expect(planFileResponse({ ...single, variant: "thumb", isAdmin: false })?.key).toBe("s/2026/10/b_thumb.jpg");
+    expect(planFileResponse({ ...single, variant: "download", isAdmin: true })).toMatchObject({ key: "s/2026/10/b.jpg", disposition: "attachment" });
+  });
+
   it("imagens saem com CSP isolada (sem script mesmo se aberta como página)", () => {
     expect(planFileResponse({ ...photo, variant: "thumb", isAdmin: false })?.csp).toBe("default-src 'none'; style-src 'unsafe-inline'; sandbox");
   });

@@ -81,3 +81,6 @@ export function uploadErrorMessage(status: number, serverError?: string): string
   if (status === 413) return "Arquivo grande demais. Reduza o PDF ou envie uma foto do comprovante.";
   return serverError ?? "Falha no envio. Toque em tentar de novo.";
 }
+
+/** Maior lado guardado por tipo de envio. Comprovante fica maior para a nota continuar legível. */
+export const MAX_IMAGE_SIDE: Record<UploadPurpose, number> = { photo: 1600, quote: 1600, receipt: 2000, logo: 1600 };
