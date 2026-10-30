@@ -140,3 +140,33 @@ test("tarefa criada com setor mostra o setor na tela do campo", async ({ page, b
   await expect(foreman.getByText("Torre A · Salão de festas")).toBeVisible({ timeout: 60_000 });
   await foreman.context().close();
 });
+
+/** F3.7 — filtros de "Minhas atividades": período, valores inválidos e local sem registros. */
+test("minhas atividades: filtro por período e entrada inválida", async ({ browser }) => {
+  const text = `Filtro E2E ${Date.now()}`;
+  const worker = await mobilePage(browser);
+  await login(worker, USERS.joao);
+  await worker.goto("/campo/registrar");
+  await worker.getByLabel("Onde foi feito").selectOption({ label: "Torre A — Condomínio Jardim Exemplo" });
+  await worker.getByLabel("O que foi feito").fill(text);
+  await uploadPhotos(worker, [PHOTO_A]);
+  await worker.getByRole("button", { name: "Salvar registro" }).click();
+  await worker.waitForURL(/\/campo/, { timeout: 60_000 });
+
+  await worker.goto("/campo/atividades");
+  await expect(worker.getByText(text)).toBeVisible({ timeout: 60_000 });
+
+  await worker.getByLabel("De", { exact: true }).fill("2000-01-01");
+  await worker.getByLabel("Até", { exact: true }).fill("2000-01-31");
+  await worker.getByRole("button", { name: "Filtrar" }).click();
+  await worker.waitForURL(/de=2000-01-01/);
+  await expect(worker.getByText("Nenhum registro neste período.")).toBeVisible();
+  await expect(worker.getByText(text)).toHaveCount(0);
+
+  // Data invertida e valores adulterados não quebram a tela.
+  await worker.goto("/campo/atividades?de=2030-01-01&ate=2000-01-01&local=abc");
+  await expect(worker.getByRole("heading", { name: "O que eu fiz" })).toBeVisible();
+  await worker.goto("/campo/atividades?local=99999999-9999-4999-8999-999999999999");
+  await expect(worker.getByText("Nenhum registro neste período.")).toBeVisible();
+  await worker.context().close();
+});
