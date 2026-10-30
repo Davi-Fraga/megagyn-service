@@ -33,7 +33,7 @@ jobs:
         run: npm run build
         env:
           # Valores de exemplo, não segredos: o build não acessa o Supabase.
-          NEXT_PUBLIC_SUPABASE_URL: http://127.0.0.1:55421
+          NEXT_PUBLIC_SUPABASE_URL: http://127.0.0.1:49121
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-placeholder
           SUPABASE_SERVICE_ROLE_KEY: ci-placeholder
           APP_URL: http://localhost:3000

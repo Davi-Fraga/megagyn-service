@@ -3,7 +3,7 @@ import { USERS, login, mobilePage } from "./helpers";
 
 test.setTimeout(240_000);
 
-const MAILPIT = process.env.E2E_MAILPIT_URL ?? "http://localhost:55424";
+const MAILPIT = process.env.E2E_MAILPIT_URL ?? "http://localhost:49124";
 
 function panel(page: Page, title: string) {
   return page.locator("section").filter({ has: page.getByRole("heading", { name: title, exact: true }) });
