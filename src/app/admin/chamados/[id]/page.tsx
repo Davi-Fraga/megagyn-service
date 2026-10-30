@@ -12,6 +12,7 @@ import {
   scheduleRequestAction,
   updateRequestAction,
   validateRequestAction,
+  revokeAttachmentAction,
 } from "@/server/actions/requests";
 import { getRequestDetail, loadCatalogs, loadMemberships, loadProfiles } from "@/server/data";
 import { createSupabaseServer } from "@/server/supabase/server";
@@ -125,7 +126,7 @@ export default async function AdminRequestPage({
             <p className="mt-4 whitespace-pre-line">{r.description}</p>
             <div className="mt-4">
               <h3 className="mb-2 font-semibold">Fotos do chamado</h3>
-              <PhotoGrid photos={detail.requestPhotos} emptyText="Nenhuma foto anexada à abertura." />
+              <PhotoGrid photos={detail.requestPhotos} emptyText="Nenhuma foto anexada à abertura." revokeAction={revokeAttachmentAction} />
             </div>
           </Panel>
 

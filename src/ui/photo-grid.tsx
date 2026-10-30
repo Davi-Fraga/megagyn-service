@@ -3,6 +3,8 @@
 import { ChevronLeft, ChevronRight, FileText, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { cn } from "./cn";
+import type { ActionFn } from "./form";
+import { ReasonAction } from "./reason-action";
 
 export type GridPhoto = {
   id: string;
@@ -24,8 +26,19 @@ const ROLE_LABEL: Record<string, string> = {
   referencia: "Serviço semelhante",
 };
 
-/** Grade de fotos com ampliação. Os arquivos vêm de /api/files (acesso conferido no servidor). */
-export function PhotoGrid({ photos, emptyText = "Nenhuma foto." }: { photos: GridPhoto[]; emptyText?: string }) {
+/**
+ * Grade de fotos com ampliação. Os arquivos vêm de /api/files (acesso conferido no servidor).
+ * Com `revokeAction`, cada foto ganha "Remover foto" com motivo (só páginas da administração).
+ */
+export function PhotoGrid({
+  photos,
+  emptyText = "Nenhuma foto.",
+  revokeAction,
+}: {
+  photos: GridPhoto[];
+  emptyText?: string;
+  revokeAction?: ActionFn;
+}) {
   const [open, setOpen] = useState<number | null>(null);
   const dialogRef = useRef<HTMLDialogElement>(null);
 
@@ -66,6 +79,18 @@ export function PhotoGrid({ photos, emptyText = "Nenhuma foto." }: { photos: Gri
                 {p.revoked && <span className="block font-semibold text-erro">Removida</span>}
               </div>
             </button>
+            {revokeAction && !p.revoked && (
+              <div className="px-2 pb-2">
+                <ReasonAction
+                  action={revokeAction}
+                  hidden={{ attachment_id: p.id }}
+                  label="Remover foto"
+                  confirmLabel="Confirmar remoção"
+                  reasonLabel="Por que remover?"
+                  variant="danger"
+                />
+              </div>
+            )}
           </li>
         ))}
       </ul>
