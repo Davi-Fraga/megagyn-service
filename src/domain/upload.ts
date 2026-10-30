@@ -75,3 +75,9 @@ export function requestTooLarge(contentLength: string | null, limits: UploadLimi
   const max = Math.max(limits.maxImageMb, limits.maxPdfMb) * 1024 * 1024 + MULTIPART_OVERHEAD_BYTES;
   return Number(contentLength) > max;
 }
+
+/** Mensagem para quem envia. A hospedagem pode responder 413 antes do app, sem JSON. */
+export function uploadErrorMessage(status: number, serverError?: string): string {
+  if (status === 413) return "Arquivo grande demais. Reduza o PDF ou envie uma foto do comprovante.";
+  return serverError ?? "Falha no envio. Toque em tentar de novo.";
+}

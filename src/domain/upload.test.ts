@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { detectFileType, requestTooLarge, validateUpload } from "./upload";
+import { detectFileType, requestTooLarge, uploadErrorMessage, validateUpload } from "./upload";
 
 const bytes = (...b: number[]) => new Uint8Array([...b, ...new Array(16).fill(0)]);
 const ascii = (s: string, pad = 16) => new Uint8Array([...Buffer.from(s, "latin1"), ...new Array(pad).fill(0)]);
@@ -71,5 +71,17 @@ describe("requestTooLarge (antes de ler o corpo)", () => {
     expect(requestTooLarge(null, limits)).toBe(true);
     expect(requestTooLarge("abc", limits)).toBe(true);
     expect(requestTooLarge("-1", limits)).toBe(true);
+  });
+});
+
+describe("uploadErrorMessage", () => {
+  it("413 da hospedagem vira orientação clara", () => {
+    expect(uploadErrorMessage(413)).toBe("Arquivo grande demais. Reduza o PDF ou envie uma foto do comprovante.");
+  });
+  it("mensagem do servidor tem prioridade nos demais erros", () => {
+    expect(uploadErrorMessage(400, "Envie uma imagem JPG, PNG ou WEBP.")).toBe("Envie uma imagem JPG, PNG ou WEBP.");
+  });
+  it("sem mensagem, orienta tentar de novo", () => {
+    expect(uploadErrorMessage(500)).toBe("Falha no envio. Toque em tentar de novo.");
   });
 });
