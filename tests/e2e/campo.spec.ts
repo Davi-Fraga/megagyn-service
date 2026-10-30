@@ -120,3 +120,23 @@ test("isolamento: funcionário da Torre B não abre chamado nem foto da Torre A"
   expect((await pedro.request.get("/api/csv/chamados")).status()).toBe(403);
   await pedro.context().close();
 });
+
+/** R-25 — tarefa com setor: o encarregado vê onde fazer. */
+test("tarefa criada com setor mostra o setor na tela do campo", async ({ page, browser }) => {
+  const title = `Setor E2E ${Date.now()}`;
+  await login(page, USERS.admin);
+  await page.goto("/admin/agenda/nova");
+  await page.getByLabel("O que fazer").fill(title);
+  await page.getByRole("checkbox", { name: "Condomínio Jardim Exemplo — Torre A" }).check();
+  await page.getByLabel("Setor").selectOption({ label: "Torre A — Salão de festas" });
+  await page.getByRole("checkbox", { name: "Carlos Encarregado (demo) (encarregado)" }).check();
+  await page.getByRole("button", { name: "Criar tarefa" }).click();
+  await expect(page.getByText("Tarefa criada.")).toBeVisible({ timeout: 120_000 });
+
+  const foreman = await mobilePage(browser);
+  await login(foreman, USERS.foreman);
+  await foreman.goto("/campo/tarefas");
+  await foreman.getByRole("link", { name: new RegExp(title) }).first().click();
+  await expect(foreman.getByText("Torre A · Salão de festas")).toBeVisible({ timeout: 60_000 });
+  await foreman.context().close();
+});

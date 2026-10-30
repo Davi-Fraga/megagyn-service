@@ -11,12 +11,14 @@ export const metadata: Metadata = { title: "Nova tarefa" };
 export default async function NewTaskPage({ searchParams }: { searchParams: Promise<{ data?: string; chamado?: string }> }) {
   const sp = await searchParams;
   const db = await createSupabaseServer();
-  const [sites, profiles, catalogs, requests] = await Promise.all([
+  const [sites, profiles, catalogs, requests, areas] = await Promise.all([
     loadSites(db, { onlyActive: true }),
     loadProfiles(db),
     loadCatalogs(db),
     db.from("service_requests").select("id, number, title, site:sites(name)").in("status", ["aberta", "programada", "em_execucao", "pendente"]).order("opened_at", { ascending: false }).limit(200),
+    db.from("site_areas").select("id, name, site_id").eq("is_active", true).order("sort_order").order("name"),
   ]);
+  const siteNames = new Map(sites.map((s) => [s.id, s.name]));
   const staff = profiles.list.filter((p) => p.is_active && p.role !== "client");
   return (
     <div className="max-w-3xl">
@@ -39,6 +41,14 @@ export default async function NewTaskPage({ searchParams }: { searchParams: Prom
           name="site_ids"
           required
           options={sites.map((s) => ({ value: s.id, label: `${s.clientName} — ${s.name}` }))}
+        />
+        <SelectField
+          label="Setor"
+          name="site_area"
+          options={(areas.data ?? [])
+            .filter((a) => siteNames.has(a.site_id))
+            .map((a) => ({ value: `${a.site_id}:${a.id}`, label: `${siteNames.get(a.site_id)} — ${a.name}` }))}
+          hint="Vale só para o local do setor, se a tarefa tiver vários locais."
         />
         <CheckboxGroup
           label="Responsáveis"

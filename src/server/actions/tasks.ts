@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { toActionError, type ActionState } from "@/domain/action-errors";
 import { fdDate, fdStr, fdUuid, fdUuids } from "@/domain/form-data";
 import { newId } from "@/domain/ids";
+import { buildOccurrences } from "@/domain/task-form";
 import { requireProfile } from "@/server/auth";
 import { errorInfo, log } from "@/server/log";
 import { createSupabaseServer } from "@/server/supabase/server";
@@ -26,12 +27,14 @@ export async function createTaskAction(_: ActionState, fd: FormData): Promise<Ac
   const db = await createSupabaseServer();
   const date = fdDate(fd, "scheduled_date");
   const sites = fdUuids(fd, "site_ids");
+  const { occurrences, error: areaError } = buildOccurrences(sites, date, fdStr(fd, "site_area"));
+  if (areaError) return { ok: false, message: areaError, fieldErrors: { site_area: areaError } };
   const { data, error } = await db.rpc("task_create", {
     p_client_request_id: fdUuid(fd, "client_request_id") ?? newId(),
     p_title: fdStr(fd, "title") ?? "",
     p_scheduled_date: nul(date),
     p_assignee_ids: fdUuids(fd, "assignee_ids"),
-    p_occurrences: sites.map((site_id) => ({ site_id, scheduled_date: date })),
+    p_occurrences: occurrences,
     p_description: fdStr(fd, "description") ?? undefined,
     p_kind_id: fdUuid(fd, "kind_id") ?? undefined,
     p_priority_id: fdUuid(fd, "priority_id") ?? undefined,
