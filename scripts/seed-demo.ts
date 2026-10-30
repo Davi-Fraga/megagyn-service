@@ -25,7 +25,11 @@ if (!/127\.0\.0\.1|localhost/.test(URL_) && process.env.SEED_ALLOW_REMOTE !== "1
 
 type Db = SupabaseClient<Database>;
 const svc: Db = createClient<Database>(URL_, SERVICE, { auth: { persistSession: false } });
-export const DEMO_PASSWORD = "Demo@Megagyn2026";
+// Local: senha conhecida dos testes E2E. Fora do local (piloto), use DEMO_PASSWORD do ambiente:
+// a senha do repositório não pode abrir um sistema publicado.
+const REMOTE = !/127\.0\.0\.1|localhost/.test(URL_);
+if (REMOTE && !process.env.DEMO_PASSWORD) throw new Error("Defina DEMO_PASSWORD para rodar o seed fora do Supabase local.");
+export const DEMO_PASSWORD = process.env.DEMO_PASSWORD || "Demo@Megagyn2026";
 
 const must = <R extends { data: unknown; error: unknown }>(r: R, label: string): NonNullable<R["data"]> => {
   if (r.error || r.data === null || r.data === undefined) throw new Error(`${label}: ${JSON.stringify(r.error)}`);
@@ -397,7 +401,7 @@ async function main() {
     });
   }
 
-  console.log("\nPronto. Acessos de demonstração (senha para todos):", DEMO_PASSWORD);
+  console.log("\nPronto. Acessos de demonstração (senha para todos):", REMOTE ? "a definida em DEMO_PASSWORD" : DEMO_PASSWORD);
   console.log("  Administração: admin@demo.megagyn.local");
   console.log("  Encarregado:   encarregado@demo.megagyn.local");
   console.log("  Funcionários:  joao@demo.megagyn.local, pedro@demo.megagyn.local");
