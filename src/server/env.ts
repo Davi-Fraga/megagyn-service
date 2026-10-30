@@ -24,4 +24,10 @@ export const env = {
   get gotenbergUrl() {
     return process.env.GOTENBERG_URL ?? "";
   },
+  get gotenbergUser() {
+    return process.env.GOTENBERG_USER ?? "";
+  },
+  get gotenbergPassword() {
+    return process.env.GOTENBERG_PASSWORD ?? "";
+  },
 };

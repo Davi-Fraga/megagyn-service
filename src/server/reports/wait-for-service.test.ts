@@ -25,6 +25,16 @@ describe("waitForService", () => {
     expect(calls).toBe(2);
   });
 
+  it("repassa os cabeçalhos de autenticação ao serviço", async () => {
+    let seen: Record<string, string> | undefined;
+    const fetchFake = async (_: string, init?: { headers?: Record<string, string> }) => {
+      seen = init?.headers;
+      return new Response(null, { status: 200 });
+    };
+    await waitForService("http://gotenberg.local/health", { fetch: fetchFake, headers: { Authorization: "Basic dTpw" } });
+    expect(seen).toEqual({ Authorization: "Basic dTpw" });
+  });
+
   it("desiste depois do tempo limite com mensagem clara", async () => {
     const fetchFake = async () => new Response(null, { status: 503 });
     await expect(waitForService("http://gotenberg.local/health", { fetch: fetchFake, timeoutMs: 20, intervalMs: 5 })).rejects.toThrow(
