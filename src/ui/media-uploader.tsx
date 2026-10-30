@@ -6,6 +6,7 @@ import { newId } from "@/domain/ids";
 import { buttonClass } from "./button";
 import { cn } from "./cn";
 import { useFieldError, useFormBusy } from "./form";
+import { uploadErrorMessage } from "@/domain/upload";
 
 type Purpose = "photo" | "receipt" | "logo" | "quote";
 type Item = {
@@ -96,7 +97,7 @@ export function MediaUploader({
       if (siteId) body.append("siteId", siteId);
       const res = await fetch("/api/uploads", { method: "POST", body });
       const json = (await res.json().catch(() => ({}))) as { id?: string; error?: string };
-      if (!res.ok || !json.id) throw new Error(json.error ?? "Falha no envio. Toque em tentar de novo.");
+      if (!res.ok || !json.id) throw new Error(uploadErrorMessage(res.status, json.error));
       setItems((prev) => prev.map((i) => (i.key === item.key ? { ...i, status: "concluido", id: json.id } : i)));
     } catch (e) {
       const message =
