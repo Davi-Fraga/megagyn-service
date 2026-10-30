@@ -76,6 +76,7 @@ export function PhotoGrid({
               <div className="space-y-0.5 px-2 py-1.5 text-sm">
                 {p.role && <span className="block font-semibold">{ROLE_LABEL[p.role] ?? p.role}</span>}
                 {p.caption && <span className="block text-muted">{p.caption}</span>}
+                {p.meta && <span className="block text-xs text-muted">{p.meta}</span>}
                 {p.revoked && <span className="block font-semibold text-erro">Removida</span>}
               </div>
             </button>
