@@ -1,0 +1,8 @@
+# HTTPS automático. O limite cobre o maior comprovante aceito em Configurações (20 MB) e o multipart.
+{$SITE_ADDRESS} {
+	encode gzip
+	request_body {
+		max_size 25MB
+	}
+	reverse_proxy app:3000
+}

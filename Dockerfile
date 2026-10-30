@@ -15,7 +15,8 @@ RUN npm run build
 
 FROM base AS runtime
 ENV NODE_ENV=production
-COPY --from=build /app /app
+# O app grava o cache do next/image em .next/cache: a pasta precisa ser do usuário do container.
+COPY --from=build --chown=pwuser:pwuser /app /app
 USER pwuser
 EXPOSE 3000
 # App:    docker run --env-file .env.production -p 3000:3000 megagyn

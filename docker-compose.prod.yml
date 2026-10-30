@@ -1,0 +1,51 @@
+# Servidor próprio: app, worker de PDFs e Caddy (HTTPS automático).
+# Uso: SITE_ADDRESS=sistema.exemplo.com.br docker compose -f docker-compose.prod.yml up -d --build
+# No servidor, .env.production leva só o que o app usa: sem senha do banco e sem DEMO_PASSWORD.
+services:
+  app:
+    build: .
+    image: megagyn:latest
+    restart: unless-stopped
+    env_file: .env.production
+    environment:
+      NODE_ENV: production
+      PDF_RENDERER: playwright
+    expose:
+      - "3000"
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/api/health').then((r) => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 40s
+
+  worker:
+    image: megagyn:latest
+    restart: unless-stopped
+    env_file: .env.production
+    environment:
+      NODE_ENV: production
+      PDF_RENDERER: playwright
+    command: ["npm", "run", "worker"]
+    depends_on:
+      app:
+        condition: service_healthy
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      SITE_ADDRESS: ${SITE_ADDRESS:?Defina SITE_ADDRESS com o endereço público}
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - app
+
+volumes:
+  caddy_data:
+  caddy_config:
