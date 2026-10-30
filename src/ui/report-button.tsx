@@ -4,6 +4,7 @@ import { Download, Eye, Loader2, RotateCcw } from "lucide-react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { requestReport, retryReport, type ReportRequest } from "@/server/actions/reports";
 import { buttonClass, type ButtonVariant } from "./button";
+import { useHydrated } from "./use-hydrated";
 
 type Status = { status: "na_fila" | "processando" | "pronto" | "falhou"; file_name: string; error_message: string | null; page_count: number | null };
 
@@ -33,6 +34,7 @@ export function GenerateReportButton({
   const [requesting, setRequesting] = useState(false);
   const [nonce, setNonce] = useState(0);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const hydrated = useHydrated();
 
   useEffect(() => {
     if (!artifactId) return;
@@ -82,7 +84,7 @@ export function GenerateReportButton({
   return (
     <div className="flex flex-wrap items-center gap-2" aria-live="polite">
       {status?.status !== "pronto" && (
-        <button type="button" onClick={start} disabled={working} className={buttonClass(variant)}>
+        <button type="button" onClick={start} disabled={!hydrated || working} className={buttonClass(variant)}>
           {working ? <Loader2 aria-hidden className="size-4 animate-spin" /> : icon}
           {working ? (status ? LABEL[status.status] : "Pedindo…") : label}
         </button>
@@ -95,7 +97,7 @@ export function GenerateReportButton({
           <a href={`/api/reports/${artifactId}/download`} className={buttonClass("primary")}>
             <Download aria-hidden className="size-4" /> Baixar {status.file_name}
           </a>
-          <button type="button" onClick={start} className="text-sm font-semibold text-info underline">
+          <button type="button" onClick={start} disabled={!hydrated} className="text-sm font-semibold text-info underline">
             Gerar de novo
           </button>
         </>
@@ -103,7 +105,7 @@ export function GenerateReportButton({
       {status?.status === "falhou" && (
         <span className="flex items-center gap-2 text-sm font-medium text-erro">
           {status.error_message}
-          <button type="button" onClick={retry} className="inline-flex items-center gap-1 underline">
+          <button type="button" onClick={retry} disabled={!hydrated} className="inline-flex items-center gap-1 underline">
             <RotateCcw aria-hidden className="size-4" /> Tentar de novo
           </button>
         </span>

@@ -11,7 +11,6 @@ import {
   useMemo,
   useRef,
   useState,
-  useSyncExternalStore,
   type ComponentProps,
   type ReactNode,
 } from "react";
@@ -19,6 +18,7 @@ import type { ActionState } from "@/domain/action-errors";
 import { newId } from "@/domain/ids";
 import { buttonClass, type ButtonSize, type ButtonVariant } from "./button";
 import { cn } from "./cn";
+import { useHydrated } from "./use-hydrated";
 
 type FormCtx = {
   errors: Record<string, string>;
@@ -91,11 +91,7 @@ export function ActionForm({
   );
   const [state, formAction, pending] = useActionState(submit, { ok: false });
   // false no servidor e até a hidratação: evita envio nativo (GET) antes de o React assumir o formulário.
-  const hydrated = useSyncExternalStore(
-    () => () => {},
-    () => true,
-    () => false,
-  );
+  const hydrated = useHydrated();
 
   const setBusy = useCallback((key: string, value: boolean) => {
     setBusyMap((prev) => (prev[key] === value ? prev : { ...prev, [key]: value }));
