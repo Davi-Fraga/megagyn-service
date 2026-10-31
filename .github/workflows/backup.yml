@@ -61,7 +61,8 @@ jobs:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
       - name: Enviar os arquivos novos
-        run: rclone copy backups/*/storage arquivos:
+        run: |
+          rclone copy backups/*/storage arquivos:
       - name: Cifrar banco e manifesto e enviar
         run: |
           name="megagyn-$(date -u +%Y-%m-%d-%H%M).tar.gz.gpg"
