@@ -61,15 +61,18 @@ Referência de volume: o relatório real de setembro/2026 tinha 24 dias e cerca 
 
 | O quê | Como | Frequência sugerida | Retenção sugerida |
 |---|---|---|---|
-| Banco (dados, contas, metadados dos arquivos) | `npm run backup` → `pg_dump` (formato custom) | diária | 30 diárias + 12 mensais |
-| Arquivos (fotos, comprovantes, PDFs, logotipo) | `npm run backup` → download de todos os objetos dos buckets privados, com hash SHA-256 no `manifest.json` | diária (incremental pode ser adotado depois) | igual ao banco |
+| Banco (dados, contas, metadados dos arquivos) | `npm run backup` → `pg_dump` (formato custom) | diária | 30 diárias |
+| Arquivos (fotos, comprovantes, PDFs, logotipo) | `npm run backup` → download dos objetos dos buckets privados, com hash SHA-256 no `manifest.json`; com `BACKUP_SKIP_LIST`, só os que ainda não estão guardados | diária, incremental | cópia única: nada é apagado |
 | Backups automáticos do Supabase | dependem do plano contratado | — | **pendente (externo):** confirmar no plano |
 
 `npm run backup` grava em `backups/<data-hora>/`. Em produção, defina `DATABASE_URL` (conexão direta do Postgres) e tenha `pg_dump` instalado; agende o comando (cron/agendador) e copie a pasta para um armazenamento externo (outro provedor ou bucket S3 compatível). A pasta `backups/` está no `.gitignore`.
 
 ### Backup automático gratuito (GitHub Actions + Google Drive)
 
-O Supabase Free não tem backup automático. O workflow `.github/workflows/backup.yml` roda todo dia às 06:00 UTC, gera o backup, cifra com `gpg` e envia para a pasta `megagyn-backups` do Google Drive, apagando cópias com mais de 30 dias.
+O Supabase Free não tem backup automático. O workflow `.github/workflows/backup.yml` roda todo dia às 06:00 UTC e guarda duas coisas no Google Drive:
+
+- **Banco e manifesto:** uma cópia por dia na pasta `megagyn-backups`, cifrada com `gpg`, apagando as que têm mais de 30 dias.
+- **Arquivos:** uma cópia única na pasta `megagyn-arquivos`, cifrada pelo rclone com a mesma senha. Cada dia baixa do Supabase só o que ainda não está lá, porque baixar tudo diariamente esgotaria a cota de saída do plano gratuito. Arquivo gravado não muda, e nada é apagado dessa pasta.
 
 Para ligar:
 
@@ -77,9 +80,20 @@ Para ligar:
 2. Cadastre em GitHub → Settings → Secrets and variables → Actions os segredos `BACKUP_DATABASE_URL`, `NEXT_PUBLIC_SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `BACKUP_PASSPHRASE` e `RCLONE_CONFIG`, este com o conteúdo do `rclone.conf`. Em `BACKUP_DATABASE_URL`, use a conexão **Session pooler** do Supabase, porque o runner do GitHub só tem IPv4.
 3. Crie a variável de repositório `BACKUP_ENABLED=true` e dispare o workflow pela aba Actions.
 
-Guarde `BACKUP_PASSPHRASE` fora do GitHub: sem ela, a cópia não abre. Falha no workflow gera e-mail do GitHub para o dono do repositório.
+Guarde `BACKUP_PASSPHRASE` fora do GitHub e não a troque depois de ligar: sem ela, nenhuma das duas pastas abre. Falha no workflow gera e-mail do GitHub para o dono do repositório.
 
-Para restaurar uma cópia: baixe do Drive, rode `gpg --decrypt <arquivo> | tar -xz` e depois `npm run restore:test -- backups/<pasta>`.
+Para restaurar:
+
+1. Baixe uma cópia de `megagyn-backups` e abra com `gpg --decrypt <arquivo> | tar -xz`. Ela traz `db.dump` e `manifest.json`.
+2. Traga os arquivos para a mesma pasta, com a senha em `BACKUP_PASSPHRASE`:
+
+   ```bash
+   export RCLONE_CRYPT_REMOTE=gdrive:megagyn-arquivos
+   export RCLONE_CRYPT_PASSWORD="$(printf '%s' "$BACKUP_PASSPHRASE" | rclone obscure -)"
+   rclone copy :crypt: <pasta>/storage
+   ```
+
+3. Confira com `npm run restore:test -- <pasta>`.
 
 ## 5. Teste de restauração
 

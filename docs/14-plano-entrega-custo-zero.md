@@ -205,15 +205,16 @@ Logotipo e PDFs não mudam. Fotos antigas ficam como estão, sem conversão.
 ### Task 10: Backup diário com cópia externa
 
 **Arquivos:**
-- Criar: `.github/workflows/backup.yml`
-- Modificar: `docs/08-operacao.md` (§4 e §5)
+- Criar: `.github/workflows/backup.yml`, `scripts/backup-files.ts`
+- Modificar: `scripts/backup.ts`, `scripts/restore-test.ts`, `docs/08-operacao.md` (§4 e §5)
+- Teste: `tests/db/backup-files.test.ts`
 
 **Davi:** autorizar o Google Drive uma vez com `rclone config` e entregar o conteúdo do arquivo de configuração como segredo. **Segredos do repositório:** `BACKUP_DATABASE_URL` (Session pooler, porque o runner só tem IPv4), `NEXT_PUBLIC_SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `BACKUP_PASSPHRASE`, `RCLONE_CONFIG`.
 
-Workflow: agendado para `0 6 * * *` e `workflow_dispatch`; instala `postgresql-client-17` do repositório PGDG e rclone; roda `npm ci` e `npm run backup`; compacta `backups/`; cifra com `gpg --symmetric`; envia para `gdrive:megagyn-backups`; apaga cópias com mais de 30 dias usando `rclone delete --min-age 30d`.
+Workflow: agendado para `0 6 * * *` e `workflow_dispatch`; instala `postgresql-client-17` do repositório PGDG e rclone; roda `npm ci`; lista o que já está em `gdrive:megagyn-arquivos` (cópia única, cifrada pelo rclone com `BACKUP_PASSPHRASE`) e passa essa lista em `BACKUP_SKIP_LIST`; roda `npm run backup`; envia os arquivos novos com `rclone copy`; compacta banco e manifesto; cifra com `gpg --symmetric`; envia para `gdrive:megagyn-backups`; apaga cópias com mais de 30 dias usando `rclone delete --min-age 30d`.
 
-- [ ] **Passo 1: Disparar manualmente.** Esperado: verde e arquivo `.gpg` no Drive.
-- [ ] **Passo 2: Restaurar.** Baixar, decifrar e rodar `npm run restore:test -- <pasta>`. Esperado: contagens iguais e hashes idênticos.
+- [ ] **Passo 1: Disparar manualmente.** Esperado: verde, arquivo `.gpg` em `megagyn-backups` e arquivos com nomes cifrados em `megagyn-arquivos`.
+- [ ] **Passo 2: Restaurar.** Seguir `docs/08-operacao.md` §4 e rodar `npm run restore:test -- <pasta>`. Esperado: contagens iguais e todos os arquivos restaurados.
 - [ ] **Passo 3: Documentar** como restaurar e a rotina mensal de teste.
 - [ ] **Passo 4: Commit** `ci(backup): backup diário cifrado no Google Drive`.
 
