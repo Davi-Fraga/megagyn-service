@@ -34,11 +34,23 @@ Caminho escolhido em 29/10/2026 (`docs/13-plano-implantacao-piloto.md`). Sem car
 6. **Como o Gotenberg frio se comporta:** o primeiro PDF do dia pode levar cerca de 1 minuto, porque o app espera o serviço acordar (`waitForService`, até 2 min) dentro dos 300 s da função. Com o monitor ativo isso não acontece.
 7. **Conferir no ar:** `GET /api/health` responde `{"ok":true,"db":true,"renderer":"gotenberg","rendererUp":true}`; login, chamado com foto e PDF de fechamento pelo roteiro de `docs/13`, etapa E5.
 
+## 2b. Servidor próprio: Oracle Always Free com Docker Compose
+
+Substitui Vercel e Render quando o sistema passar a operar de verdade. O plano Hobby da Vercel não permite uso comercial, e o Render pede para não usar instância gratuita em produção. Aqui, app, worker e Chromium rodam na mesma máquina, sem limite de 4,5 MB e sem serviço dormindo.
+
+1. **Máquina:** `VM.Standard.A1.Flex`, Ubuntu 24.04 Arm, 2 OCPU e 6 GB. A Oracle pode recolher máquina com CPU, rede e memória abaixo de 20% por 7 dias; com 6 GB, a memória tende a ficar acima disso. Acompanhe nas métricas da Oracle.
+2. **Rede:** libere as portas 80 e 443 na Security List da VCN e no `iptables` da máquina. Acesso SSH só por chave.
+3. **Instalação:** Docker com Compose e `unattended-upgrades`. Clone o repositório com deploy key somente leitura.
+4. **Variáveis:** copie por `scp` um `.env.production` só com o que o app usa, sem a senha do banco e sem `DEMO_PASSWORD`. `APP_URL` recebe o endereço final com https.
+5. **Subir:** `SITE_ADDRESS=<endereço> docker compose -f docker-compose.prod.yml up -d --build`. O Caddy emite o certificado sozinho.
+6. **Atualizar:** `git pull` e o mesmo comando de subir.
+7. **Depois de trocar o endereço:** ajuste Site URL e URLs de retorno no Supabase, o monitor do UptimeRobot, a variável `APP_URL` do GitHub e o limite de PDF em Configurações de volta para 20 MB.
+
 ## 3. Limites e dimensionamento (pressupostos, ajustáveis em Configurações)
 
 | Item | Valor inicial | Observação |
 |---|---|---|
-| Foto | 15 MB | o celular reduz para até 2560 px antes do envio |
+| Foto | 15 MB | o celular reduz para até 1600 px antes do envio (comprovante, 2000 px); o servidor guarda só essa versão, sem metadados, e a miniatura |
 | PDF de comprovante | 20 MB | |
 | Arquivos por envio | 20 | |
 | Atividade retroativa (campo) | 7 dias | a administração pode lançar datas mais antigas |
@@ -49,11 +61,39 @@ Referência de volume: o relatório real de setembro/2026 tinha 24 dias e cerca 
 
 | O quê | Como | Frequência sugerida | Retenção sugerida |
 |---|---|---|---|
-| Banco (dados, contas, metadados dos arquivos) | `npm run backup` → `pg_dump` (formato custom) | diária | 30 diárias + 12 mensais |
-| Arquivos (fotos, comprovantes, PDFs, logotipo) | `npm run backup` → download de todos os objetos dos buckets privados, com hash SHA-256 no `manifest.json` | diária (incremental pode ser adotado depois) | igual ao banco |
+| Banco (dados, contas, metadados dos arquivos) | `npm run backup` → `pg_dump` (formato custom) | diária | 30 diárias |
+| Arquivos (fotos, comprovantes, PDFs, logotipo) | `npm run backup` → download dos objetos dos buckets privados, com hash SHA-256 no `manifest.json`; com `BACKUP_SKIP_LIST`, só os que ainda não estão guardados | diária, incremental | cópia única: nada é apagado |
 | Backups automáticos do Supabase | dependem do plano contratado | — | **pendente (externo):** confirmar no plano |
 
 `npm run backup` grava em `backups/<data-hora>/`. Em produção, defina `DATABASE_URL` (conexão direta do Postgres) e tenha `pg_dump` instalado; agende o comando (cron/agendador) e copie a pasta para um armazenamento externo (outro provedor ou bucket S3 compatível). A pasta `backups/` está no `.gitignore`.
+
+### Backup automático gratuito (GitHub Actions + Google Drive)
+
+O Supabase Free não tem backup automático. O workflow `.github/workflows/backup.yml` roda todo dia às 06:00 UTC e guarda duas coisas no Google Drive:
+
+- **Banco e manifesto:** uma cópia por dia na pasta `megagyn-backups`, cifrada com `gpg`, apagando as que têm mais de 30 dias.
+- **Arquivos:** uma cópia única na pasta `megagyn-arquivos`, cifrada pelo rclone com a mesma senha. Cada dia baixa do Supabase só o que ainda não está lá, porque baixar tudo diariamente esgotaria a cota de saída do plano gratuito. Arquivo gravado não muda, e nada é apagado dessa pasta.
+
+Para ligar:
+
+1. No seu computador, rode `rclone config`, crie um destino do tipo Google Drive com o nome `gdrive` e autorize no navegador.
+2. Cadastre em GitHub → Settings → Secrets and variables → Actions os segredos `BACKUP_DATABASE_URL`, `NEXT_PUBLIC_SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `BACKUP_PASSPHRASE` e `RCLONE_CONFIG`, este com o conteúdo do `rclone.conf`. Em `BACKUP_DATABASE_URL`, use a conexão **Session pooler** do Supabase, porque o runner do GitHub só tem IPv4.
+3. Crie a variável de repositório `BACKUP_ENABLED=true` e dispare o workflow pela aba Actions.
+
+Guarde `BACKUP_PASSPHRASE` fora do GitHub e não a troque depois de ligar: sem ela, nenhuma das duas pastas abre. Falha no workflow gera e-mail do GitHub para o dono do repositório.
+
+Para restaurar:
+
+1. Baixe uma cópia de `megagyn-backups` e abra com `gpg --decrypt <arquivo> | tar -xz`. Ela traz `db.dump` e `manifest.json`.
+2. Traga os arquivos para a mesma pasta, com a senha em `BACKUP_PASSPHRASE`:
+
+   ```bash
+   export RCLONE_CRYPT_REMOTE=gdrive:megagyn-arquivos
+   export RCLONE_CRYPT_PASSWORD="$(printf '%s' "$BACKUP_PASSPHRASE" | rclone obscure -)"
+   rclone copy :crypt: <pasta>/storage
+   ```
+
+3. Confira com `npm run restore:test -- <pasta>`.
 
 ## 5. Teste de restauração
 

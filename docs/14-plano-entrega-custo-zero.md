@@ -169,7 +169,7 @@ Fora: diário e PDFs para o cliente continuam sem autor, porque o diário monta 
 ### Task 8: Foto em arquivo único de 1600 px (depende de D1)
 
 **Arquivos:**
-- Criar: `supabase/migrations/20261030000100_single_image_file.sql`, `src/server/images.test.ts`
+- Criar: `src/server/images.test.ts`
 - Modificar: `src/server/images.ts`, `src/domain/upload.ts`, `src/domain/file-serving.ts`, `src/domain/file-serving.test.ts`, `src/app/api/uploads/route.ts`, `src/ui/media-uploader.tsx:21`, `tests/db/review-fixes.test.ts`, `docs/02-requisitos-rastreabilidade.md` (D-11), `docs/08-operacao.md`, `docs/12-revisao-ux-mobile.md`
 
 **Interfaces:**
@@ -181,11 +181,11 @@ Logotipo e PDFs não mudam. Fotos antigas ficam como estão, sem conversão.
 - [ ] **Passo 2: Escrever o teste de entrega** em `file-serving.test.ts`: com `derivatives: { thumb }`, `original` e `medium` devolvem `storageKey` para qualquer pessoa, e `thumb` devolve a miniatura. O caso `derivatives: {}` para não administrador continua `null`.
 - [ ] **Passo 3: Escrever o teste de banco:** "aceita anexo só com miniatura" e "recusa miniatura com nome fora do padrão".
 - [ ] **Passo 4: Rodar os três.** Esperado: falha.
-- [ ] **Passo 5: Mostrar a migração e esperar OK.** Troca `attachments_derivatives_format` para exigir `thumb` no padrão e aceitar `medium` ausente, mantendo `not valid`. Não altera linhas existentes.
+- [x] **Passo 5: Migração dispensada.** O teste do Passo 3 passou sem mudança no banco: o `CHECK` atual aceita `medium` ausente, porque `NULL` não reprova a regra, e recusa miniatura fora do padrão.
 - [ ] **Passo 6: Implementar.** `storedImage` com `.rotate()`, `fit: "inside"`, `withoutEnlargement`, JPEG qualidade 84 e `mozjpeg`. Na rota, para quem não é `logo`: gravar `<id>.jpg` e `<id>_thumb.jpg`, com `mime_type` JPEG e `derivatives: { thumb }`. Em `planFileResponse`, usar `d.medium ?? (d.thumb ? storageKey : null)`.
 - [ ] **Passo 7: Rodar a verificação completa da fase, com E2E.** Esperado: verde; upload, PDF e `alvos-toque` passam.
 - [ ] **Passo 8: Medir** com 5 fotos reais de celular: tamanho por foto e tempo no 3G. Registrar em `docs/12-revisao-ux-mobile.md`.
-- [ ] **Passo 9: Commit, PR e merge** de `feat(fotos): guardar uma versão de 1600 px e miniatura`, depois `supabase db push` na nuvem, com OK.
+- [ ] **Passo 9: Commit, PR e merge** de `feat(fotos): guardar uma versão de 1600 px e miniatura`.
 
 ---
 
@@ -205,15 +205,16 @@ Logotipo e PDFs não mudam. Fotos antigas ficam como estão, sem conversão.
 ### Task 10: Backup diário com cópia externa
 
 **Arquivos:**
-- Criar: `.github/workflows/backup.yml`
-- Modificar: `docs/08-operacao.md` (§4 e §5)
+- Criar: `.github/workflows/backup.yml`, `scripts/backup-files.ts`
+- Modificar: `scripts/backup.ts`, `scripts/restore-test.ts`, `docs/08-operacao.md` (§4 e §5)
+- Teste: `tests/db/backup-files.test.ts`
 
 **Davi:** autorizar o Google Drive uma vez com `rclone config` e entregar o conteúdo do arquivo de configuração como segredo. **Segredos do repositório:** `BACKUP_DATABASE_URL` (Session pooler, porque o runner só tem IPv4), `NEXT_PUBLIC_SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `BACKUP_PASSPHRASE`, `RCLONE_CONFIG`.
 
-Workflow: agendado para `0 6 * * *` e `workflow_dispatch`; instala `postgresql-client-17` do repositório PGDG e rclone; roda `npm ci` e `npm run backup`; compacta `backups/`; cifra com `gpg --symmetric`; envia para `gdrive:megagyn-backups`; apaga cópias com mais de 30 dias usando `rclone delete --min-age 30d`.
+Workflow: agendado para `0 6 * * *` e `workflow_dispatch`; instala `postgresql-client-17` do repositório PGDG e rclone; roda `npm ci`; lista o que já está em `gdrive:megagyn-arquivos` (cópia única, cifrada pelo rclone com `BACKUP_PASSPHRASE`) e passa essa lista em `BACKUP_SKIP_LIST`; roda `npm run backup`; envia os arquivos novos com `rclone copy`; compacta banco e manifesto; cifra com `gpg --symmetric`; envia para `gdrive:megagyn-backups`; apaga cópias com mais de 30 dias usando `rclone delete --min-age 30d`.
 
-- [ ] **Passo 1: Disparar manualmente.** Esperado: verde e arquivo `.gpg` no Drive.
-- [ ] **Passo 2: Restaurar.** Baixar, decifrar e rodar `npm run restore:test -- <pasta>`. Esperado: contagens iguais e hashes idênticos.
+- [ ] **Passo 1: Disparar manualmente.** Esperado: verde, arquivo `.gpg` em `megagyn-backups` e arquivos com nomes cifrados em `megagyn-arquivos`.
+- [ ] **Passo 2: Restaurar.** Seguir `docs/08-operacao.md` §4 e rodar `npm run restore:test -- <pasta>`. Esperado: contagens iguais e todos os arquivos restaurados.
 - [ ] **Passo 3: Documentar** como restaurar e a rotina mensal de teste.
 - [ ] **Passo 4: Commit** `ci(backup): backup diário cifrado no Google Drive`.
 

@@ -102,6 +102,28 @@ describe("C1 — anexos só entram pela rota de upload", () => {
 });
 
 describe("I3 — comprovante interno não vira foto de serviço", () => {
+  it("aceita anexo só com miniatura e recusa miniatura com nome fora do padrão", async () => {
+    const svc = serviceClient();
+    const row = (id: string, thumb: string) => ({
+      id,
+      bucket: "evidence" as const,
+      site_id: siteA.id,
+      storage_key: `${siteA.id}/2026/10/${id}.jpg`,
+      mime_type: "image/jpeg",
+      size_bytes: 10,
+      uploaded_by: worker.id,
+      client_upload_id: randomUUID(),
+      derivatives: { thumb },
+    });
+    const good = randomUUID();
+    const ok = await svc.from("attachments").insert(row(good, `${siteA.id}/2026/10/${good}_thumb.jpg`));
+    expect(ok.error).toBeNull();
+    await svc.from("attachments").delete().eq("id", good);
+    const bad = randomUUID();
+    const refused = await svc.from("attachments").insert(row(bad, `${siteA.id}/2026/10/${bad}.html`));
+    expect(refused.error?.message).toContain("attachments_derivatives_format");
+  });
+
   it("encarregado não usa comprovante como foto de atividade", async () => {
     const receipt = await storedAttachment(foreman, "receipts", null);
     const { error } = await foreman.db.rpc("work_entry_create", {

@@ -1,6 +1,6 @@
 # 10 — Checklist dos 18 testes de aceite
 
-> Situação em 25/10/2026, ambiente local (Supabase CLI + build de produção do Next.js com `next start`). "Passou" só quando há teste automatizado executado com o resultado indicado. Cenário em uso: **B** (sem login de cliente — Q1 pendente).
+> Situação em 31/10/2026, ambiente local (Supabase CLI + build de produção do Next.js com `next start`). "Passou" só quando há teste automatizado executado com o resultado indicado. Cenário em uso: **B** (sem login de cliente — Q1 pendente).
 
 Comandos de verificação usados:
 
@@ -11,16 +11,16 @@ E2E_BASE_URL=http://localhost:3100 npx playwright test
 npm run backup && npm run restore:test
 ```
 
-Resultado da última execução (26/10/2026):
+Resultado da última execução (31/10/2026):
 
 | Verificação | Resultado |
 |---|---|
 | Lint e typecheck | 0 erros |
-| Testes unitários | 208/208 |
-| Testes de banco (RLS, RPCs, gatilhos) | 66/66 |
+| Testes unitários | 232/232 |
+| Testes de banco (RLS, RPCs, gatilhos) | 85/85 |
 | Build de produção | OK |
-| E2E contra o build de produção | 13/13 (3,7 min) + teste de alvos de toque 1/1 |
-| Backup + restauração em banco descartável | banco restaurado, 9/9 contagens, 292/292 arquivos com hash idêntico; ver T-A16 |
+| E2E contra o build de produção | 19/19 (17,2 min) |
+| Backup + restauração em banco descartável | banco restaurado, 9/9 contagens, 5.448/5.448 arquivos conferidos no envio e na volta; ver T-A16 |
 
 | # | Critério | Situação | Evidência |
 |---|---|---|---|
@@ -39,7 +39,7 @@ Resultado da última execução (26/10/2026):
 | T-A13 | CSV com totais corretos e rateios sem duplicar | Passou | `despesas.spec.ts` (CSV: soma do atribuído = total da compra); CSV de chamados usa a mesma consulta da tela (`src/server/request-list.ts`). |
 | T-A14 | Orçamento global + detalhado soma certo; validade, garantia, fotos; PDF | Passou | `orcamentos.spec.ts`; `tests/db/quotes.test.ts`; `src/domain/quote.test.ts`; `amount-in-words.test.ts` (R$ 7.600,00 → "sete mil e seiscentos reais"). |
 | T-A15 | Usuário inativado perde acesso sem apagar autorias | Passou | `requests.test.ts` (T-A15); `cadastros.spec.ts` (sessão aberta perde acesso; novo login mostra "Seu acesso está desativado"). |
-| T-A16 | Restaurar dados e anexos de backup em ambiente de teste | Passou, com ressalva | `npm run backup` + `npm run restore:test`: banco restaurado em banco descartável, 9/9 contagens iguais, 292/292 arquivos com SHA-256 idêntico, banco e bucket descartáveis removidos. A conferência "todo anexo tem arquivo" apontou 109 registros sem arquivo, todos criados por execuções antigas dos testes de banco na base local (gravação direta, hoje bloqueada pela correção C1). O teste de banco que criava esses registros agora apaga o que cria. Para uma execução limpa: base nova (`npm run db:reset` + `npm run seed`), que apaga a base local. A execução pelo assistente foi bloqueada pela proteção de ações destrutivas do ambiente; precisa ser rodada pelo usuário. A primeira execução falhou porque o dump trazia `vault.secrets`; o backup passou a excluir esses dados. Backup automático do provedor e cópia externa: **pendente (externo)**. |
+| T-A16 | Restaurar dados e anexos de backup em ambiente de teste | Passou, com ressalva | `npm run backup` + `npm run restore:test`, com os passos do workflow de backup e uma pasta local no lugar do Google Drive (rclone 1.60.1, a versão do CI): banco restaurado em banco descartável, 9/9 contagens iguais, 5.448/5.448 arquivos conferidos, banco e bucket descartáveis removidos. Nesse teste, a segunda execução baixou 0 arquivos, e os arquivos vieram da cópia cifrada, que recusa conteúdo alterado ao decifrar. A conferência "todo anexo tem arquivo" apontou 110 registros sem arquivo, todos criados por execuções antigas dos testes de banco na base local (gravação direta, hoje bloqueada pela correção C1). O teste de banco que criava esses registros agora apaga o que cria. Para uma execução limpa: base nova (`npm run db:reset` + `npm run seed`), que apaga a base local. A execução pelo assistente foi bloqueada pela proteção de ações destrutivas do ambiente; precisa ser rodada pelo usuário. A primeira execução falhou porque o dump trazia `vault.secrets`; o backup passou a excluir esses dados. Cópia externa no Google Drive real: workflow pronto, **pendente (externo)** até cadastrar os segredos e ligar `BACKUP_ENABLED`. |
 | T-A17 | Clique duplo / rede instável não duplica registros | Passou | `requests.test.ts` (chamadas simultâneas com a mesma chave), `work-and-tasks.test.ts`, `expenses.test.ts`; formulário reaproveita a chave até o sucesso e bloqueia o botão durante o envio. |
 | T-A18 | Custo interno, valor comercial e valor faturável não se somam | Passou | Tabelas e telas separadas; painel com blocos distintos ("não se somam"); `closings.test.ts` verifica que o payload do cliente não contém dados financeiros; nenhuma FK de orçamento para despesa. |
 

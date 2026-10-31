@@ -22,6 +22,15 @@
 
 A foto do teste é ruído aleatório, o pior caso para compressão JPEG. Foto real de obra comprime melhor e tende a levar menos tempo. As fotos sobem uma por vez, em fila, com "Tentar de novo" em caso de falha, e a pessoa pode continuar preenchendo o registro enquanto elas sobem.
 
+Desde 30/10/2026, cada foto é guardada só em 1600 px, sem o arquivo de 2560 px. Medição com a mesma foto de pior caso:
+
+| Armazenamento por foto | Antes | Agora |
+|---|---|---|
+| Arquivos guardados | 2560 px, 1600 px e miniatura | 1600 px e miniatura |
+| Espaço ocupado | 2.308 KB | 376 KB |
+
+O tempo de envio no 3G e o tamanho com fotos reais de obra ainda precisam ser medidos no piloto.
+
 ## Ajustes feitos
 
 | Problema | Ajuste |
@@ -38,6 +47,5 @@ Depois dos ajustes, nenhuma das telas medidas tem alvo de toque menor que 44 px 
 
 ## Observações para o piloto
 
-- **Fotos em rede fraca:** se a equipe reclamar da espera, reduzir o tamanho máximo no aparelho de 2560 px para 2048 px corta perto de um terço do envio. O PDF usa a versão de 1600 px, então a mudança não afeta os relatórios. Fica como decisão da Megagyn, porque o original arquivado perde resolução.
 - **Primeira carga do login:** 251 KB, quase tudo do próprio Next.js e da fonte. Nas visitas seguintes, o navegador usa o cache.
 - **A verificar em aparelho real:** câmera abrindo direto pelo botão de foto, teclado cobrindo campos, brilho de tela ao sol e uso com luva.

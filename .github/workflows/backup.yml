@@ -1,0 +1,74 @@
+# Backup diário do Supabase, cifrado, no Google Drive. Banco e manifesto vão em uma cópia por dia
+# (pasta megagyn-backups, 30 dias). Arquivos vão para uma cópia única (pasta megagyn-arquivos,
+# cifrada pelo rclone com a mesma senha) e cada dia baixa só o que ainda não está lá.
+# Ligue com a variável de repositório BACKUP_ENABLED=true depois de cadastrar os segredos:
+#   BACKUP_DATABASE_URL (Session pooler, porque o runner só tem IPv4), NEXT_PUBLIC_SUPABASE_URL,
+#   SUPABASE_SERVICE_ROLE_KEY, BACKUP_PASSPHRASE e RCLONE_CONFIG (conteúdo do rclone.conf).
+# Falha aqui gera e-mail do GitHub para o dono do repositório.
+name: Backup
+
+on:
+  schedule:
+    - cron: "0 6 * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: backup
+
+permissions:
+  contents: read
+
+jobs:
+  backup:
+    if: ${{ vars.BACKUP_ENABLED == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        # Declarar bash liga o pipefail: tar que falha no meio não pode virar cópia truncada.
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - name: Cliente PostgreSQL 17 e rclone
+        run: |
+          sudo install -d /usr/share/postgresql-common/pgdg
+          sudo curl -fsSL -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc https://www.postgresql.org/media/keys/ACCC4CF8.asc
+          echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" | sudo tee /etc/apt/sources.list.d/pgdg.list
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-client-17 rclone
+          echo /usr/lib/postgresql/17/bin >> "$GITHUB_PATH"
+      - run: npm ci
+      - name: Preparar o Drive e listar os arquivos já guardados
+        run: |
+          mkdir -p ~/.config/rclone
+          printf '%s\n' "$RCLONE_CONF" > ~/.config/rclone/rclone.conf
+          obscured="$(printf '%s' "$BACKUP_PASSPHRASE" | rclone obscure -)"
+          printf '[arquivos]\ntype = crypt\nremote = gdrive:megagyn-arquivos\npassword = %s\n' "$obscured" >> ~/.config/rclone/rclone.conf
+          rclone mkdir arquivos:
+          rclone lsf -R --files-only arquivos: > ja-guardados.txt
+        env:
+          BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+          RCLONE_CONF: ${{ secrets.RCLONE_CONFIG }}
+      - name: Gerar backup
+        run: npm run backup
+        env:
+          BACKUP_SKIP_LIST: ja-guardados.txt
+          DATABASE_URL: ${{ secrets.BACKUP_DATABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      - name: Enviar os arquivos novos
+        run: |
+          rclone copy backups/*/storage arquivos:
+      - name: Cifrar banco e manifesto e enviar
+        run: |
+          name="megagyn-$(date -u +%Y-%m-%d-%H%M).tar.gz.gpg"
+          tar -czf - --exclude=storage backups | gpg --batch --yes --pinentry-mode loopback --symmetric --cipher-algo AES256 --passphrase "$BACKUP_PASSPHRASE" -o "$name"
+          rclone copy "$name" gdrive:megagyn-backups
+          rclone delete --min-age 30d gdrive:megagyn-backups
+          rclone lsl gdrive:megagyn-backups | tail -3
+        env:
+          BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}

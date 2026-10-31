@@ -1,8 +1,8 @@
 import { createHash, randomUUID } from "node:crypto";
 import { NextResponse } from "next/server";
 import { UUID_RE } from "@/domain/ids";
-import { requestTooLarge, validateUpload, type UploadPurpose } from "@/domain/upload";
-import { imageDerivatives } from "@/server/images";
+import { MAX_IMAGE_SIDE, requestTooLarge, validateUpload, type UploadPurpose } from "@/domain/upload";
+import { imageDerivatives, storedImage } from "@/server/images";
 import { errorInfo, log } from "@/server/log";
 import { createSupabaseAdmin } from "@/server/supabase/admin";
 import { createSupabaseServer } from "@/server/supabase/server";
@@ -83,27 +83,38 @@ export async function POST(request: Request) {
   const id = randomUUID();
   const now = new Date();
   const folder = `${bucket === "evidence" ? siteId : user.id}/${now.getUTCFullYear()}/${String(now.getUTCMonth() + 1).padStart(2, "0")}`;
-  const key = `${folder}/${id}.${check.extension}`;
   const admin = createSupabaseAdmin();
   const stored: string[] = [];
   const derivatives: Record<string, string> = {};
   let width: number | null = null;
   let height: number | null = null;
+  // Foto e comprovante: guarda só a versão reduzida, sem metadados, e a miniatura. O logotipo mantém o original.
+  let body = bytes;
+  let mime: string = check.mime;
+  let extension: string = check.extension;
 
   try {
     if (check.mime !== "application/pdf") {
-      let d;
+      const previews: Array<["thumb" | "medium", Buffer]> = [];
       try {
-        d = await imageDerivatives(bytes);
+        if (purpose === "logo") {
+          const d = await imageDerivatives(bytes);
+          width = d.width;
+          height = d.height;
+          previews.push(["thumb", d.thumb], ["medium", d.medium]);
+        } else {
+          const s = await storedImage(bytes, MAX_IMAGE_SIDE[purpose]);
+          width = s.width;
+          height = s.height;
+          body = s.main;
+          mime = "image/jpeg";
+          extension = "jpg";
+          previews.push(["thumb", s.thumb]);
+        }
       } catch {
         return fail("A imagem está corrompida ou incompleta. Tire a foto de novo.", 415);
       }
-      width = d.width;
-      height = d.height;
-      for (const [variant, buffer] of [
-        ["thumb", d.thumb],
-        ["medium", d.medium],
-      ] as const) {
+      for (const [variant, buffer] of previews) {
         const dkey = `${folder}/${id}_${variant}.jpg`;
         const { error } = await admin.storage.from(bucket).upload(dkey, buffer, { contentType: "image/jpeg", upsert: false });
         if (error) throw error;
@@ -111,7 +122,8 @@ export async function POST(request: Request) {
         derivatives[variant] = dkey;
       }
     }
-    const { error: upErr } = await admin.storage.from(bucket).upload(key, bytes, { contentType: check.mime, upsert: false });
+    const key = `${folder}/${id}.${extension}`;
+    const { error: upErr } = await admin.storage.from(bucket).upload(key, body, { contentType: mime, upsert: false });
     if (upErr) throw upErr;
     stored.push(key);
 
@@ -121,11 +133,11 @@ export async function POST(request: Request) {
       storage_key: key,
       site_id: bucket === "evidence" ? siteId : null,
       original_name: file.name.slice(0, 200),
-      mime_type: check.mime,
-      size_bytes: bytes.length,
+      mime_type: mime,
+      size_bytes: body.length,
       width,
       height,
-      content_hash: createHash("sha256").update(bytes).digest("hex"),
+      content_hash: createHash("sha256").update(body).digest("hex"),
       derivatives,
       uploaded_by: user.id,
       client_upload_id: clientUploadId,
@@ -144,8 +156,8 @@ export async function POST(request: Request) {
       }
       throw insErr;
     }
-    log.info("upload.ok", { id, bucket, size: bytes.length, user: user.id });
-    return NextResponse.json({ id, mime: check.mime, width, height });
+    log.info("upload.ok", { id, bucket, size: body.length, user: user.id });
+    return NextResponse.json({ id, mime, width, height });
   } catch (error) {
     if (stored.length) await admin.storage.from(bucket).remove(stored);
     log.error("upload.fail", { bucket, user: user.id, ...errorInfo(error) });

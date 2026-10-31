@@ -30,7 +30,8 @@ const keep = process.argv.includes("--keep");
 type Manifest = {
   database: { sha256: string };
   counts: Record<string, number>;
-  files: Array<{ bucket: string; key: string; bytes: number; sha256: string }>;
+  // sha256 nulo: o arquivo veio da cópia cifrada, que já recusa conteúdo alterado ao decifrar.
+  files: Array<{ bucket: string; key: string; bytes: number | null; sha256: string | null }>;
 };
 
 function psql(db: string, sql: string): string {
@@ -78,7 +79,7 @@ async function main() {
     const { data } = await db.storage.from(TEST_BUCKET).download(key);
     const back = Buffer.from(await data!.arrayBuffer());
     const hash = createHash("sha256").update(back).digest("hex");
-    if (hash === f.sha256) filesOk += 1;
+    if (hash === (f.sha256 ?? createHash("sha256").update(local).digest("hex"))) filesOk += 1;
     else {
       ok = false;
       console.log(`ERRO hash ${key}`);

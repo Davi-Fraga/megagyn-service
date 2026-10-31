@@ -6,14 +6,17 @@
  *   cifrados com chave da própria instância (inúteis em outra base) e não devem ir para o backup.
  *   - Se DATABASE_URL estiver definida e houver pg_dump no PATH, usa-o (produção/homologação).
  *   - Senão, usa o container local do Supabase (docker exec … pg_dump).
- * Arquivos: baixa todos os objetos dos buckets privados com a chave service_role.
- * Saída: backups/<data-hora>/{db.dump, storage/<bucket>/<chave>, manifest.json (hash SHA-256 de cada arquivo)}.
+ * Arquivos: baixa todos os objetos dos buckets privados com a chave service_role. Com
+ *   BACKUP_SKIP_LIST (arquivo com uma linha `<bucket>/<chave>` por objeto), baixa só o que não
+ *   está na lista; os demais ficam no manifesto sem hash.
+ * Saída: backups/<data-hora>/{db.dump, storage/<bucket>/<chave>, manifest.json (hash SHA-256 de cada arquivo baixado)}.
  */
 import { execFileSync, spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { createWriteStream, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
-import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { createClient } from "@supabase/supabase-js";
+import { backupBucket, readSkipList, type BackupFile } from "./backup-files";
 
 const DUMP_ARGS = ["--format=custom", "--no-owner", "--no-privileges", "--exclude-table-data=vault.secrets"];
 
@@ -50,21 +53,6 @@ async function dumpDatabase(): Promise<{ method: string; bytes: number; sha256: 
   return { method: `docker exec ${LOCAL_DB_CONTAINER} pg_dump`, bytes: buf.length, sha256: createHash("sha256").update(buf).digest("hex") };
 }
 
-async function listAll(db: SupabaseClient, bucket: string, prefix = ""): Promise<string[]> {
-  const keys: string[] = [];
-  for (let offset = 0; ; offset += 1000) {
-    const { data, error } = await db.storage.from(bucket).list(prefix, { limit: 1000, offset, sortBy: { column: "name", order: "asc" } });
-    if (error) throw new Error(`Falha ao listar ${bucket}/${prefix}: ${error.message}`);
-    for (const item of data ?? []) {
-      const key = prefix ? `${prefix}/${item.name}` : item.name;
-      if (item.id === null) keys.push(...(await listAll(db, bucket, key)));
-      else keys.push(key);
-    }
-    if (!data || data.length < 1000) break;
-  }
-  return keys;
-}
-
 async function main() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -75,25 +63,14 @@ async function main() {
   const database = await dumpDatabase();
   console.log(`Banco: ${database.bytes} bytes (${database.method}).`);
 
-  const files: Array<{ bucket: string; key: string; bytes: number; sha256: string }> = [];
+  const skip = readSkipList(process.env.BACKUP_SKIP_LIST);
+  const files: BackupFile[] = [];
   for (const bucket of BUCKETS) {
     const { data: exists } = await db.storage.getBucket(bucket);
     if (!exists) continue;
-    const keys = await listAll(db, bucket);
-    for (const k of keys) {
-      const { data, error } = await db.storage.from(bucket).download(k);
-      if (error || !data) throw new Error(`Falha ao baixar ${bucket}/${k}: ${error?.message}`);
-      const buf = Buffer.from(await data.arrayBuffer());
-      const target = path.join(outDir, "storage", bucket, ...k.split("/"));
-      mkdirSync(path.dirname(target), { recursive: true });
-      await new Promise<void>((resolve, reject) => {
-        const ws = createWriteStream(target);
-        ws.on("error", reject);
-        ws.end(buf, () => resolve());
-      });
-      files.push({ bucket, key: k, bytes: buf.length, sha256: createHash("sha256").update(buf).digest("hex") });
-    }
-    console.log(`Bucket ${bucket}: ${keys.length} arquivo(s).`);
+    const found = await backupBucket(db, bucket, outDir, skip);
+    files.push(...found);
+    console.log(`Bucket ${bucket}: ${found.length} arquivo(s), ${found.filter((f) => f.sha256).length} baixado(s).`);
   }
 
   const counts: Record<string, number> = {};
@@ -105,7 +82,7 @@ async function main() {
     path.join(outDir, "manifest.json"),
     JSON.stringify({ createdAt: new Date().toISOString(), database, counts, files }, null, 2),
   );
-  console.log(`Concluído: ${files.length} arquivo(s), manifesto com hash SHA-256 gravado.`);
+  console.log(`Concluído: ${files.length} arquivo(s) no manifesto, ${files.filter((f) => f.sha256).length} baixado(s).`);
 }
 
 main().catch((e) => {
