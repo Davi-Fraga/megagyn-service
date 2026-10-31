@@ -1,4 +1,4 @@
-type FetchLike = (url: string, init?: { signal?: AbortSignal }) => Promise<{ ok: boolean }>;
+type FetchLike = (url: string, init?: { signal?: AbortSignal; headers?: Record<string, string> }) => Promise<{ ok: boolean }>;
 
 /**
  * Espera um serviço HTTP responder 200. Em hospedagem gratuita o Gotenberg dorme e leva
@@ -7,7 +7,7 @@ type FetchLike = (url: string, init?: { signal?: AbortSignal }) => Promise<{ ok:
  */
 export async function waitForService(
   url: string,
-  options: { fetch?: FetchLike; timeoutMs?: number; intervalMs?: number } = {},
+  options: { fetch?: FetchLike; timeoutMs?: number; intervalMs?: number; headers?: Record<string, string> } = {},
 ): Promise<number> {
   const doFetch = options.fetch ?? (globalThis.fetch as FetchLike);
   const timeoutMs = options.timeoutMs ?? 120_000;
@@ -15,7 +15,7 @@ export async function waitForService(
   const started = Date.now();
   for (;;) {
     try {
-      const res = await doFetch(url, { signal: AbortSignal.timeout(Math.min(10_000, timeoutMs)) });
+      const res = await doFetch(url, { signal: AbortSignal.timeout(Math.min(10_000, timeoutMs)), headers: options.headers });
       if (res.ok) return Date.now() - started;
     } catch {
       // Conexão recusada ou tempo esgotado: o serviço ainda está subindo.

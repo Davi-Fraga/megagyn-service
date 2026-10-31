@@ -4,7 +4,7 @@ import Link from "next/link";
 import { addDaysIso, formatDateBR, isValidIsoDate, longDatePt, todayIso } from "@/domain/dates";
 import { UUID_RE } from "@/domain/ids";
 import { STATUS_LABEL } from "@/domain/request-status";
-import { cancelTaskAction, rescheduleOccurrenceAction } from "@/server/actions/tasks";
+import { cancelTaskAction, markOccurrenceNotDoneAction, rescheduleOccurrenceAction } from "@/server/actions/tasks";
 import { loadProfiles, loadSites } from "@/server/data";
 import { createSupabaseServer } from "@/server/supabase/server";
 import { ButtonLink, buttonClass } from "@/ui/button";
@@ -164,6 +164,17 @@ export default async function AgendaPage({ searchParams }: { searchParams: Promi
                         </span>
                         <OccurrenceBadge status={o.status} />
                       </div>
+                      {(o.status === "prevista" || o.status === "iniciada") && (
+                        <div className="mt-2">
+                          <ReasonAction
+                            action={markOccurrenceNotDoneAction}
+                            hidden={{ occurrence_id: o.id }}
+                            label="Não foi realizada"
+                            confirmLabel="Registrar motivo"
+                            reasonLabel="Por que não foi feito?"
+                          />
+                        </div>
+                      )}
                       {(o.status === "prevista" || o.status === "nao_realizada") && (
                         <details>
                           <summary className="cursor-pointer text-sm font-semibold text-info">Remarcar ou cancelar</summary>

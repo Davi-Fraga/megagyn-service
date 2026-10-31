@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { formatDateBR, formatDateTimeBR } from "@/domain/dates";
 import { UUID_RE } from "@/domain/ids";
 import { adjustWorkEntryAction } from "@/server/actions/activities";
+import { revokeAttachmentAction } from "@/server/actions/requests";
 import { loadPhotos, loadProfiles } from "@/server/data";
 import { createSupabaseServer } from "@/server/supabase/server";
 import { ActionForm, CheckboxField, TextAreaField, TextField } from "@/ui/form";
@@ -57,7 +58,7 @@ export default async function ActivityPage({ params }: { params: Promise<{ id: s
               ]}
             />
             <div className="mt-4">
-              <PhotoGrid photos={photos.get(id) ?? []} emptyText="Sem fotos." />
+              <PhotoGrid photos={photos.get(id) ?? []} emptyText="Sem fotos." revokeAction={revokeAttachmentAction} />
             </div>
           </Panel>
           <Panel title="Como o trabalhador enviou">

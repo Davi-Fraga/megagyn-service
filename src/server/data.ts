@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { formatDateTimeBR } from "@/domain/dates";
 import type { Database } from "@/server/db/database.types";
 import type { GridPhoto } from "@/ui/photo-grid";
 import { chunk, fetchAll } from "./paginate";
@@ -129,14 +130,26 @@ export async function loadPhotos(
     revoked_at: string | null;
     bucket: string;
     visibility: string;
+    uploaded_by: string;
+    uploaded_at: string;
   };
   const atts: Att[] = [];
   for (const batch of chunk(ids, 150)) {
     const { data } = await db
       .from("attachments")
-      .select("id, caption, mime_type, revoked_at, bucket, visibility")
+      .select(
+        "id, caption, mime_type, revoked_at, bucket, visibility, uploaded_by, uploaded_at",
+      )
       .in("id", batch);
     atts.push(...((data ?? []) as Att[]));
+  }
+  const names = new Map<string, string>();
+  for (const batch of chunk([...new Set(atts.map((a) => a.uploaded_by))], 150)) {
+    const { data } = await db
+      .from("profiles")
+      .select("id, full_name")
+      .in("id", batch);
+    for (const p of data ?? []) names.set(p.id, p.full_name);
   }
   const byId = new Map(atts.map((a) => [a.id, a]));
   for (const l of links) {
@@ -151,6 +164,9 @@ export async function loadPhotos(
       revoked: !!a.revoked_at,
       bucket: a.bucket,
       visibility: a.visibility,
+      meta: [names.get(a.uploaded_by), formatDateTimeBR(a.uploaded_at)]
+        .filter(Boolean)
+        .join(" · "),
     });
     result.set(l.entity_id, list);
   }

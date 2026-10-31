@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { env } from "@/server/env";
+import { gotenbergAuthHeaders } from "@/server/reports/gotenberg-auth";
 import { createSupabaseAdmin } from "@/server/supabase/admin";
 
 export const runtime = "nodejs";
@@ -17,7 +18,11 @@ export async function GET() {
   let rendererUp: boolean | null = null;
   if (env.pdfRenderer === "gotenberg" && env.gotenbergUrl) {
     try {
-      const res = await fetch(`${env.gotenbergUrl.replace(/\/$/, "")}/health`, { signal: AbortSignal.timeout(3_000), cache: "no-store" });
+      const res = await fetch(`${env.gotenbergUrl.replace(/\/$/, "")}/health`, {
+        signal: AbortSignal.timeout(3_000),
+        cache: "no-store",
+        headers: gotenbergAuthHeaders(env.gotenbergUser, env.gotenbergPassword),
+      });
       rendererUp = res.ok;
     } catch {
       // Dormindo ou acordando: o próprio pedido já dispara a subida.
