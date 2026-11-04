@@ -25,12 +25,35 @@ const ENTITY: Record<string, string> = {
   clients: "Cliente",
   sites: "Local",
   client_contacts: "Contato",
+  client_contact_sites: "Vínculo do responsável com local",
+  site_areas: "Setor ou ambiente",
+  service_categories: "Categoria de serviço",
+  priority_definitions: "Prioridade",
+  pending_reasons: "Motivo de pendência",
+  task_kinds: "Tipo de tarefa",
+  suppliers: "Fornecedor",
+  expense_categories: "Categoria de despesa",
+  payment_methods: "Forma de pagamento",
+  quote_items: "Item de orçamento",
   attachments: "Anexo",
+  attachment_links: "Vínculo de foto",
+  request_assignments: "Atribuição de chamado",
   tasks: "Tarefa",
+  task_assignments: "Atribuição de tarefa",
   task_occurrences: "Ocorrência de tarefa",
   time_entries: "Jornada",
 };
-const ACTION: Record<string, string> = { insert: "Criou", update: "Alterou", delete: "Removeu" };
+const ACTION: Record<string, string> = {
+  insert: "Criou",
+  update: "Alterou",
+  delete: "Removeu",
+  auth_criar: "Criou o login do",
+  auth_convidar: "Convidou por e-mail o",
+  auth_bloquear: "Bloqueou o login do",
+  auth_reativar: "Reativou o login do",
+  auth_senha_provisoria: "Definiu senha provisória do",
+  auth_link_senha: "Enviou link de senha ao",
+};
 const IGNORE = new Set(["updated_at", "version", "created_at"]);
 
 function changedKeys(before: unknown, after: unknown): string[] {

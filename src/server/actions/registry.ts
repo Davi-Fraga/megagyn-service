@@ -132,7 +132,7 @@ export async function setClientActiveAction(_: ActionState, fd: FormData): Promi
 // Responsáveis do cliente (pessoas SEM login: o login do cliente é decisão pendente, Q1)
 // ---------------------------------------------------------------------------
 
-/** Mantém em client_contact_sites exatamente os locais escolhidos (todos do mesmo cliente). */
+/** Mantém abertos em client_contact_sites exatamente os locais escolhidos (todos do mesmo cliente). */
 async function syncContactSites(db: ServerDb, contactId: string, clientId: string, wanted: string[]): Promise<ActionState | null> {
   if (wanted.length > 0) {
     const { data: valid } = await db.from("sites").select("id").eq("client_id", clientId).in("id", wanted);
@@ -140,18 +140,33 @@ async function syncContactSites(db: ServerDb, contactId: string, clientId: strin
       return invalid({ site_ids: "Escolha apenas locais deste cliente." });
     }
   }
-  const { data: current, error: readErr } = await db.from("client_contact_sites").select("site_id").eq("client_contact_id", contactId);
+  const { data: current, error: readErr } = await db
+    .from("client_contact_sites")
+    .select("site_id")
+    .eq("client_contact_id", contactId)
+    .is("ended_at", null);
   if (readErr) return fail(readErr, "contact.sites_read_fail");
   const have = new Set((current ?? []).map((c) => c.site_id));
   const toAdd = wanted.filter((s) => !have.has(s));
   const toRemove = [...have].filter((s) => !wanted.includes(s));
   if (toAdd.length > 0) {
-    const { error } = await db.from("client_contact_sites").insert(toAdd.map((site_id) => ({ client_contact_id: contactId, site_id })));
+    // Upsert reabre um vínculo encerrado antes (a trilha guarda o período anterior).
+    const { error } = await db
+      .from("client_contact_sites")
+      .upsert(
+        toAdd.map((site_id) => ({ client_contact_id: contactId, site_id, ended_at: null })),
+        { onConflict: "client_contact_id,site_id" },
+      );
     if (error) return fail(error, "contact.sites_add_fail");
   }
   if (toRemove.length > 0) {
-    // Vínculo N:N sem histórico próprio (a auditoria fica no contato): pode ser removido.
-    const { error } = await db.from("client_contact_sites").delete().eq("client_contact_id", contactId).in("site_id", toRemove);
+    // Vínculo encerrado com data, não apagado: inclusão, encerramento e reabertura ficam em audit_events.
+    const { error } = await db
+      .from("client_contact_sites")
+      .update({ ended_at: new Date().toISOString() })
+      .eq("client_contact_id", contactId)
+      .in("site_id", toRemove)
+      .is("ended_at", null);
     if (error) return fail(error, "contact.sites_remove_fail");
   }
   return null;
@@ -360,8 +375,19 @@ function authFail(error: AuthErr, event: string): ActionState {
   return { ok: false, message: "Não foi possível concluir a operação. Tente novamente." };
 }
 
+type AuthAuditAction = "auth_criar" | "auth_convidar" | "auth_bloquear" | "auth_reativar" | "auth_senha_provisoria" | "auth_link_senha";
+
+/**
+ * Trilha das ações feitas na API do Auth (que não passa pelos gatilhos do banco), com a sessão do
+ * admin como autor. Chamada depois da ação no Auth; se falhar, vai para o log e a ação não é desfeita.
+ */
+async function auditAuth(db: ServerDb, profileId: string, action: AuthAuditAction) {
+  const { error } = await db.rpc("audit_admin_action", { p_entity: "profiles", p_entity_id: profileId, p_action: action });
+  if (error) log.error("user.audit_fail", { profileId, action, ...errorInfo(error) });
+}
+
 export async function createUserAction(_: ActionState, fd: FormData): Promise<ActionState> {
-  await requireProfile(["admin"]);
+  const { db } = await adminDb();
   // Senha em branco = convite por e-mail: a pessoa cria a própria senha pelo link (ninguém mais a conhece).
   // Senha preenchida = senha provisória, para quem não consegue usar o e-mail no momento.
   const parsed = parseUserForm(fd, { requirePassword: false });
@@ -383,6 +409,7 @@ export async function createUserAction(_: ActionState, fd: FormData): Promise<Ac
     if (rollback.error) log.error("user.create_rollback_fail", { userId, message: rollback.error.message });
     return fail(error, "user.create_profile_fail");
   }
+  await auditAuth(db, userId, password ? "auth_criar" : "auth_convidar");
   log.info(password ? "user.created" : "user.invited", { userId, role });
   refresh();
   redirect(`/admin/usuarios/${userId}?feito=${password ? "criado" : "convidado"}`);
@@ -432,6 +459,7 @@ export async function setUserActiveAction(_: ActionState, fd: FormData): Promise
         : "Acesso desativado no sistema, mas o bloqueio de login no serviço de autenticação falhou. Reative e desative de novo em instantes.",
     };
   }
+  await auditAuth(db, id, active ? "auth_reativar" : "auth_bloquear");
   log.info(active ? "user.reactivated" : "user.deactivated", { id });
   redirect(`/admin/usuarios/${id}?feito=${active ? "ativado" : "desativado"}`);
 }
@@ -447,6 +475,7 @@ export async function sendPasswordLinkAction(_: ActionState, fd: FormData): Prom
     redirectTo: `${env.appUrl}/auth/callback?next=/redefinir-senha`,
   });
   if (error) return authFail(error, "user.reset_link_fail");
+  await auditAuth(db, id, "auth_link_senha");
   return { ok: true, message: `Link enviado para ${person.email}. Ele vale por 1 hora.` };
 }
 
@@ -460,6 +489,7 @@ export async function setTemporaryPasswordAction(_: ActionState, fd: FormData): 
   if (!person) return notFound("Usuário");
   const { error } = await createSupabaseAdmin().auth.admin.updateUserById(id, { password: parsed.values.password });
   if (error) return authFail(error, "user.temp_password_fail");
+  await auditAuth(db, id, "auth_senha_provisoria");
   log.info("user.temp_password_set", { id });
   return { ok: true, message: "Senha provisória definida. Informe a pessoa por um canal seguro e peça para trocá-la." };
 }
