@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { toActionError, type ActionState } from "@/domain/action-errors";
 import { fdDate, fdStr, fdUuid, fdUuids } from "@/domain/form-data";
 import { newId } from "@/domain/ids";
+import { actionReturnPath } from "@/domain/safe-redirect";
 import { buildOccurrences } from "@/domain/task-form";
 import { requireProfile } from "@/server/auth";
 import { errorInfo, log } from "@/server/log";
@@ -86,8 +87,7 @@ export async function addOccurrenceAction(_: ActionState, fd: FormData): Promise
     return state;
   }
   refresh();
-  const base = fdStr(fd, "base") ?? "/campo/tarefas";
-  redirect(`${base}/${data.id}?feito=desdobrada`);
+  redirect(actionReturnPath(fdStr(fd, "base"), "/campo/tarefas", data.id, "desdobrada"));
 }
 
 export async function startOccurrenceAction(_: ActionState, fd: FormData): Promise<ActionState> {
