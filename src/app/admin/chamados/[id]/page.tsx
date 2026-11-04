@@ -102,7 +102,7 @@ export default async function AdminRequestPage({
         }
       />
 
-      <div className="mb-8 border-b border-linha pb-8">
+      <div className="mb-10">
         <StatusRuler
           status={r.status}
           dates={rulerStageDates(detail.events)}
@@ -115,8 +115,8 @@ export default async function AdminRequestPage({
         {aviso && <Notice tone="alerta">{aviso}</Notice>}
       </div>
 
-      <div className="grid gap-5 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
-        <div className="space-y-5">
+      <div className="grid gap-x-14 gap-y-10 lg:grid-cols-[minmax(0,1fr)_22rem]">
+        <div className="space-y-10">
           <Panel title="Solicitação">
             <DescriptionList
               items={[
@@ -142,10 +142,9 @@ export default async function AdminRequestPage({
           </Panel>
 
           {r.status === "pendente" && pending && (
-            <section className="overflow-hidden rounded-panel border border-alerta bg-papel">
-              <div aria-hidden className="faixa-alerta h-2" />
-              <div className="space-y-1 p-4">
-                <h2 className="text-lg font-bold">Pendência atual: {pending.pending_reason}</h2>
+            <section className="border-l-[3px] border-alerta pl-4">
+              <div className="space-y-1">
+                <h2 className="text-[1.3125rem] text-alerta">Pendência atual: {pending.pending_reason}</h2>
                 <p>{pending.explanation}</p>
                 <p>
                   <span className="text-muted">Providência: </span>
@@ -164,7 +163,7 @@ export default async function AdminRequestPage({
           </Panel>
         </div>
 
-        <div className="space-y-5">
+        <div className="space-y-10">
           {r.status === "executada" && (
             <Panel title="Validar a execução">
               <p className="mb-3 text-muted">Confira a solução e as fotos do resultado no histórico antes de decidir.</p>
@@ -224,9 +223,9 @@ export default async function AdminRequestPage({
           </Panel>
 
           {!terminal && (
-            <details className="rounded-panel border border-linha bg-papel">
-              <summary className="cursor-pointer px-4 py-3 text-lg font-bold">Editar dados do chamado</summary>
-              <div className="border-t border-linha p-4">
+            <details className="border-t border-linha pt-3">
+              <summary className="tipo-expandida flex min-h-11 cursor-pointer items-center text-[1.3125rem]">Editar dados do chamado</summary>
+              <div className="pt-4">
                 <ActionForm action={updateRequestAction} submitLabel="Salvar alterações">
                   <input type="hidden" name="request_id" value={r.id} />
                   <TextField label="Título" name="title" required defaultValue={r.title} />

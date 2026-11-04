@@ -167,14 +167,14 @@ export function ActionForm({
 export function FormMessage({ state, successMessage }: { state: ActionState; successMessage?: string }) {
   if (state.ok && (state.message || successMessage)) {
     return (
-      <p role="status" className="rounded-ctl border border-ok bg-ok-claro px-3 py-2 text-sm font-medium text-ok">
+      <p role="status" className="border-l-[3px] border-ok bg-ok-claro px-3 py-2 text-sm font-medium text-ok">
         {state.message ?? successMessage}
       </p>
     );
   }
   if (!state.ok && state.message) {
     return (
-      <p role="alert" className="rounded-ctl border border-erro bg-erro-claro px-3 py-2 text-sm font-medium text-erro">
+      <p role="alert" className="border-l-[3px] border-erro bg-erro-claro px-3 py-2 text-sm font-medium text-erro">
         {state.message}
       </p>
     );

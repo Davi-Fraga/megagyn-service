@@ -11,10 +11,10 @@ import { cn } from "./cn";
 export function Brand({ inverted = false, compact = false }: { inverted?: boolean; compact?: boolean }) {
   return (
     <span className="inline-flex items-center gap-2">
-      <Image src={mark} alt="" priority sizes="40px" className={cn("rounded-md", compact ? "size-7" : "size-9")} />
+      <Image src={mark} alt="" priority sizes="40px" className={cn("rounded-[2px]", compact ? "size-8" : "size-9")} />
       <span className={inverted ? "text-white" : "text-grafite"}>
-        <span className="tipo-placa block text-[1.05rem] leading-none">Megagyn</span>
-        {!compact && <span className="block text-xs leading-tight opacity-80">Service</span>}
+        <span className="block text-[1.0625rem] font-extrabold leading-none tracking-[-0.01em] [font-stretch:118%]">Megagyn</span>
+        {!compact && <span className={cn("mt-0.5 block text-[0.8125rem] font-medium leading-tight", inverted ? "opacity-80" : "text-muted")}>Service</span>}
       </span>
     </span>
   );

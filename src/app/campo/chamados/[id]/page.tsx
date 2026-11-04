@@ -55,7 +55,7 @@ export default async function FieldRequestPage({
         title={r.title}
         description={isOverdue(r.due_date, r.status, todayIso()) && <AlertTape>Prazo vencido</AlertTape>}
       />
-      <div className="mb-6 border-b border-linha pb-6">
+      <div className="mb-8">
         <StatusRuler status={r.status} dates={rulerStageDates(detail.events)} />
       </div>
       {feito && DONE[feito] && (

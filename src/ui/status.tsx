@@ -26,6 +26,14 @@ export function Badge({ tone = "neutral", children, icon: Icon, className }: { t
   );
 }
 
+/**
+ * Prazo vencido na borda esquerda de uma linha (o pai precisa ser `relative`).
+ * Decorativa: a linha também diz "Prazo vencido" em texto.
+ */
+export function AlertEdge() {
+  return <span aria-hidden className="faixa-alerta absolute inset-y-0 left-0 w-1.5" />;
+}
+
 /** Prazo vencido: fita zebrada fina + texto (nunca só cor). */
 export function AlertTape({ children }: { children: React.ReactNode }) {
   return (
