@@ -27,10 +27,12 @@ export type ExpenseForTotals = {
   id: string;
   totalCents: number;
   reviewStatus: ExpenseReviewStatus;
-  allocations: ReadonlyArray<{ siteId: string; amountCents: number }>;
+  /** clientId: cliente dono do local da parcela (para o filtro de cliente). */
+  allocations: ReadonlyArray<{ siteId: string; amountCents: number; clientId?: string | null }>;
 };
 
 export type SiteTotals = BucketTotals & { siteId: string };
+export type ClientTotals = BucketTotals & { clientId: string };
 
 export type ExpenseTotals = {
   /** Consolidado da empresa: soma de total_cents de cada compra (uma vez). */
@@ -38,6 +40,8 @@ export type ExpenseTotals = {
   counts: BucketTotals;
   /** Valor atribuído a cada obra pelas parcelas do rateio. */
   bySite: SiteTotals[];
+  /** Valor atribuído a cada cliente: soma das parcelas dos locais dele. */
+  byClient: ClientTotals[];
 };
 
 const zero = (): BucketTotals => ({ approved: 0, inReview: 0, returned: 0, draft: 0 });
@@ -46,6 +50,7 @@ export function summarizeExpenses(expenses: readonly ExpenseForTotals[]): Expens
   const company = zero();
   const counts = zero();
   const sites = new Map<string, SiteTotals>();
+  const clients = new Map<string, ClientTotals>();
 
   for (const e of expenses) {
     const bucket = BUCKET_OF_STATUS[e.reviewStatus];
@@ -55,28 +60,44 @@ export function summarizeExpenses(expenses: readonly ExpenseForTotals[]): Expens
       const site = sites.get(a.siteId) ?? { siteId: a.siteId, ...zero() };
       site[bucket] = sumCents([site[bucket], a.amountCents]);
       sites.set(a.siteId, site);
+      if (!a.clientId) continue;
+      const client = clients.get(a.clientId) ?? { clientId: a.clientId, ...zero() };
+      client[bucket] = sumCents([client[bucket], a.amountCents]);
+      clients.set(a.clientId, client);
     }
   }
 
   const bySite = [...sites.values()].sort(
     (x, y) => y.approved + y.inReview - (x.approved + x.inReview) || x.siteId.localeCompare(y.siteId),
   );
-  return { company, counts, bySite };
+  return { company, counts, bySite, byClient: [...clients.values()] };
 }
 
-export type Headline = {
-  /** "empresa" = consolidado (total das compras); "obra" = atribuído àquela obra pelo rateio. */
-  scope: "empresa" | "obra";
+export type HeadlineScope = "empresa" | "obra" | "cliente";
+
+export type Headline<S extends HeadlineScope = HeadlineScope> = {
+  /** "empresa" = consolidado (total das compras); "obra"/"cliente" = atribuído pelas parcelas do rateio. */
+  scope: S;
   values: BucketTotals;
 };
 
-/** Números do painel: com filtro de obra, só o valor atribuído a ela; sem filtro, o consolidado da empresa. */
-export function headlineTotals(totals: ExpenseTotals, siteId: string | null): Headline {
-  if (!siteId) return { scope: "empresa", values: { ...totals.company } };
-  const site = totals.bySite.find((s) => s.siteId === siteId);
+const pick = (row: BucketTotals | undefined): BucketTotals => {
   const values = zero();
-  if (site) for (const k of Object.keys(values) as TotalsBucket[]) values[k] = site[k];
-  return { scope: "obra", values };
+  if (row) for (const k of Object.keys(values) as TotalsBucket[]) values[k] = row[k];
+  return values;
+};
+
+/**
+ * Números da lista de despesas e do painel (a mesma soma nos dois): com filtro de obra, só o
+ * valor atribuído a ela; com filtro de cliente, as parcelas dos locais dele; sem filtro, o
+ * consolidado da empresa.
+ */
+export function headlineTotals(totals: ExpenseTotals, siteId: string | null): Headline<"empresa" | "obra">;
+export function headlineTotals(totals: ExpenseTotals, siteId: string | null, clientId: string | null): Headline;
+export function headlineTotals(totals: ExpenseTotals, siteId: string | null, clientId: string | null = null): Headline {
+  if (siteId) return { scope: "obra", values: pick(totals.bySite.find((s) => s.siteId === siteId)) };
+  if (clientId) return { scope: "cliente", values: pick(totals.byClient.find((c) => c.clientId === clientId)) };
+  return { scope: "empresa", values: { ...totals.company } };
 }
 
 export type AllocationRow<E extends ExpenseForTotals> = {
@@ -91,12 +112,13 @@ export type AllocationRow<E extends ExpenseForTotals> = {
   count: number;
 };
 
-/** Uma linha por parcela, na ordem do rateio. Com obra filtrada, só as parcelas daquela obra. */
-export function allocationRows<E extends ExpenseForTotals>(expenses: readonly E[], siteId: string | null): AllocationRow<E>[] {
+/** Uma linha por parcela, na ordem do rateio. Com obra ou cliente filtrado, só as parcelas deles. */
+export function allocationRows<E extends ExpenseForTotals>(expenses: readonly E[], siteId: string | null, clientId: string | null = null): AllocationRow<E>[] {
   const rows: AllocationRow<E>[] = [];
   for (const expense of expenses) {
     expense.allocations.forEach((a, i) => {
       if (siteId && a.siteId !== siteId) return;
+      if (clientId && a.clientId !== clientId) return;
       rows.push({
         expense,
         siteId: a.siteId,

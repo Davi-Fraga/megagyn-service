@@ -60,7 +60,7 @@ export async function GET(request: Request) {
     { header: "ID da compra", value: (r) => r.expense.id },
   ];
 
-  const csv = toCsv(columns, allocationRows(list.rows, filters.siteId), { money: [TOTAL, ATTRIBUTED] });
+  const csv = toCsv(columns, allocationRows(list.rows, filters.siteId, filters.clientId), { money: [TOTAL, ATTRIBUTED] });
   const name = expenseCsvFileName(todayIso());
   return new NextResponse(csv, {
     headers: {

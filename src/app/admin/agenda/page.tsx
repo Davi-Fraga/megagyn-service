@@ -5,6 +5,7 @@ import { addDaysIso, formatDateBR, isValidIsoDate, longDatePt, todayIso } from "
 import { UUID_RE } from "@/domain/ids";
 import { STATUS_LABEL } from "@/domain/request-status";
 import { cancelTaskAction, markOccurrenceNotDoneAction, rescheduleOccurrenceAction } from "@/server/actions/tasks";
+import { listOccurrences } from "@/server/agenda";
 import { loadProfiles, loadSites } from "@/server/data";
 import { createSupabaseServer } from "@/server/supabase/server";
 import { ButtonLink, buttonClass } from "@/ui/button";
@@ -16,7 +17,7 @@ import { ReasonAction } from "@/ui/reason-action";
 
 export const metadata: Metadata = { title: "Agenda" };
 
-type Search = { data?: string; visao?: string; pessoa?: string; local?: string; feito?: string };
+type Search = { data?: string; visao?: string; pessoa?: string; local?: string; cliente?: string; feito?: string };
 
 export default async function AgendaPage({ searchParams }: { searchParams: Promise<Search> }) {
   const sp = await searchParams;
@@ -26,16 +27,9 @@ export default async function AgendaPage({ searchParams }: { searchParams: Promi
   const to = week ? addDaysIso(day, 6) : day;
   const person = sp.pessoa && UUID_RE.test(sp.pessoa) ? sp.pessoa : null;
   const site = sp.local && UUID_RE.test(sp.local) ? sp.local : null;
+  const client = sp.cliente && UUID_RE.test(sp.cliente) ? sp.cliente : null;
 
   const db = await createSupabaseServer();
-  let occQ = db
-    .from("task_occurrences")
-    .select("id, scheduled_date, status, no_show_reason, site_id, site:sites(name), task:tasks(id, title, status, service_request_id, kind:task_kinds(name), priority:priority_definitions(name), assignments:task_assignments(profile_id))")
-    .gte("scheduled_date", from)
-    .lte("scheduled_date", to)
-    .order("scheduled_date")
-    .order("sort_order");
-  if (site) occQ = occQ.eq("site_id", site);
   let reqQ = db
     .from("service_requests")
     .select("id, number, title, status, scheduled_date, site_id, site:sites(name), assignees:request_assignments(profile_id, unassigned_at)")
@@ -43,16 +37,22 @@ export default async function AgendaPage({ searchParams }: { searchParams: Promi
     .lte("scheduled_date", to)
     .in("status", ["programada", "em_execucao", "pendente"]);
   if (site) reqQ = reqQ.eq("site_id", site);
-  const [occ, reqs, profiles, sites] = await Promise.all([occQ, reqQ, loadProfiles(db), loadSites(db)]);
+  if (client) reqQ = reqQ.eq("client_id", client);
+  const [occurrences, reqs, profiles, sites, clients] = await Promise.all([
+    listOccurrences(db, { from, to, siteId: site, clientId: client, personId: person }),
+    reqQ,
+    loadProfiles(db),
+    loadSites(db),
+    db.from("clients").select("id, display_name").order("display_name"),
+  ]);
 
-  const occurrences = (occ.data ?? []).filter((o) => !person || (o.task?.assignments ?? []).some((a) => a.profile_id === person));
   const requests = (reqs.data ?? []).filter((r) => !person || (r.assignees ?? []).some((a) => a.profile_id === person && a.unassigned_at === null));
   const days: string[] = [];
   for (let d = from; d <= to; d = addDaysIso(d, 1)) days.push(d);
   const staff = profiles.list.filter((p) => p.is_active && p.role !== "client");
   const qs = (patch: Partial<Search>) => {
     const q = new URLSearchParams();
-    const merged = { data: day, visao: week ? "semana" : "dia", pessoa: person ?? undefined, local: site ?? undefined, ...patch };
+    const merged = { data: day, visao: week ? "semana" : "dia", pessoa: person ?? undefined, local: site ?? undefined, cliente: client ?? undefined, ...patch };
     Object.entries(merged).forEach(([k, v]) => v && k !== "feito" && q.set(k, String(v)));
     return `/admin/agenda?${q.toString()}`;
   };
@@ -109,6 +109,17 @@ export default async function AgendaPage({ searchParams }: { searchParams: Promi
             </select>
           </label>
           <label className="text-sm font-semibold">
+            Cliente
+            <select name="cliente" defaultValue={client ?? ""} className="campo-input">
+              <option value="">Todos</option>
+              {(clients.data ?? []).map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.display_name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="text-sm font-semibold">
             Obra ou unidade
             <select name="local" defaultValue={site ?? ""} className="campo-input">
               <option value="">Todas</option>
@@ -124,6 +135,10 @@ export default async function AgendaPage({ searchParams }: { searchParams: Promi
           </button>
         </form>
       </div>
+
+      <p className="mb-2 text-sm text-muted" aria-live="polite">
+        {occurrences.length} tarefa(s) e {requests.length} chamado(s) programado(s) {week ? `de ${formatDateBR(from)} a ${formatDateBR(to)}` : `em ${formatDateBR(day)}`}.
+      </p>
 
       <div className="space-y-6">
         {days.map((d) => {

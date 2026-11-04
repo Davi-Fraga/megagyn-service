@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { addDaysIso, formatDateBR, isValidIsoDate, todayIso, zonedMidnightUtc } from "@/domain/dates";
+import { expenseFiltersToQuery } from "@/domain/expense-filters";
+import { headlineTotals } from "@/domain/expense-totals";
 import { UUID_RE } from "@/domain/ids";
 import { formatBRL } from "@/domain/money";
 import { REQUEST_STATUSES, STATUS_LABEL, isOverdue } from "@/domain/request-status";
-import { loadDashboardRows } from "@/server/dashboard";
+import { dashboardExpenseFilters, loadDashboardRows } from "@/server/dashboard";
 import { loadProfiles, loadSites } from "@/server/data";
 import { createSupabaseServer } from "@/server/supabase/server";
 import { buttonClass } from "@/ui/button";
@@ -70,9 +72,10 @@ export default async function AdminDashboard({
   const siteId = sp.local && UUID_RE.test(sp.local) ? sp.local : null;
   const personId = sp.pessoa && UUID_RE.test(sp.pessoa) ? sp.pessoa : null;
   const db = await createSupabaseServer();
+  const filters = { clientId, siteId, personId, from, to, today };
 
   const [rows, sites, profiles, clients] = await Promise.all([
-    loadDashboardRows(db, { clientId, siteId, personId, from, to, today }),
+    loadDashboardRows(db, filters),
     loadSites(db),
     loadProfiles(db),
     db.from("clients").select("id, display_name").order("display_name"),
@@ -94,26 +97,19 @@ export default async function AdminDashboard({
     byOwner.set(owner, (byOwner.get(owner) ?? 0) + 1);
   }
 
-  const occurrences = rows.occurrences.filter(
-    (o) => !personId || ((o.task as { assignments?: Array<{ profile_id: string }> } | null)?.assignments ?? []).some((a) => a.profile_id === personId),
-  );
+  // Mesma consulta e mesmo critério da agenda (local, cliente e profissional).
+  const occurrences = rows.occurrences;
   const occBy = (s: string) => occurrences.filter((o) => o.status === s).length;
 
   const siteName = new Map(sites.map((s) => [s.id, `${s.name} (${s.clientName})`]));
   const entriesBySite = new Map<string, number>();
-  for (const e of rows.workEntries) {
-    if (clientId && sites.find((s) => s.id === e.site_id)?.client_id !== clientId) continue;
-    entriesBySite.set(e.site_id, (entriesBySite.get(e.site_id) ?? 0) + 1);
-  }
-  const activeSites = sites.filter((s) => s.status === "ativa" && (!clientId || s.client_id === clientId)).length;
+  for (const e of rows.workEntries) entriesBySite.set(e.site_id, (entriesBySite.get(e.site_id) ?? 0) + 1);
 
-  // Custo interno: com filtro de obra, soma das parcelas atribuídas; sem filtro, total das compras.
-  const sumExp = (status: string) =>
-    siteId || clientId
-      ? rows.allocations
-          .filter((a) => (a.expense as { review_status: string }).review_status === status && (!clientId || sites.find((s) => s.id === a.site_id)?.client_id === clientId))
-          .reduce((n, a) => n + a.amount_cents, 0)
-      : rows.expenses.filter((e) => e.review_status === status).reduce((n, e) => n + e.total_cents, 0);
+  // Custo interno: a mesma lista e a mesma soma da tela de despesas (com obra ou cliente,
+  // soma das parcelas atribuídas; sem filtro, total das compras).
+  const expenseFilters = dashboardExpenseFilters(filters);
+  const expenses = headlineTotals(rows.expenses.totals, siteId, clientId).values;
+  const expLink = (status: "aprovado" | "enviado_para_conferencia") => `/admin/despesas?${expenseFiltersToQuery({ ...expenseFilters, status })}`;
   const openQuotes = rows.quotes.filter((q) => !q.valid_until || q.valid_until >= today);
 
   const filterQs = new URLSearchParams();
@@ -124,6 +120,12 @@ export default async function AdminDashboard({
     const q = new URLSearchParams(filterQs);
     Object.entries(extra).forEach(([k, v]) => q.set(k, v));
     return `/admin/chamados?${q.toString()}`;
+  };
+  // Link de outra lista com os filtros do painel que ela entende (valores nulos ficam de fora).
+  const listLink = (path: string, params: Record<string, string | null>) => {
+    const q = new URLSearchParams();
+    Object.entries(params).forEach(([k, v]) => v && q.set(k, v));
+    return `${path}?${q.toString()}`;
   };
   const periodLabel = `${formatDateBR(from)} a ${formatDateBR(to)}`;
 
@@ -206,7 +208,7 @@ export default async function AdminDashboard({
             ))}
           </ul>
         </Card>
-        <Card title="Pendências por responsável" value={byOwner.size} window="agora" rule="quem faz a próxima ação de cada pendência." href={reqLink({ status: "pendente" })}>
+        <Card title="Pendências por responsável" value={pending.length} window="agora" rule="situação Pendente, por quem faz a próxima ação." href={reqLink({ status: "pendente" })}>
           <ul className="mt-2 space-y-0.5 text-sm">
             {[...byOwner.entries()].map(([owner, count]) => (
               <li key={owner} className="flex justify-between gap-2">
@@ -216,7 +218,13 @@ export default async function AdminDashboard({
             ))}
           </ul>
         </Card>
-        <Card title="Tarefas e visitas de hoje" value={occurrences.length} window={`hoje, ${formatDateBR(today)}`} rule="ocorrências de tarefa programadas para hoje." href={`/admin/agenda?data=${today}&visao=dia${siteId ? `&local=${siteId}` : ""}`}>
+        <Card
+          title="Tarefas e visitas de hoje"
+          value={occurrences.length}
+          window={`hoje, ${formatDateBR(today)}`}
+          rule="ocorrências de tarefa programadas para hoje."
+          href={listLink("/admin/agenda", { data: today, visao: "dia", cliente: clientId, local: siteId, pessoa: personId })}
+        >
           <p className="mt-1 text-sm">
             {occBy("prevista")} previstas · {occBy("iniciada")} iniciadas · {occBy("concluida")} finalizadas · {occBy("nao_realizada")} não realizadas
           </p>
@@ -225,13 +233,13 @@ export default async function AdminDashboard({
 
       <h2 className="mb-3 text-lg font-bold">Obras e atividades</h2>
       <div className="mb-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <Card title="Obras e unidades ativas" value={activeSites} window="agora" rule="locais com situação Ativa." href="/admin/clientes" />
+        <Card title="Obras e unidades ativas" value={rows.activeSites} window="agora" rule="locais com situação Ativa." href={listLink("/admin/locais", { situacao: "ativa", cliente: clientId })} />
         <Card
           title="Atividades registradas"
           value={[...entriesBySite.values()].reduce((n, v) => n + v, 0)}
           window={periodLabel}
           rule="lançamentos pela data do serviço; cada lançamento conta uma vez."
-          href={`/admin/atividades?de=${from}&ate=${to}${siteId ? `&local=${siteId}` : ""}${personId ? `&pessoa=${personId}` : ""}`}
+          href={listLink("/admin/atividades", { de: from, ate: to, cliente: clientId, local: siteId, pessoa: personId })}
         >
           <ul className="mt-2 space-y-0.5 text-sm">
             {[...entriesBySite.entries()]
@@ -253,25 +261,25 @@ export default async function AdminDashboard({
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <Card
           title="Despesas aprovadas (custo interno)"
-          value={formatBRL(sumExp("aprovado"))}
+          value={formatBRL(expenses.approved)}
           window={`compras de ${periodLabel}`}
           rule={siteId || clientId ? "soma das parcelas atribuídas ao filtro." : "soma do total das compras (sem duplicar rateios)."}
-          href="/admin/despesas"
+          href={expLink("aprovado")}
         />
         <Card
           title="Despesas em conferência (custo interno)"
-          value={formatBRL(sumExp("enviado_para_conferencia"))}
+          value={formatBRL(expenses.inReview)}
           window={`compras de ${periodLabel}`}
           rule="enviadas e ainda não aprovadas; separado das aprovadas."
-          href="/admin/despesas"
-          alert={sumExp("enviado_para_conferencia") > 0}
+          href={expLink("enviado_para_conferencia")}
+          alert={expenses.inReview > 0}
         />
         <Card
           title="Orçamentos em aberto (valor comercial)"
           value={openQuotes.length}
           window="agora"
           rule="propostas enviadas e dentro da validade; valor proposto não é receita."
-          href="/admin/orcamentos"
+          href={listLink("/admin/orcamentos", { status: "enviado", cliente: clientId })}
         >
           <p className="mt-1 text-sm">{formatBRL(openQuotes.reduce((n, q) => n + q.total_cents, 0))} propostos</p>
         </Card>

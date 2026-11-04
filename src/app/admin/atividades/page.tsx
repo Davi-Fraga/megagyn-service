@@ -30,6 +30,7 @@ export default async function ActivitiesPage({
   searchParams,
 }: {
   searchParams: Promise<{
+    cliente?: string;
     local?: string;
     pessoa?: string;
     de?: string;
@@ -41,11 +42,16 @@ export default async function ActivitiesPage({
   const today = todayIso();
   const from = sp.de && isValidIsoDate(sp.de) ? sp.de : addDaysIso(today, -14);
   const to = sp.ate && isValidIsoDate(sp.ate) ? sp.ate : today;
+  const clientId = sp.cliente && UUID_RE.test(sp.cliente) ? sp.cliente : null;
   const db = await createSupabaseServer();
+  // Com cliente: o embed "inner" filtra os lançamentos pelos locais dele (mesmo critério do painel).
+  const siteEmbed = clientId
+    ? "site:sites!inner(name, client_id)"
+    : "site:sites(name, client_id)";
   let q = db
     .from("work_entries")
     .select(
-      "id, activity_date, description, outcome, review_status, client_visible, author_id, service_request_id, task_occurrence_id, site:sites(name), request:service_requests(number)",
+      `id, activity_date, description, outcome, review_status, client_visible, author_id, service_request_id, task_occurrence_id, ${siteEmbed}, request:service_requests(number)`,
       { count: "exact" },
     )
     .gte("activity_date", from)
@@ -53,6 +59,7 @@ export default async function ActivitiesPage({
     .order("activity_date", { ascending: false })
     .order("created_at", { ascending: false })
     .limit(300);
+  if (clientId) q = q.eq("site.client_id", clientId);
   if (sp.local && UUID_RE.test(sp.local)) q = q.eq("site_id", sp.local);
   if (sp.pessoa && UUID_RE.test(sp.pessoa)) q = q.eq("author_id", sp.pessoa);
   if (sp.revisao && ["enviado", "revisado", "ajustado"].includes(sp.revisao))
@@ -60,10 +67,11 @@ export default async function ActivitiesPage({
       "review_status",
       sp.revisao as "enviado" | "revisado" | "ajustado",
     );
-  const [{ data, count }, sites, profiles] = await Promise.all([
+  const [{ data, count }, sites, profiles, clients] = await Promise.all([
     q,
     loadSites(db),
     loadProfiles(db),
+    db.from("clients").select("id, display_name").order("display_name"),
   ]);
   const rows = data ?? [];
   const total = count ?? rows.length;
@@ -76,8 +84,23 @@ export default async function ActivitiesPage({
       />
       <form
         method="get"
-        className="mb-5 grid gap-3 rounded-panel border border-linha bg-papel p-4 sm:grid-cols-2 lg:grid-cols-5 lg:items-end"
+        className="mb-5 grid gap-3 rounded-panel border border-linha bg-papel p-4 sm:grid-cols-2 lg:grid-cols-6 lg:items-end"
       >
+        <label className="space-y-1 text-sm font-semibold">
+          Cliente
+          <select
+            name="cliente"
+            defaultValue={clientId ?? ""}
+            className="campo-input"
+          >
+            <option value="">Todos</option>
+            {(clients.data ?? []).map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.display_name}
+              </option>
+            ))}
+          </select>
+        </label>
         <label className="space-y-1 text-sm font-semibold">
           Obra ou unidade
           <select
