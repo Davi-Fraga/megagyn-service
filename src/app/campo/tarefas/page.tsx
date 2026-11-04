@@ -72,7 +72,7 @@ export default async function FieldAgendaPage() {
       )}
       {dates.map((d) => (
         <section key={d} className="mb-6 space-y-2">
-          <h2 className={cn("text-lg font-bold", d === today && "text-laranja-escuro")}>{d === today ? `Hoje — ${longDatePt(d)}` : longDatePt(d)}</h2>
+          <h2 className={cn("text-lg font-bold", d === today && "text-acento-escuro")}>{d === today ? `Hoje — ${longDatePt(d)}` : longDatePt(d)}</h2>
           {block(rows.filter((o) => o.scheduled_date === d))}
         </section>
       ))}

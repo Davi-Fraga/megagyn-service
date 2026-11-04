@@ -68,7 +68,7 @@ export default async function FieldRequestsPage({ searchParams }: { searchParams
             <li key={r.id}>
               <Link href={`/campo/chamados/${r.id}`} className="block space-y-1.5 px-4 py-3 hover:bg-concreto">
                 <div className="flex items-center justify-between gap-2">
-                  <span className="tipo-placa text-laranja-escuro">{r.number}</span>
+                  <span className="tipo-condensada">{r.number}</span>
                   <StatusBadge status={r.status} />
                 </div>
                 <p className="font-semibold">{r.title}</p>

@@ -108,7 +108,7 @@ export default async function UserPage({
                         <Link href={`/admin/locais/${m.site?.id}`} className="font-semibold hover:underline">
                           {m.site?.name}
                         </Link>{" "}
-                        <span className="tipo-placa text-sm text-laranja-escuro">{m.site?.code}</span>
+                        <span className="tipo-condensada text-sm text-muted">{m.site?.code}</span>
                         <p className="text-sm text-muted">
                           {m.site?.client?.display_name} · {formatDateBR(m.active_from)}
                           {m.active_to ? ` a ${formatDateBR(m.active_to)}` : " até hoje"}

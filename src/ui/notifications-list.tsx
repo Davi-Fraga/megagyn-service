@@ -37,7 +37,7 @@ export async function NotificationsList({ base }: { base: "/admin" | "/campo" })
             const content = (
               <>
                 <p className={cn(!n.read_at && "font-bold")}>
-                  {!n.read_at && <span className="mr-2 inline-block size-2 rounded-full bg-laranja-vivo" aria-label="Não lida" />}
+                  {!n.read_at && <span className="mr-2 inline-block size-2 rounded-full bg-acento" aria-label="Não lida" />}
                   {n.title}
                 </p>
                 {n.body && <p className="text-sm">{n.body}</p>}

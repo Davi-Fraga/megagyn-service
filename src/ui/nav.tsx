@@ -97,7 +97,7 @@ export function AdminNav({ userName, unread, signOutAction }: { userName: string
                       active ? "bg-white font-semibold text-grafite" : "text-white/85 hover:bg-white/10",
                     )}
                   >
-                    <item.icon aria-hidden className={cn("size-[1.15rem]", active && "text-laranja")} />
+                    <item.icon aria-hidden className={cn("size-[1.15rem]", active && "text-acento")} />
                     {item.label}
                   </Link>
                 </li>
@@ -175,7 +175,7 @@ function BellLink({ href, unread, dark = false }: { href: string; unread: number
     >
       <Bell aria-hidden className="size-5" />
       {unread > 0 && (
-        <span className="absolute right-1 top-1 min-w-5 rounded-full bg-laranja-vivo px-1 text-center text-xs font-bold text-grafite">
+        <span className="absolute right-1 top-1 min-w-5 rounded-full bg-acento px-1 text-center text-xs font-bold text-white">
           {unread > 9 ? "9+" : unread}
         </span>
       )}
@@ -223,12 +223,12 @@ export function FieldNav({ isForeman, unread, userName, signOutAction }: { isFor
                   aria-current={active ? "page" : undefined}
                   className={cn(
                     "flex min-h-16 flex-col items-center justify-center gap-0.5 text-xs font-semibold",
-                    active ? "text-laranja" : "text-muted",
+                    active ? "text-acento" : "text-muted",
                   )}
                 >
                   <item.icon aria-hidden className="size-6" />
                   {item.label}
-                  <span aria-hidden className={cn("mt-0.5 h-1 w-8 rounded-full", active ? "bg-laranja-vivo" : "bg-transparent")} />
+                  <span aria-hidden className={cn("mt-0.5 h-1 w-8 rounded-full", active ? "bg-acento" : "bg-transparent")} />
                 </Link>
               </li>
             );

@@ -84,7 +84,7 @@ export default async function QuotePage({
     <>
       <PageHeader
         back={{ href: "/admin/orcamentos", label: "Orçamentos" }}
-        eyebrow={<span className="tipo-placa text-lg text-laranja-escuro">{q.number}</span>}
+        eyebrow={<span className="tipo-placa text-2xl text-grafite">{q.number}</span>}
         title={q.title || place || "Orçamento"}
         description={
           <span className="flex flex-wrap items-center gap-2">
@@ -258,7 +258,7 @@ export default async function QuotePage({
                 <ul className="space-y-2">
                   {(createdSites.data ?? []).map((s) => (
                     <li key={s.id} className="flex items-center gap-2">
-                      <HardHat aria-hidden className="size-4 text-laranja-escuro" />
+                      <HardHat aria-hidden className="size-4 text-acento-escuro" />
                       <Link href={`/admin/locais/${s.id}`} className="font-semibold text-info underline">
                         {s.name} ({s.code})
                       </Link>
@@ -303,7 +303,7 @@ export default async function QuotePage({
             ) : (
               <ol className="space-y-3">
                 {(versions.data ?? []).map((v) => (
-                  <li key={v.id} className="border-l-[3px] border-laranja pl-3">
+                  <li key={v.id} className="border-l-[3px] border-acento pl-3">
                     <p className="font-semibold">
                       Versão {v.version_no}
                       {v.total ? <span className="font-normal text-muted"> · {formatBRL(Number(v.total))}</span> : null}

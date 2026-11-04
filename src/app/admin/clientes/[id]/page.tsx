@@ -122,7 +122,7 @@ export default async function ClientPage({
                       <Link href={`/admin/locais/${s.id}`} className="flex items-center gap-3 px-4 py-3 hover:bg-concreto/60">
                         <div className="min-w-0 flex-1">
                           <p className="font-semibold">
-                            {s.name} <span className="tipo-placa ml-1 text-sm text-laranja-escuro">{s.code}</span>
+                            {s.name} <span className="tipo-condensada ml-1 text-sm text-muted">{s.code}</span>
                           </p>
                           <p className="text-sm text-muted">
                             {SITE_TYPE_LABEL[s.site_type]}

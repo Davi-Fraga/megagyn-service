@@ -53,7 +53,7 @@ export default async function MyHoursPage() {
                 <span className="text-sm text-muted">{t.site?.name}</span>
               </span>
               <span className="flex items-center gap-2">
-                <span className="tipo-placa">{t.hours === null ? "—" : `${String(t.hours).replace(".", ",")} h`}</span>
+                <span className="tipo-condensada text-[1.0625rem]">{t.hours === null ? "—" : `${String(t.hours).replace(".", ",")} h`}</span>
                 {t.approved_at && <Badge tone="ok">Conferida</Badge>}
               </span>
             </li>

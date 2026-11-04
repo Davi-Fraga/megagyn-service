@@ -70,11 +70,11 @@ export default async function FieldTodayPage({ searchParams }: { searchParams: P
             href={t.href}
             className={cn(
               "relative flex min-h-28 flex-col justify-between overflow-hidden rounded-panel border-[1.5px] p-4",
-              t.primary ? "col-span-2 min-h-24 border-transparent bg-laranja text-white" : "border-linha bg-papel text-grafite hover:border-grafite-2",
+              t.primary ? "col-span-2 min-h-24 border-transparent bg-acento text-white" : "border-linha bg-papel text-grafite hover:border-grafite-2",
             )}
           >
             {t.alert && <span aria-hidden className="faixa-alerta absolute inset-x-0 top-0 h-2" />}
-            <t.icon aria-hidden className={cn("size-8", !t.primary && "text-laranja")} />
+            <t.icon aria-hidden className={cn("size-8", !t.primary && "text-acento")} />
             <span className={cn("tipo-placa text-lg leading-tight", t.primary && "text-xl")}>
               {t.label}
               {typeof t.count === "number" && t.count > 0 && <span className="ml-1">({t.count})</span>}
@@ -97,7 +97,7 @@ export default async function FieldTodayPage({ searchParams }: { searchParams: P
               <li key={r.id}>
                 <Link href={`/campo/chamados/${r.id}`} className="block space-y-1.5 px-4 py-3 hover:bg-concreto">
                   <div className="flex items-center justify-between gap-2">
-                    <span className="tipo-placa text-laranja-escuro">{r.number}</span>
+                    <span className="tipo-condensada">{r.number}</span>
                     <StatusBadge status={r.status} />
                   </div>
                   <p className="font-semibold">{r.title}</p>
@@ -129,7 +129,7 @@ export default async function FieldTodayPage({ searchParams }: { searchParams: P
                       {o.site?.name} · {formatDateBR(o.scheduled_date)}
                     </span>
                   </span>
-                  <Badge tone={o.status === "iniciada" ? "laranja" : "neutral"}>{o.status === "iniciada" ? "Iniciada" : "Prevista"}</Badge>
+                  <Badge tone={o.status === "iniciada" ? "acento" : "neutral"}>{o.status === "iniciada" ? "Iniciada" : "Prevista"}</Badge>
                 </Link>
               </li>
             ))}

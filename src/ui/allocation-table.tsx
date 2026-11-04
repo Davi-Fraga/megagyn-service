@@ -191,7 +191,7 @@ export function AllocationSummaryTable({
         </thead>
         <tbody className="divide-y divide-linha">
           {allocations.map((a, i) => (
-            <tr key={i} className={cn(highlightSite && a.siteName === highlightSite && "bg-laranja-claro")}>
+            <tr key={i} className={cn(highlightSite && a.siteName === highlightSite && "bg-acento-claro")}>
               <td className="py-2 pr-3 align-top">
                 <span className="font-semibold">{a.siteName}</span>
                 {a.clientName && <span className="block text-sm text-muted">{a.clientName}</span>}

@@ -65,7 +65,7 @@ export default async function SitePage({
     <>
       <PageHeader
         back={{ href: `/admin/clientes/${site.client_id}`, label: site.client?.display_name ?? "Cliente" }}
-        eyebrow={<span className="tipo-placa text-lg text-laranja-escuro">{site.code}</span>}
+        eyebrow={<span className="tipo-placa text-2xl text-grafite">{site.code}</span>}
         title={site.name}
         description={
           <span className="flex flex-wrap items-center gap-2">

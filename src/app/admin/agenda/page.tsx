@@ -146,7 +146,7 @@ export default async function AgendaPage({ searchParams }: { searchParams: Promi
           const dayReq = requests.filter((r) => r.scheduled_date === d);
           return (
             <section key={d}>
-              <h2 className={cn("mb-2 text-lg font-bold", d === todayIso() && "text-laranja-escuro")}>{longDatePt(d)}</h2>
+              <h2 className={cn("mb-2 text-lg font-bold", d === todayIso() && "text-acento-escuro")}>{longDatePt(d)}</h2>
               {dayOcc.length === 0 && dayReq.length === 0 ? (
                 <p className="text-sm text-muted">Nada programado.</p>
               ) : (
@@ -155,7 +155,7 @@ export default async function AgendaPage({ searchParams }: { searchParams: Promi
                     <li key={r.id} className="flex flex-wrap items-center justify-between gap-2 px-4 py-3">
                       <span>
                         <Link href={`/admin/chamados/${r.id}`} className="font-semibold hover:underline">
-                          <span className="tipo-placa mr-2 text-laranja-escuro">{r.number}</span>
+                          <span className="tipo-condensada mr-2">{r.number}</span>
                           {r.title}
                         </Link>
                         <span className="block text-sm text-muted">

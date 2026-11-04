@@ -113,7 +113,7 @@ export default async function AdminRequestsPage({ searchParams }: { searchParams
         </label>
         <div className="flex flex-wrap items-center gap-4 sm:col-span-2 lg:col-span-4">
           <label className="flex min-h-11 items-center gap-2 font-semibold">
-            <input type="checkbox" name="atrasados" value="1" defaultChecked={filters.overdue} className="size-5 accent-laranja" />
+            <input type="checkbox" name="atrasados" value="1" defaultChecked={filters.overdue} className="size-5 accent-acento" />
             Só com prazo vencido
           </label>
           <button type="submit" className={buttonClass("dark")}>
@@ -155,7 +155,7 @@ export default async function AdminRequestsPage({ searchParams }: { searchParams
               {rows.map((r) => (
                 <tr key={r.id} className="align-top hover:bg-concreto/60">
                   <td className="px-3 py-2.5">
-                    <Link href={`/admin/chamados/${r.id}`} className="tipo-placa text-laranja-escuro underline-offset-2 hover:underline">
+                    <Link href={`/admin/chamados/${r.id}`} className="tipo-condensada text-[1.0625rem] underline-offset-4 hover:underline">
                       {r.number}
                     </Link>
                   </td>

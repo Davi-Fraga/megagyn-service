@@ -110,7 +110,7 @@ export function WorkEntryForm({
             { v: "nao_executado", l: "Não deu para fazer" },
           ].map((o) => (
             <label key={o.v} className="flex min-h-12 items-center gap-3 rounded-ctl border border-linha bg-papel px-3">
-              <input type="radio" name="outcome" value={o.v} checked={outcome === o.v} onChange={() => setOutcome(o.v)} className="size-5 accent-laranja" />
+              <input type="radio" name="outcome" value={o.v} checked={outcome === o.v} onChange={() => setOutcome(o.v)} className="size-5 accent-acento" />
               {o.l}
             </label>
           ))}

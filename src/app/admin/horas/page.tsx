@@ -110,7 +110,7 @@ export default async function HoursPage({ searchParams }: { searchParams: Promis
                       {(entries ?? []).map((t) => (
                         <tr key={t.id}>
                           <td className="py-1.5">
-                            {!t.approved_at && <input type="checkbox" name="time_entry_ids" value={t.id} className="size-5 accent-laranja" aria-label="Selecionar jornada" />}
+                            {!t.approved_at && <input type="checkbox" name="time_entry_ids" value={t.id} className="size-5 accent-acento" aria-label="Selecionar jornada" />}
                           </td>
                           <td className="py-1.5">{formatDateBR(t.work_date)}</td>
                           <td className="py-1.5">{profiles.name(t.profile_id)}</td>

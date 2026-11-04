@@ -107,7 +107,7 @@ export default async function SitesPage({ searchParams }: { searchParams: Promis
               {sites.map((s) => (
                 <tr key={s.id} className="align-top hover:bg-concreto/60">
                   <td className="px-3 py-2.5">
-                    <Link href={`/admin/locais/${s.id}`} className="tipo-placa text-laranja-escuro hover:underline">
+                    <Link href={`/admin/locais/${s.id}`} className="tipo-condensada text-[1.0625rem] underline-offset-4 hover:underline">
                       {s.code}
                     </Link>
                   </td>

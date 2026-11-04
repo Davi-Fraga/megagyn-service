@@ -274,7 +274,7 @@ export function CheckboxField({
   const id = useId();
   return (
     <label htmlFor={id} className="flex min-h-11 cursor-pointer items-start gap-3 py-1.5">
-      <input id={id} type="checkbox" name={name} value={value} defaultChecked={defaultChecked} className="mt-0.5 size-5 shrink-0 accent-laranja" />
+      <input id={id} type="checkbox" name={name} value={value} defaultChecked={defaultChecked} className="mt-0.5 size-5 shrink-0 accent-acento" />
       <span className="text-[0.95rem]">
         <span className="font-semibold">{label}</span>
         {hint && <span className="block text-sm text-muted">{hint}</span>}
@@ -317,7 +317,7 @@ export function CheckboxGroup({
               name={name}
               value={o.value}
               defaultChecked={defaultValues.includes(o.value)}
-              className="size-5 accent-laranja"
+              className="size-5 accent-acento"
             />
             <span>{o.label}</span>
           </label>

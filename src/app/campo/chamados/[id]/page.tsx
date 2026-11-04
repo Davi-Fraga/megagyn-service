@@ -49,7 +49,7 @@ export default async function FieldRequestPage({
     <>
       <PageHeader
         back={{ href: "/campo/chamados", label: "Chamados" }}
-        eyebrow={<span className="tipo-placa text-lg text-laranja-escuro">{r.number}</span>}
+        eyebrow={<span className="tipo-placa text-2xl text-grafite">{r.number}</span>}
         title={r.title}
         description={
           <span className="flex flex-wrap items-center gap-2">
