@@ -24,12 +24,16 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
 
   const { data: att } = await supabase
     .from("attachments")
-    .select("bucket, storage_key, derivatives, mime_type, original_name")
+    .select("bucket, storage_key, derivatives, mime_type, original_name, revoked_at")
     .eq("id", id)
     .maybeSingle();
   if (!att) return new NextResponse("Não encontrado", { status: 404 });
 
   const { data: role } = await supabase.rpc("current_app_role");
+  // Foto removida sai do alcance de quem não é da administração, inclusive por link direto.
+  if (att.revoked_at && role !== "admin") {
+    return new NextResponse("Não encontrado", { status: 404, headers: { "Cache-Control": "no-store" } });
+  }
   const plan = planFileResponse({
     mime: att.mime_type,
     storageKey: att.storage_key,

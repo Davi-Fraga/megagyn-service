@@ -1,10 +1,10 @@
 import { expect, test } from "@playwright/test";
-import { PHOTO_A, USERS, login, uploadPhotos } from "./helpers";
+import { PHOTO_A, USERS, login, mobilePage, uploadPhotos } from "./helpers";
 
 test.setTimeout(180_000);
 
 /** R-20: a administração remove foto errada com motivo; ela fica marcada e o histórico registra. */
-test("administração remove foto do chamado com motivo", async ({ page }) => {
+test("administração remove foto do chamado com motivo", async ({ page, browser }) => {
   const title = `Foto errada E2E ${Date.now()}`;
   await login(page, USERS.admin);
   await page.goto("/admin/chamados/novo");
@@ -25,4 +25,15 @@ test("administração remove foto do chamado com motivo", async ({ page }) => {
   await expect(page.getByText("Removida", { exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "Remover foto" })).toHaveCount(0);
   await expect(page.getByText("Foto de outra obra").first()).toBeVisible();
+
+  // A-02: pelo link direto, a administração ainda abre; a equipe do local recebe 404 sem cache.
+  const src = await page.locator('img[src*="/api/files/"]').first().getAttribute("src");
+  expect(src).toBeTruthy();
+  expect((await page.request.get(src!)).status()).toBe(200);
+  const worker = await mobilePage(browser);
+  await login(worker, USERS.joao);
+  const denied = await worker.request.get(src!);
+  expect(denied.status()).toBe(404);
+  expect(denied.headers()["cache-control"]).toBe("no-store");
+  await worker.context().close();
 });
