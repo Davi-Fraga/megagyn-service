@@ -64,7 +64,7 @@ export default async function FieldRequestPage({
         </div>
       )}
 
-      <section className="mb-5 space-y-3">
+      <section className="mb-8 space-y-3">
         {(actions.includes("registrar_atividade") || actions.includes("informar_execucao")) && (
           <ButtonLink href={`${base}/registrar`} size="lg" icon={<PencilLine aria-hidden className="size-6" />}>
             Registrar o que foi feito
@@ -97,37 +97,34 @@ export default async function FieldRequestPage({
       </section>
 
       {r.status === "pendente" && pending && (
-        <section className="mb-5 overflow-hidden rounded-panel border border-alerta bg-papel">
-          <div aria-hidden className="faixa-alerta h-2" />
-          <div className="space-y-1 p-4">
-            <h2 className="font-bold">Pendente: {pending.pending_reason}</h2>
-            <p>{pending.explanation}</p>
-            <p className="text-sm">
-              Providência: {pending.next_action} — {pending.next_action_owner_name}. Previsão: {formatDateBR(pending.expected_return_date)}
-            </p>
-          </div>
+        <section className="mb-8 border-l-[3px] border-alerta pl-4">
+          <h2 className="text-[1.3125rem] text-alerta">Pendente: {pending.pending_reason}</h2>
+          <p className="mt-1">{pending.explanation}</p>
+          <p className="mt-1 text-[0.9375rem]">
+            Providência: {pending.next_action} — {pending.next_action_owner_name}. Previsão: {formatDateBR(pending.expected_return_date)}
+          </p>
         </section>
       )}
 
-      <div className="space-y-5">
+      <div className="space-y-8">
         <Panel title="Pedido">
-          <p className="mb-1 text-sm text-muted">
-            {r.site?.name}
-            {r.area ? ` · ${r.area.name}` : ""} · programado {formatDateBR(r.scheduled_date)}
-            {r.due_date ? ` · prazo ${formatDateBR(r.due_date)}` : ""}
+          <p className="mb-2 flex flex-wrap gap-x-3 text-[0.9375rem] text-muted">
+            <span>{[r.site?.name, r.area?.name].filter(Boolean).join(", ")}</span>
+            <span className="tipo-condensada">Programado para {formatDateBR(r.scheduled_date)}</span>
+            {r.due_date && <span className="tipo-condensada">Prazo {formatDateBR(r.due_date)}</span>}
           </p>
           <p className="whitespace-pre-line">{r.description}</p>
-          <div className="mt-3">
+          <div className="mt-4">
             <PhotoGrid photos={detail.requestPhotos} emptyText="Sem fotos da situação inicial." />
           </div>
         </Panel>
 
         {!["concluida", "cancelada", "aberta"].includes(r.status) && (
-          <details className="rounded-panel border border-linha bg-papel">
-            <summary className="flex min-h-12 cursor-pointer items-center gap-2 px-4 font-bold">
-              <Camera aria-hidden className="size-5" /> Adicionar fotos ao chamado
+          <details className="border-t border-linha">
+            <summary className="flex min-h-12 cursor-pointer items-center gap-2 pt-1 text-[1.0625rem] font-semibold">
+              <Camera aria-hidden className="size-5 text-acento" /> Adicionar fotos ao chamado
             </summary>
-            <div className="border-t border-linha p-4">
+            <div className="pb-2 pt-3">
               <ActionForm action={addRequestPhotosAction} submitLabel="Salvar fotos" resetOnSuccess>
                 <input type="hidden" name="request_id" value={r.id} />
                 <MediaUploader name="photo_ids" label="Fotos" required siteId={r.site_id} />

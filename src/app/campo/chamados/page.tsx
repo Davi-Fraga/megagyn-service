@@ -7,7 +7,7 @@ import { fieldRequestsQuery } from "@/server/field-queries";
 import { createSupabaseServer } from "@/server/supabase/server";
 import { cn } from "@/ui/cn";
 import { EmptyState } from "@/ui/page";
-import { AlertTape } from "@/ui/status";
+import { AlertEdge } from "@/ui/status";
 import { StatusRuler } from "@/ui/status-ruler";
 
 export const metadata: Metadata = { title: "Chamados" };
@@ -36,16 +36,18 @@ export default async function FieldRequestsPage({ searchParams }: { searchParams
 
   return (
     <>
-      <h1 className="mb-3 text-2xl font-bold">Chamados</h1>
-      <nav aria-label="Filtro de chamados" className="-mx-4 mb-3 flex gap-2 overflow-x-auto px-4 pb-1">
+      <h1 className="mb-4 text-[2.125rem] leading-[1.04]">Chamados</h1>
+      <nav aria-label="Filtro de chamados" className="-mx-4 mb-4 flex overflow-x-auto border-b border-linha px-2">
         {TABS.map((t) => (
           <Link
             key={t.key}
             href={`/campo/chamados?filtro=${t.key}${onlyMine ? "" : "&meus=0"}`}
             aria-current={t.key === tab.key ? "page" : undefined}
             className={cn(
-              "inline-flex min-h-11 shrink-0 items-center rounded-full border px-4 text-sm font-semibold",
-              t.key === tab.key ? "border-grafite bg-grafite text-white" : "border-linha bg-papel",
+              "relative inline-flex min-h-12 shrink-0 items-center px-3 text-[0.9375rem]",
+              t.key === tab.key
+                ? "font-bold text-grafite after:absolute after:inset-x-3 after:-bottom-px after:h-[3px] after:bg-acento"
+                : "font-medium text-muted",
             )}
           >
             {t.label}
@@ -53,9 +55,9 @@ export default async function FieldRequestsPage({ searchParams }: { searchParams
         ))}
       </nav>
       {tab.key !== "triagem" && (
-        <p className="mb-3 text-sm">
+        <p className="mb-4 text-[0.9375rem]">
           {onlyMine ? "Mostrando os chamados atribuídos a você. " : "Mostrando todos os chamados dos seus locais. "}
-          <Link href={`/campo/chamados?filtro=${tab.key}${onlyMine ? "&meus=0" : ""}`} className="font-semibold text-info underline">
+          <Link href={`/campo/chamados?filtro=${tab.key}${onlyMine ? "&meus=0" : ""}`} className="font-semibold text-acento underline decoration-1 underline-offset-[3px]">
             {onlyMine ? "Ver todos do local" : "Ver só os meus"}
           </Link>
         </p>
@@ -64,24 +66,28 @@ export default async function FieldRequestsPage({ searchParams }: { searchParams
       {rows.length === 0 ? (
         <EmptyState title="Nada por aqui." text="Quando a administração programar um chamado para você, ele aparece nesta lista." />
       ) : (
-        <ul className="divide-y divide-linha overflow-hidden rounded-panel border border-linha bg-papel">
-          {rows.map((r) => (
-            <li key={r.id}>
-              <Link href={`/campo/chamados/${r.id}`} className="block space-y-1.5 px-4 py-3 hover:bg-concreto">
-                <div className="flex items-center justify-between gap-2">
-                  <span className="tipo-condensada">{r.number}</span>
-                </div>
-                <p className="font-semibold">{r.title}</p>
-                <p className="text-sm text-muted">
-                  {r.site?.name}
-                  {r.area ? ` · ${r.area.name}` : ""}
-                  {r.scheduled_date ? ` · programado ${formatDateBR(r.scheduled_date)}` : ""}
-                </p>
-                <StatusRuler status={r.status} size="grande" className="pt-1" />
-                {isOverdue(r.due_date, r.status, today) && <AlertTape>Prazo vencido</AlertTape>}
-              </Link>
-            </li>
-          ))}
+        <ul className="-mx-4 divide-y divide-linha border-y border-linha">
+          {rows.map((r) => {
+            const overdue = isOverdue(r.due_date, r.status, today);
+            return (
+              <li key={r.id} className="relative">
+                {overdue && <AlertEdge />}
+                <Link href={`/campo/chamados/${r.id}`} className="block py-4 pl-5 pr-4 hover:bg-concreto/45">
+                  <span className="tipo-condensada flex justify-between gap-3 text-[0.9375rem]">
+                    <span>{r.number}</span>
+                    {overdue ? (
+                      <span className="text-erro">Prazo vencido em {formatDateBR(r.due_date).slice(0, 5)}</span>
+                    ) : (
+                      r.scheduled_date && <span className="text-muted">Programado para {formatDateBR(r.scheduled_date).slice(0, 5)}</span>
+                    )}
+                  </span>
+                  <h2 className="tipo-normal mt-1 text-[1.1875rem] font-semibold leading-tight">{r.title}</h2>
+                  <p className="mt-0.5 text-[0.9375rem] text-muted">{[r.site?.name, r.area?.name].filter(Boolean).join(", ")}</p>
+                  <StatusRuler status={r.status} size="grande" className="mt-3.5" />
+                </Link>
+              </li>
+            );
+          })}
         </ul>
       )}
     </>

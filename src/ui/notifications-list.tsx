@@ -31,7 +31,7 @@ export async function NotificationsList({ base }: { base: "/admin" | "/campo" })
       {list.length === 0 ? (
         <EmptyState title="Nenhuma notificação." />
       ) : (
-        <ul className="divide-y divide-linha overflow-hidden rounded-panel border border-linha bg-papel">
+        <ul className="divide-y divide-linha border-y border-linha">
           {list.map((n) => {
             const href = fix(n.link);
             const content = (

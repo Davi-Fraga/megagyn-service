@@ -83,17 +83,16 @@ export default async function PurchasePage({
         </div>
       )}
       {returnReason && (
-        <section className="mb-5 overflow-hidden rounded-panel border border-alerta bg-papel">
-          <div aria-hidden className="faixa-alerta h-2" />
-          <div className="space-y-1 p-4">
-            <h2 className="font-bold">Devolvida pela administração</h2>
+        <section className="mb-8 border-l-[3px] border-alerta pl-4">
+          <div className="space-y-1">
+            <h2 className="text-[1.3125rem] text-alerta">Devolvida pela administração</h2>
             <p className="whitespace-pre-line">{returnReason}</p>
             <p className="text-sm text-muted">Corrija abaixo e toque em “Reenviar para conferência”.</p>
           </div>
         </section>
       )}
 
-      <div className="space-y-5">
+      <div className="space-y-8">
         {form && editOpen && (
           <Panel title={e.reviewStatus === "rascunho" ? "Continuar a compra" : "Corrigir a compra"}>{form}</Panel>
         )}
@@ -114,11 +113,11 @@ export default async function PurchasePage({
         </Panel>
 
         {form && !editOpen && (
-          <details className="rounded-panel border border-linha bg-papel">
-            <summary className="flex min-h-12 cursor-pointer items-center gap-2 px-4 font-bold">
-              <PencilLine aria-hidden className="size-5" /> Corrigir dados da compra
+          <details className="border-t border-linha">
+            <summary className="flex min-h-12 cursor-pointer items-center gap-2 pt-1 text-[1.0625rem] font-semibold">
+              <PencilLine aria-hidden className="size-5 text-acento" /> Corrigir dados da compra
             </summary>
-            <div className="space-y-4 border-t border-linha p-4">
+            <div className="space-y-4 pb-2 pt-3">
               {e.reviewStatus === "aprovado" && (
                 <Notice tone="alerta">Alterar valor ou rateio devolve a compra para conferência.</Notice>
               )}

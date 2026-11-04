@@ -42,13 +42,13 @@ export default async function MyActivitiesPage({ searchParams }: { searchParams:
   return (
     <>
       <div className="mb-4 flex items-center justify-between gap-2">
-        <h1 className="text-2xl font-bold">O que eu fiz</h1>
+        <h1 className="text-[2.125rem] leading-[1.04]">O que eu fiz</h1>
         <Link href="/campo/horas" className="inline-flex min-h-11 items-center gap-1 font-semibold text-info underline">
           <Clock aria-hidden className="size-4" /> Minhas horas
         </Link>
       </div>
       <p className="mb-4 text-muted">Inclui registros em que você foi participante.</p>
-      <form method="get" className="mb-5 grid gap-3 rounded-panel border border-linha bg-papel p-3 sm:grid-cols-4 sm:items-end">
+      <form method="get" className="mb-6 grid gap-3 border-b border-linha pb-5 sm:grid-cols-4 sm:items-end">
         <label className="space-y-1 text-sm font-semibold">
           Obra ou unidade
           <select name="local" defaultValue={filters.siteId ?? ""} className="campo-input">
@@ -82,7 +82,7 @@ export default async function MyActivitiesPage({ searchParams }: { searchParams:
               {entries
                 .filter((e) => e.activity_date === d)
                 .map((e) => (
-                  <li key={e.id} className="space-y-2 rounded-panel border border-linha bg-papel p-3">
+                  <li key={e.id} className="space-y-2 border-t border-linha pt-3">
                     <div className="flex items-start justify-between gap-2">
                       <p className="font-semibold">{e.description}</p>
                       {e.review_status === "ajustado" && <Badge tone="info">Ajustado</Badge>}

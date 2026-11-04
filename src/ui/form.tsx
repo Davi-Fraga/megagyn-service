@@ -137,7 +137,7 @@ export function ActionForm({
             "flex flex-wrap items-center gap-3",
             stickySubmit &&
               // --sticky-offset: altura do menu inferior do campo (definida no layout); 0 na administração.
-              "sticky bottom-[var(--sticky-offset,0px)] z-10 -mx-4 border-t border-linha bg-concreto/95 px-4 py-3 backdrop-blur sm:static sm:mx-0 sm:border-0 sm:bg-transparent sm:p-0",
+              "sticky bottom-[var(--sticky-offset,0px)] z-10 -mx-4 border-t border-linha bg-papel/95 px-4 py-3 backdrop-blur sm:static sm:mx-0 sm:border-0 sm:bg-transparent sm:p-0",
           )}
         >
           <button

@@ -4,7 +4,6 @@ import Link from "next/link";
 import { addDaysIso, longDatePt, todayIso } from "@/domain/dates";
 import { requireProfile } from "@/server/auth";
 import { createSupabaseServer } from "@/server/supabase/server";
-import { cn } from "@/ui/cn";
 import { OccurrenceBadge } from "@/ui/occurrence-status";
 import { EmptyState } from "@/ui/page";
 import { AlertTape } from "@/ui/status";
@@ -37,12 +36,12 @@ export default async function FieldAgendaPage() {
         <p className="flex items-center gap-1.5 text-sm font-semibold text-muted">
           <MapPin aria-hidden className="size-4" /> {site}
         </p>
-        <ul className="divide-y divide-linha overflow-hidden rounded-panel border border-linha bg-papel">
+        <ul className="-mx-4 divide-y divide-linha border-y border-linha">
           {items.map((o) => (
             <li key={o.id}>
-              <Link href={`/campo/tarefas/${o.id}`} className="flex items-center justify-between gap-2 px-4 py-3 hover:bg-concreto">
+              <Link href={`/campo/tarefas/${o.id}`} className="flex min-h-16 items-center justify-between gap-3 px-4 py-3 hover:bg-concreto/45">
                 <span>
-                  <span className="block font-semibold">{o.task?.title}</span>
+                  <span className="block text-[1.0625rem] font-semibold leading-snug">{o.task?.title}</span>
                   <span className="text-sm text-muted">
                     {o.task?.kind?.name ?? "Tarefa"}
                     {o.area ? ` · ${o.area.name}` : ""}
@@ -59,7 +58,7 @@ export default async function FieldAgendaPage() {
 
   return (
     <>
-      <h1 className="mb-1 text-2xl font-bold">Agenda</h1>
+      <h1 className="mb-1 text-[2.125rem] leading-[1.04]">Agenda</h1>
       <p className="mb-4 text-muted">Próximos 7 dias, separados por obra.</p>
       {rows.length === 0 && <EmptyState title="Nenhuma tarefa na agenda." text="Quando a administração programar tarefas para você, elas aparecem aqui." />}
       {late.length > 0 && (
@@ -72,7 +71,7 @@ export default async function FieldAgendaPage() {
       )}
       {dates.map((d) => (
         <section key={d} className="mb-6 space-y-2">
-          <h2 className={cn("text-lg font-bold", d === today && "text-acento-escuro")}>{d === today ? `Hoje — ${longDatePt(d)}` : longDatePt(d)}</h2>
+          <h2 className="tipo-normal text-[1.0625rem] font-[650]">{d === today ? `Hoje, ${longDatePt(d)}` : longDatePt(d)}</h2>
           {block(rows.filter((o) => o.scheduled_date === d))}
         </section>
       ))}

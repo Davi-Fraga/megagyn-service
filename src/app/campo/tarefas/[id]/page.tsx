@@ -92,7 +92,7 @@ export default async function FieldTaskPage({ params, searchParams }: { params: 
       )}
       {o.status === "nao_realizada" && <Notice tone="alerta">Não realizada: {o.no_show_reason}</Notice>}
 
-      <div className="space-y-5">
+      <div className="space-y-8">
         <Panel title="Detalhes">
           {o.task?.description && <p className="mb-2 whitespace-pre-line">{o.task.description}</p>}
           <p className="text-sm text-muted">
@@ -144,9 +144,9 @@ export default async function FieldTaskPage({ params, searchParams }: { params: 
         </Panel>
 
         {open && otherSites.length > 0 && (
-          <details className="rounded-panel border border-linha bg-papel">
-            <summary className="cursor-pointer px-4 py-3 font-bold">Esta tarefa me levou a outro local</summary>
-            <div className="border-t border-linha p-4">
+          <details className="border-t border-linha">
+            <summary className="flex min-h-12 cursor-pointer items-center pt-1 text-[1.0625rem] font-semibold">Esta tarefa me levou a outro local</summary>
+            <div className="pb-2 pt-3">
               <p className="mb-3 text-sm text-muted">Cria um registro separado no outro local, ligado a esta mesma tarefa.</p>
               <ActionForm action={addOccurrenceAction} submitLabel="Adicionar local">
                 <input type="hidden" name="task_id" value={o.task_id} />

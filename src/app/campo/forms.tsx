@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { todayIso, addDaysIso } from "@/domain/dates";
 import { markExecutedAction, reportPendingAction, workEntryAction } from "@/server/actions/requests";
+import { cn } from "@/ui/cn";
 import { ActionForm, CheckboxGroup, SelectField, TextAreaField, TextField, type Option } from "@/ui/form";
 import { MediaUploader } from "@/ui/media-uploader";
 
@@ -98,19 +99,35 @@ export function WorkEntryForm({
       {site ? (
         <MediaUploader key={site.id} name="photo_ids" label="Fotos" siteId={site.id} hint="Tire fotos do serviço. Elas entram no diário do dia." />
       ) : (
-        <p className="rounded-ctl border border-dashed border-linha bg-papel p-3 text-sm text-muted">Escolha o local para enviar fotos.</p>
+        <p className="border-y border-linha py-3 text-sm text-muted">Escolha o local para enviar fotos.</p>
       )}
 
-      <fieldset className="space-y-2">
-        <legend className="font-semibold">Resultado</legend>
-        <div className="grid gap-2">
+      <fieldset>
+        <legend className="mb-1.5 text-[0.95rem] font-semibold">Resultado</legend>
+        {/* Três opções segmentadas: o rádio cobre a opção inteira (alvo de toque) e fica invisível. */}
+        <div className="grid grid-cols-3 overflow-hidden rounded-ctl border border-controle">
           {[
             { v: "executado", l: "Feito" },
             { v: "parcial", l: "Feito em parte" },
             { v: "nao_executado", l: "Não deu para fazer" },
-          ].map((o) => (
-            <label key={o.v} className="flex min-h-12 items-center gap-3 rounded-ctl border border-linha bg-papel px-3">
-              <input type="radio" name="outcome" value={o.v} checked={outcome === o.v} onChange={() => setOutcome(o.v)} className="size-5 accent-acento" />
+          ].map((o, i) => (
+            <label
+              key={o.v}
+              className={cn(
+                "relative flex min-h-13 cursor-pointer items-center justify-center px-2 py-1.5 text-center text-[0.9375rem] font-semibold leading-tight",
+                "has-[input:focus-visible]:outline-2 has-[input:focus-visible]:-outline-offset-4 has-[input:focus-visible]:outline-acento",
+                i > 0 && "border-l border-controle",
+                outcome === o.v ? "bg-grafite text-white" : "bg-papel hover:bg-concreto",
+              )}
+            >
+              <input
+                type="radio"
+                name="outcome"
+                value={o.v}
+                checked={outcome === o.v}
+                onChange={() => setOutcome(o.v)}
+                className="absolute inset-0 m-0 cursor-pointer opacity-0"
+              />
               {o.l}
             </label>
           ))}

@@ -176,7 +176,7 @@ export function FieldNav({ isForeman, unread, userName, signOutAction }: { isFor
   ];
   return (
     <>
-      <header className="sticky top-0 z-30 border-b border-linha bg-papel">
+      <header className="sticky top-0 z-30 bg-concreto">
         <div className="mx-auto flex max-w-3xl items-center justify-between gap-2 px-4 py-2">
           <Link href="/campo" aria-label="Início" className="flex min-h-11 items-center">
             <Brand compact />
@@ -184,7 +184,7 @@ export function FieldNav({ isForeman, unread, userName, signOutAction }: { isFor
           <div className="flex items-center gap-1">
             <BellLink href="/campo/notificacoes" unread={unread} />
             <form action={signOutAction}>
-              <button type="submit" className="min-h-11 rounded-ctl px-3 text-sm font-semibold text-muted hover:bg-concreto-2" title={userName}>
+              <button type="submit" className="min-h-11 rounded-ctl px-3 text-[0.9375rem] font-medium text-muted hover:bg-concreto-2" title={userName}>
                 Sair
               </button>
             </form>
@@ -204,13 +204,14 @@ export function FieldNav({ isForeman, unread, userName, signOutAction }: { isFor
                   href={item.href}
                   aria-current={active ? "page" : undefined}
                   className={cn(
-                    "flex min-h-16 flex-col items-center justify-center gap-0.5 text-xs font-semibold",
-                    active ? "text-acento" : "text-muted",
+                    "relative flex min-h-16 flex-col items-center justify-center gap-1 text-[0.8125rem]",
+                    active
+                      ? "font-bold text-grafite before:absolute before:inset-x-[24%] before:-top-px before:h-[3px] before:bg-acento"
+                      : "font-medium text-muted",
                   )}
                 >
                   <item.icon aria-hidden className="size-6" />
                   {item.label}
-                  <span aria-hidden className={cn("mt-0.5 h-1 w-8 rounded-full", active ? "bg-acento" : "bg-transparent")} />
                 </Link>
               </li>
             );

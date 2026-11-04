@@ -45,7 +45,7 @@ export default async function MyHoursPage() {
       {(data ?? []).length === 0 ? (
         <EmptyState title="Nenhuma jornada informada." />
       ) : (
-        <ul className="divide-y divide-linha overflow-hidden rounded-panel border border-linha bg-papel">
+        <ul className="-mx-4 divide-y divide-linha border-y border-linha">
           {(data ?? []).map((t) => (
             <li key={t.id} className="flex items-center justify-between gap-2 px-4 py-3">
               <span>
