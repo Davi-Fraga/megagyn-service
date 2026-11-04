@@ -85,7 +85,7 @@ clients ──< client_contacts >── client_contact_sites >── sites
 ### 2.3 Chamados / OS
 
 **`service_requests`**
-`number` txt UNIQUE gerado `AAAA-NNNNNN` (sequence por ano; função `next_request_number()`), `client_id`, `site_id`, `site_area_id` NULL, `origin` enum(`cliente_portal`,`cliente_externo`,`interna`,`programada`), `channel` enum(`portal`,`whatsapp`,`telefone`,`email`,`presencial`,`outro`) NULL, `requester_contact_id` NULL FK `client_contacts`, `requester_name_free` txt NULL (quando o solicitante não está cadastrado), `title`, `description`, `service_category_id`, `priority_id`, `status` enum(`aberta`,`programada`,`em_execucao`,`pendente`,`executada`,`concluida`,`cancelada`), `scheduled_date` date NULL, `due_date` date NULL, `task_id` NULL, `opened_at` ts, `closed_at` ts NULL, `cancelled_at` ts NULL, `is_internal` bool (demanda interna invisível ao cliente), `current_pending` jsonb NULL (cache do último impedimento: motivo, providência, responsável, previsão), `version` int (lock otimista).
+`number` txt UNIQUE gerado `AAAA-NNNNNN` (sequence por ano; função `next_request_number()`), `client_id`, `site_id`, `site_area_id` NULL, `origin` enum(`cliente_portal`,`cliente_externo`,`interna`,`programada`), `channel` enum(`portal`,`whatsapp`,`telefone`,`email`,`presencial`,`outro`) NULL, `requester_contact_id` NULL FK `client_contacts`, `requester_name_free` txt NULL (quando o solicitante não está cadastrado), `title`, `description`, `service_category_id`, `priority_id`, `status` enum(`aberta`,`programada`,`em_execucao`,`pendente`,`executada`,`concluida`,`cancelada`), `scheduled_date` date NULL, `due_date` date NULL, `task_id` NULL, `opened_at` ts, `closed_at` ts NULL, `cancelled_at` ts NULL, `is_internal` bool (demanda interna invisível ao cliente), `current_pending` jsonb NULL (cache do último impedimento: motivo, providência, responsável, previsão), `version` int (contador incrementado a cada alteração; ainda não é conferido como trava otimista, ver M-15 em `docs/megagyn/03-arquitetura-e-modelo-de-dados.md`).
 Índices: `(site_id, status)`, `(client_id, opened_at)`, `(status, due_date)`, `(scheduled_date)`.
 Restrições: `status` **só muda via RPC** `request_transition(...)` (trigger bloqueia UPDATE direto em `status` fora da função — verifica `current_setting('app.in_transition')`).
 
@@ -95,7 +95,7 @@ Restrições: `status` **só muda via RPC** `request_transition(...)` (trigger b
 `service_request_id`, `event_type` enum(`abertura`,`classificacao`,`atribuicao`,`reprogramacao`,`prorrogacao`,`inicio`,`atividade`,`pendencia`,`retomada`,`execucao_informada`,`devolucao`,`validacao`,`cancelamento`,`reabertura`,`comentario`,`anexo_adicionado`,`anexo_revogado`,`edicao`), `from_status` NULL, `to_status` NULL, `actor_id`, `occurred_at` ts (= `created_at`; não editável), `reason` txt NULL, `payload` jsonb (ex.: pendência {pending_reason_id, next_action, next_action_owner_id, expected_return_date}; reprogramação {old, new}), `work_entry_id` NULL, `is_internal` bool.
 Índices: `(service_request_id, occurred_at)`, `(occurred_at) WHERE to_status IS NOT NULL`.
 
-**`request_comments`** — `service_request_id`, `author_id`, `body`, `is_internal` bool, `author_contact_id` NULL (cenário A). Sem DELETE; `hidden_at` + evento.
+**`request_comments`** — `service_request_id`, `author_id`, `body`, `is_internal` bool, `author_contact_id` NULL (cenário A). Sem DELETE nem ocultação: não existe `hidden_at`; comentário gravado fica como está.
 
 ### 2.4 Agenda e tarefas
 
@@ -109,7 +109,7 @@ Regra: criar uma tarefa cria ao menos 1 ocorrência; "desdobrar" adiciona ocorr�
 
 **`work_entries`** — o fato operacional
 `site_id` NOT NULL, `site_area_id` NULL, `activity_date` date NOT NULL (data real do trabalho), `author_id`, `service_request_id` NULL, `task_occurrence_id` NULL, `kind` enum(`execucao`,`visita`,`vistoria`,`recebimento_material`,`apoio`,`compra`,`outro`), `description` NOT NULL, `solution` NULL, `materials` txt NULL, `hours_worked` num(5,2) NULL, `outcome` enum(`executado`,`parcial`,`nao_executado`), `blocker_reason_id` NULL FK `pending_reasons`, `next_step` NULL, `client_visible` bool default true, `review_status` enum(`enviado`,`revisado`,`ajustado`), `reviewed_by`, `reviewed_at`, `client_request_id` uuid NOT NULL (idempotência), `submitted_payload` jsonb (cópia do envio original do trabalhador, imutável — R-36).
-Restrições: `UNIQUE (author_id, client_request_id)`; `CHECK (service_request_id IS NOT NULL OR task_occurrence_id IS NOT NULL OR kind <> 'execucao')` (execução sem vínculo deve ser `visita/vistoria/...`, isto é, avulsa declarada); `CHECK (activity_date <= current_date)`.
+Restrições: `UNIQUE (author_id, client_request_id)`. Os dois CHECKs do desenho original (execução sem vínculo só como avulsa declarada; data da atividade não futura) não existem no banco: a data futura é recusada dentro da RPC (`20261025000400_requests_rpc.sql:120`).
 Índices: `(site_id, activity_date)`, `(service_request_id)`, `(task_occurrence_id)`, `(author_id, activity_date)`.
 
 **`work_entry_participants`** — `work_entry_id`, `profile_id`. PK composta. O autor é participante por padrão.
@@ -126,7 +126,7 @@ Invariantes anti-duplicidade (R-31, R-35):
 
 ### 2.6 Jornada e cobrança (COMPLEMENTO M8)
 
-**`time_entries`** — `profile_id`, `site_id`, `work_date` date, `hours` num(5,2) NULL, `billable` bool default true, `billing_units` num(6,2) default 1 (diárias), `notes`, `source` enum(`trabalhador`,`admin`), `approved_by` NULL, `approved_at` NULL, `client_request_id`.
+**`time_entries`** — `profile_id`, `site_id`, `work_date` date, `hours` num(5,2) NULL, `billable` bool default true, `billing_units` num(6,2) default 1 (diárias), `notes`, `source` enum(`trabalhador`,`admin`), `approved_by` NULL, `approved_at` NULL. Sem `client_request_id`: a unicidade abaixo é que evita lançamento duplicado.
 `UNIQUE (profile_id, site_id, work_date)`. `hours` (jornada) e `billing_units` (cobrança) são conceitos independentes (R-34, D-10).
 
 **`billing_rules`** — `client_id`, `site_id` NULL (NULL = todas as unidades do cliente), `unit_type` enum(`diaria`,`hora`), `unit_price_cents` big, `valid_from` date, `valid_to` date NULL, `show_in_client_report` bool default false, `notes`.
@@ -245,7 +245,7 @@ Trigger genérico em: `service_requests` (prioridade, prazo, status, responsáve
 | concluida/cancelada → aberta | **admin** | `reason`; evento anterior permanece | `reabertura` |
 | programada/em_execucao/pendente (mesmo estado) | admin | alteração de prazo/prioridade/responsável | `prorrogacao`/`edicao`/`atribuicao` com before/after |
 
-Indicador derivado: `is_overdue = due_date < current_date AND status NOT IN ('concluida','cancelada')` (R-18). Concorrência: `version` com lock otimista + `SELECT … FOR UPDATE` dentro da RPC.
+Indicador derivado: `is_overdue = due_date < current_date AND status NOT IN ('concluida','cancelada')` (R-18). Concorrência: `SELECT … FOR UPDATE` dentro da RPC; `version` só é incrementado, sem conferência da versão esperada (M-15).
 
 ## 5. Ciclo de vida — Ocorrência de tarefa
 
