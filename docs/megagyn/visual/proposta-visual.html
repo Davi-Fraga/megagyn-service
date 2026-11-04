@@ -1,0 +1,1086 @@
+<!doctype html>
+<html lang="pt-BR" data-paleta="a">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light">
+<title>Proposta visual Megagyn</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,100..900&display=swap" rel="stylesheet">
+<style>
+/* ------------------------------------------------------------------
+   Tokens. Só as variáveis mudam entre as paletas; o HTML é um só.
+   ------------------------------------------------------------------ */
+:root {
+  --marca: #FAAA75;            /* laranja do logotipo: só na marca */
+  --rg-h: 8px;                 /* altura da régua compacta */
+  --rg-fh: 2px;                /* traço das etapas futuras */
+}
+:root[data-paleta="a"] {       /* Paleta A: Sinal */
+  --fundo: #F1F1EE;
+  --superficie: #FFFFFF;
+  --texto: #222423;
+  --secundario: #686C6A;       /* brief: #6E7270 (4,31:1 no fundo); ajustado para 4,7:1 */
+  --linha: #D9DAD6;
+  --campo-borda: #8C908D;      /* 3,2:1 na superfície, exigido para campos */
+  --moldura: #C4C6C1;
+  --acento: #FFC72C;
+  --acento-hover: #F5B90F;
+  --sobre-acento: #222423;
+  --acento-borda: #222423;     /* contorno: amarelo sozinho não chega a 3:1 no branco */
+  --acento-filtro: drop-shadow(1px 0 0 #222423) drop-shadow(-1px 0 0 #222423) drop-shadow(0 1px 0 #222423) drop-shadow(0 -1px 0 #222423);
+  --link: #222423;
+  --foco: #222423;
+  --passado: #222423;
+  --rg-futura: #A9ACA8;
+  --tick-feita: rgba(255,255,255,.42);
+  --tick-atual: rgba(34,36,35,.72);
+  --sinal: #FFC72C;
+  --sinal-par: #222423;
+  --ok: #1B6E45;
+  --alerta: #94530A;
+  --erro: #B42318;
+}
+:root[data-paleta="b"] {       /* Paleta B: Petróleo */
+  --fundo: #ECF0EE;
+  --superficie: #FBFCFB;
+  --texto: #172723;
+  --secundario: #5D6E69;       /* 4,7:1 no fundo */
+  --linha: #D3DCD8;
+  --campo-borda: #839490;
+  --moldura: #BAC6C1;
+  --acento: #0B6E63;
+  --acento-hover: #095A51;
+  --sobre-acento: #FFFFFF;
+  --acento-borda: #0B6E63;
+  --acento-filtro: none;
+  --link: #0B6E63;
+  --foco: #0B6E63;
+  --passado: #172723;
+  --rg-futura: #A3B2AD;
+  --tick-feita: rgba(255,255,255,.4);
+  --tick-atual: rgba(255,255,255,.55);
+  --sinal: #E3A21A;
+  --sinal-par: #172723;
+  --ok: #3B6A1E;               /* oliva, para não confundir com o petróleo */
+  --alerta: #94530A;
+  --erro: #B42318;
+}
+
+/* ------------------------------------------------------------------
+   Base e tipografia: uma família, três larguras.
+   ------------------------------------------------------------------ */
+*, *::before, *::after { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  background: var(--fundo);
+  color: var(--texto);
+  font-family: "Archivo", system-ui, sans-serif;
+  font-stretch: 100%;
+  font-weight: 400;
+  font-size: 15px;
+  line-height: 1.5;
+}
+h1, h2, h3, p, ul, ol, dl, dd, figure, fieldset, legend { margin: 0; padding: 0; }
+ul, ol { list-style: none; }
+fieldset { border: 0; min-width: 0; }
+a { color: inherit; }
+button, input, select, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--foco); outline-offset: 2px; }
+
+.x { font-stretch: 122%; font-weight: 780; letter-spacing: -0.02em; line-height: 1.04; }
+.c { font-stretch: 75%; font-weight: 600; font-variant-numeric: tabular-nums; }
+.n { font-variant-numeric: tabular-nums; }
+.s13 { font-size: 13px; line-height: 1.4; }
+.s15 { font-size: 15px; }
+.s17 { font-size: 17px; line-height: 1.4; }
+.s21 { font-size: 21px; }
+.s27 { font-size: 27px; }
+.s34 { font-size: 34px; }
+.s44 { font-size: 44px; }
+.sec { color: var(--secundario); }
+.erro { color: var(--erro); }
+.alerta { color: var(--alerta); }
+.ok { color: var(--ok); }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+.lk {
+  color: var(--link);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+.lk:hover { text-decoration-thickness: 2px; }
+
+/* Botões: raio pequeno só em controles */
+.bt {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  min-height: 44px; padding: 0 20px;
+  border: 1px solid transparent; border-radius: 4px;
+  font-size: 15px; font-weight: 650; line-height: 1.2;
+  text-decoration: none; white-space: nowrap;
+}
+.bt-p { background: var(--acento); color: var(--sobre-acento); }
+.bt-p:hover { background: var(--acento-hover); }
+.bt-s { background: var(--superficie); color: var(--texto); border-color: var(--texto); }
+.bt-s:hover { background: var(--fundo); }
+.bt-xl { min-height: 56px; width: 100%; font-size: 17px; }
+.bt-t {
+  min-height: 44px; padding: 0 2px; border: 0; background: none;
+  font-weight: 650; color: var(--link);
+  text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 4px;
+}
+.bt-t:hover { text-decoration-thickness: 2px; }
+.ic { width: 20px; height: 20px; flex: none; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+
+/* Campos */
+.campo-l { display: block; font-size: 15px; font-weight: 600; margin-bottom: 6px; }
+.inp {
+  display: block; width: 100%; min-height: 48px;
+  padding: 11px 12px;
+  border: 1px solid var(--campo-borda); border-radius: 4px;
+  background: var(--superficie); font-size: 17px; line-height: 1.4;
+}
+textarea.inp { resize: vertical; }
+.sel { position: relative; display: inline-block; }
+.sel select {
+  appearance: none; -webkit-appearance: none;
+  min-height: 40px; padding: 0 36px 0 12px;
+  border: 1px solid var(--campo-borda); border-radius: 4px;
+  background: var(--superficie); font-size: 15px; font-weight: 500;
+}
+.sel .ic { position: absolute; right: 10px; top: 50%; width: 16px; height: 16px; transform: translateY(-50%); pointer-events: none; }
+.sel-bloco { display: block; }
+.sel-bloco select { width: 100%; min-height: 48px; font-size: 17px; }
+
+/* ------------------------------------------------------------------
+   A régua (o único elemento marcante)
+   ------------------------------------------------------------------ */
+.rg { display: flex; gap: 3px; position: relative; }
+.rg-s { flex: 1 1 0; min-width: 0; }
+.rg-t { height: var(--rg-h); display: flex; align-items: flex-end; }
+.rg-b { position: relative; display: block; width: 100%; height: 100%; }
+.is-feita .rg-b { background: var(--passado); }
+.is-atual .rg-b { background: var(--acento); outline: 1px solid var(--acento-borda); outline-offset: -1px; }
+.is-futura .rg-b { height: var(--rg-fh); background: var(--rg-futura); }
+/* Pendente: a etapa para no meio, com um entalhe no corte */
+.is-pend .rg-pf { position: absolute; left: 0; top: 0; bottom: 0; width: 56%; filter: var(--acento-filtro); }
+.is-pend .rg-pf::before {
+  content: ""; position: absolute; inset: 0; background: var(--acento);
+  clip-path: polygon(0 0, 100% 0, 62% 50%, 100% 100%, 0 100%);
+}
+.is-pend .rg-b::after {
+  content: ""; position: absolute; right: 0; bottom: 0;
+  width: calc(44% - 3px); height: var(--rg-fh); background: var(--rg-futura);
+}
+/* Cancelada: a régua é riscada */
+.rg.is-cancelada .rg-t { opacity: .38; }
+.rg.is-cancelada::after {
+  content: ""; position: absolute; left: -3px; right: -3px; top: calc(var(--rg-h) / 2 - 1px);
+  height: 2px; background: var(--erro);
+}
+
+.rg--p { width: 100%; max-width: 210px; }
+.rg--m { --rg-h: 12px; --rg-fh: 3px; gap: 4px; }
+.rg--g { --rg-h: 16px; --rg-fh: 3px; gap: 4px; }
+/* Graduação de trena na régua grande */
+.rg--m .is-feita .rg-b::after, .rg--m .is-atual .rg-b::after,
+.rg--g .is-feita .rg-b::after, .rg--g .is-atual .rg-b::after {
+  content: ""; position: absolute; inset: 0;
+  background:
+    repeating-linear-gradient(90deg, var(--tick) 0 1px, transparent 1px 40px) 0 0 / 100% 75% no-repeat,
+    repeating-linear-gradient(90deg, var(--tick) 0 1px, transparent 1px 8px) 0 0 / 100% 38% no-repeat;
+}
+.rg--m .is-feita .rg-b, .rg--g .is-feita .rg-b { --tick: var(--tick-feita); }
+.rg--m .is-atual .rg-b, .rg--g .is-atual .rg-b { --tick: var(--tick-atual); }
+
+.rg--g .rg-s { display: flex; flex-direction: column; gap: 2px; }
+.rg--g .rg-t { margin-bottom: 10px; }
+.rg-nome { font-stretch: 75%; font-weight: 600; font-size: 17px; line-height: 1.2; }
+.rg-data { font-stretch: 75%; font-weight: 500; font-size: 15px; font-variant-numeric: tabular-nums; color: var(--secundario); }
+.rg-nota { font-stretch: 75%; font-weight: 600; font-size: 15px; line-height: 1.3; margin-top: 2px; }
+.rg--g .is-futura .rg-nome { color: var(--secundario); font-weight: 500; }
+
+@media (prefers-reduced-motion: no-preference) {
+  .rg-t { transform-origin: left center; animation: rg-enche .42s cubic-bezier(.25,.7,.2,1) both; animation-delay: calc(var(--i) * 80ms + 200ms); }
+  @keyframes rg-enche { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+}
+
+/* Fita de obra: prazo vencido, só na borda esquerda da linha */
+.fita, .tb tr.vencida > td:first-child { position: relative; }
+.fita::before, .tb tr.vencida > td:first-child::before {
+  content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 6px;
+  background: repeating-linear-gradient(135deg, var(--sinal) 0 4px, var(--sinal-par) 4px 8px);
+}
+
+/* ------------------------------------------------------------------
+   Página de apresentação
+   ------------------------------------------------------------------ */
+.pg { max-width: 1536px; margin: 0 auto; padding: 48px 48px 96px; }
+.intro { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 24px 48px; padding-bottom: 40px; border-bottom: 1px solid var(--linha); }
+.intro-t { max-width: 720px; }
+.intro h1 { font-size: 44px; }
+.intro p { margin-top: 16px; font-size: 17px; line-height: 1.55; max-width: 64ch; }
+.intro .sec { margin-top: 10px; font-size: 15px; }
+.paleta { display: inline-flex; border: 1px solid var(--campo-borda); border-radius: 4px; overflow: hidden; background: var(--superficie); }
+.paleta button { min-height: 44px; padding: 0 16px; border: 0; background: none; font-size: 15px; font-weight: 600; }
+.paleta button + button { border-left: 1px solid var(--campo-borda); }
+.paleta button[aria-pressed="true"] { background: var(--texto); color: var(--superficie); }
+
+.quadro { margin-top: 72px; }
+.quadro-h { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 20px; margin-bottom: 16px; }
+.quadro-h h2 { font-size: 27px; }
+.quadro-h p { color: var(--secundario); font-size: 15px; max-width: 70ch; }
+.moldura { width: 100%; max-width: 1440px; border: 1px solid var(--moldura); background: var(--superficie); overflow: hidden; container-type: inline-size; }
+
+.fones { display: flex; flex-wrap: wrap; gap: 48px; align-items: flex-start; }
+.fone-bloco { width: 390px; max-width: 100%; }
+.fone-bloco .quadro-h { margin-bottom: 12px; }
+.fone-bloco .quadro-h h2 { font-size: 21px; }
+
+/* ------------------------------------------------------------------
+   Aplicação: computador
+   ------------------------------------------------------------------ */
+.app { display: grid; grid-template-columns: 240px minmax(0, 1fr); min-height: 900px; }
+.menu { background: var(--fundo); padding: 22px 0 20px; display: flex; flex-direction: column; }
+.marca { display: flex; align-items: center; gap: 10px; padding: 0 20px 22px 24px; text-decoration: none; }
+.marca-m {
+  width: 30px; height: 30px; flex: none; display: grid; place-items: center;
+  background: var(--marca); color: #FFFFFF; border-radius: 2px;
+  font-stretch: 100%; font-weight: 850; font-size: 19px; line-height: 1;
+}
+.marca-n { font-stretch: 118%; font-weight: 800; font-size: 17px; letter-spacing: -0.01em; line-height: 1; }
+.marca-n span { display: block; margin-top: 3px; font-stretch: 100%; font-weight: 500; font-size: 13px; letter-spacing: 0; color: var(--secundario); }
+.menu-g { margin-top: 18px; }
+.menu-gt { padding: 0 24px 4px; font-size: 13px; font-weight: 500; color: var(--secundario); }
+.menu-a {
+  position: relative; display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  min-height: 40px; padding: 0 20px 0 24px; text-decoration: none; font-size: 15px;
+}
+.menu-a:hover { background: color-mix(in srgb, var(--superficie) 55%, var(--fundo)); }
+.menu-a[aria-current="page"] { background: var(--superficie); font-weight: 680; }
+.menu-a[aria-current="page"]::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--acento); }
+.menu-a .c { font-size: 15px; color: var(--secundario); font-weight: 600; }
+.menu-pe { margin-top: auto; padding: 20px 24px 0; }
+.menu-pe p { font-size: 15px; font-weight: 600; line-height: 1.3; }
+.menu-pe .sec { font-weight: 400; font-size: 13px; }
+.menu-pe .lk { display: inline-block; margin-top: 8px; font-size: 13px; }
+
+.topo-estreito { display: none; }
+.main { padding: 44px 56px 72px; min-width: 0; }
+.main-in { max-width: 1200px; }
+
+.cab { display: flex; align-items: flex-start; justify-content: space-between; gap: 32px; }
+.resumo { margin-top: 16px; font-size: 21px; line-height: 1.45; max-width: 46em; text-wrap: balance; }
+.resumo .lk { font-weight: 650; }
+.filtros { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 28px; margin-top: 32px; }
+.filtro { display: inline-flex; align-items: center; gap: 10px; font-size: 13px; color: var(--secundario); }
+.filtro .sel, .filtro .per { color: var(--texto); }
+.per { display: inline-flex; align-items: center; gap: 8px; min-height: 40px; padding: 0 12px; border: 1px solid var(--campo-borda); border-radius: 4px; background: var(--superficie); font-size: 15px; font-weight: 500; }
+
+.sec-h { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px 24px; }
+.fila { margin-top: 56px; }
+.fila .sec-h { margin-bottom: 14px; }
+
+.tb { width: 100%; border-collapse: collapse; }
+.tb th {
+  font-stretch: 75%; font-weight: 600; font-size: 13px; color: var(--secundario);
+  text-align: left; padding: 0 20px 8px 0; border-bottom: 1px solid var(--texto); white-space: nowrap;
+}
+.tb th:first-child, .tb td:first-child { padding-left: 18px; }
+.tb th:last-child, .tb td:last-child { padding-right: 4px; text-align: right; }
+.tb td { padding: 16px 20px 16px 0; border-bottom: 1px solid var(--linha); vertical-align: top; }
+.tb tbody tr:hover td { background: color-mix(in srgb, var(--fundo) 45%, var(--superficie)); }
+.td-num { width: 82px; font-stretch: 75%; font-weight: 600; font-size: 17px; font-variant-numeric: tabular-nums; padding-top: 17px !important; }
+.td-num a { text-decoration: none; }
+.td-num a:hover { text-decoration: underline; }
+.os-t { font-size: 17px; font-weight: 600; line-height: 1.3; }
+.os-l { margin-top: 2px; font-size: 15px; color: var(--secundario); }
+.td-resp { width: 150px; }
+.td-prazo { width: 116px; }
+.td-prazo .c { font-size: 15px; display: block; }
+.td-sit { width: 236px; }
+.td-sit .rg { margin-top: 6px; }
+.td-sit p { margin-top: 8px; font-stretch: 75%; font-weight: 600; font-size: 15px; line-height: 1.25; }
+.td-acao { width: 150px; }
+.td-acao .bt-t { margin-top: -10px; }
+.mais { margin-top: 16px; font-size: 15px; color: var(--secundario); }
+.mais .lk { margin-left: 6px; font-weight: 600; }
+
+.tarefas { margin-top: 64px; }
+.tarefas .sec-h { margin-bottom: 6px; }
+.tf { display: grid; grid-template-columns: 84px minmax(0, 1fr) 200px 120px; gap: 4px 20px; align-items: baseline; padding: 14px 4px 14px 18px; border-bottom: 1px solid var(--linha); }
+.tf-h { font-stretch: 75%; font-weight: 600; font-size: 21px; font-variant-numeric: tabular-nums; }
+.tf-t { font-size: 17px; font-weight: 500; }
+.tf-q { font-size: 15px; }
+.tf-q span { display: block; color: var(--secundario); font-size: 13px; }
+.tf-o { text-align: right; font-size: 15px; }
+
+/* Detalhe da O.S. */
+.voltar { display: inline-flex; align-items: center; gap: 4px; min-height: 32px; font-size: 15px; font-weight: 500; }
+.voltar .ic { width: 16px; height: 16px; }
+.os-cab { margin-top: 18px; }
+.os-num { display: block; font-size: 44px; }
+.os-tit { display: block; margin-top: 6px; font-size: 34px; font-stretch: 118%; font-weight: 740; }
+.os-meta { display: grid; grid-template-columns: repeat(6, auto); justify-content: start; gap: 8px 44px; margin-top: 24px; }
+.os-meta dt { font-size: 13px; color: var(--secundario); }
+.os-meta dd { font-size: 15px; font-weight: 550; }
+.rg-sec { margin-top: 44px; padding-bottom: 40px; border-bottom: 1px solid var(--linha); }
+.os-grid { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 64px; margin-top: 40px; align-items: start; }
+.bloco + .bloco { margin-top: 48px; }
+.bloco h2 { font-size: 21px; margin-bottom: 16px; }
+.sol p { font-size: 17px; line-height: 1.55; max-width: 62ch; }
+.sol .sec { margin-top: 10px; font-size: 15px; }
+
+.tl-i { display: grid; grid-template-columns: 112px minmax(0, 1fr); gap: 20px; }
+.tl-d { font-stretch: 75%; font-weight: 600; font-size: 17px; font-variant-numeric: tabular-nums; padding-top: 1px; }
+.tl-d span { display: block; font-weight: 500; font-size: 15px; color: var(--secundario); }
+.tl-c { position: relative; padding: 0 0 28px 24px; border-left: 1px solid var(--linha); }
+.tl-c::before { content: ""; position: absolute; left: -4px; top: 8px; width: 7px; height: 7px; background: var(--passado); }
+.tl-i:last-child .tl-c { padding-bottom: 0; }
+.tl-i.is-ultimo .tl-c::before { background: var(--acento); outline: 1px solid var(--acento-borda); }
+.tl-a { font-size: 15px; font-weight: 650; }
+.tl-a .sec { font-weight: 400; margin-left: 8px; }
+.tl-x { margin-top: 4px; font-size: 17px; line-height: 1.5; max-width: 60ch; }
+.tl-f { display: grid; grid-template-columns: auto 1fr; gap: 2px 16px; margin-top: 10px; font-size: 15px; }
+.tl-f dt { color: var(--secundario); }
+.tl-f dd { font-weight: 500; }
+
+.valida { position: sticky; top: 24px; padding: 0 0 0 32px; border-left: 1px solid var(--linha); }
+.valida h2 { font-size: 21px; }
+.valida > p { margin-top: 10px; font-size: 15px; }
+.valida .bt-p { width: 100%; margin-top: 20px; min-height: 48px; font-size: 17px; }
+.valida .nota { margin-top: 8px; font-size: 13px; color: var(--secundario); }
+.devolver { margin-top: 28px; padding-top: 24px; border-top: 1px solid var(--linha); }
+.devolver textarea { min-height: 96px; font-size: 15px; }
+.devolver .bt-s { width: 100%; margin-top: 12px; }
+
+.fotos { margin-top: 56px; padding-top: 40px; border-top: 1px solid var(--linha); }
+.fotos .sec-h { margin-bottom: 16px; }
+.fotos .sec-h h2 { margin: 0; }
+.folha { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 28px 16px; }
+.folha figcaption { display: flex; justify-content: space-between; gap: 12px; margin-top: 8px; font-stretch: 75%; font-weight: 600; font-size: 13px; font-variant-numeric: tabular-nums; }
+.folha figcaption span + span { color: var(--secundario); font-weight: 500; }
+
+/* Responsivo pela largura da moldura */
+@container (max-width: 1180px) {
+  .app { grid-template-columns: 208px minmax(0, 1fr); }
+  .main { padding: 36px 32px 56px; }
+  .td-resp { display: none; }
+  .os-meta { grid-template-columns: repeat(3, auto); }
+  .os-grid { grid-template-columns: minmax(0, 1fr) 300px; gap: 40px; }
+}
+@container (max-width: 880px) {
+  .app { grid-template-columns: 1fr; min-height: 0; }
+  .menu { display: none; }
+  .topo-estreito { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; background: var(--fundo); }
+  .topo-estreito .marca { padding: 0; }
+  .main { padding: 24px 16px 48px; }
+  .s44, .os-num { font-size: 34px; }
+  .os-tit { font-size: 27px; }
+  .cab { flex-direction: column; gap: 20px; }
+  .resumo { font-size: 17px; }
+  .tb thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  .tb, .tb tbody, .tb td { display: block; }
+  .tb tr { display: grid; grid-template-columns: 64px minmax(0, 1fr); position: relative; padding: 14px 0 14px 16px; border-bottom: 1px solid var(--linha); }
+  .tb tr.vencida > td:first-child { position: static; }
+  .tb td { border: 0; padding: 0 !important; width: auto; text-align: left !important; }
+  .tb td:not(.td-num) { grid-column: 2; }
+  .tb td + td { margin-top: 6px; }
+  .td-resp { display: block !important; font-size: 15px; color: var(--secundario); }
+  .td-acao .bt-t { margin-top: 0; }
+  .tf { grid-template-columns: 64px minmax(0, 1fr); padding-left: 0; }
+  .tf-q, .tf-o { grid-column: 2; text-align: left; }
+  .os-meta { grid-template-columns: repeat(2, auto); }
+  .os-grid { grid-template-columns: 1fr; }
+  .valida { position: static; padding: 24px 0 0; border-left: 0; border-top: 1px solid var(--linha); }
+  .folha { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .rg--g .rg-data, .rg--g .rg-nota { font-size: 13px; }
+  .rg--g .rg-nome { font-size: 13px; }
+}
+@container (max-width: 560px) {
+  .folha { grid-template-columns: 1fr; }
+  .tl-i { grid-template-columns: 1fr; gap: 4px; }
+  .tl-c { padding-left: 16px; }
+}
+
+/* ------------------------------------------------------------------
+   Aplicação: celular
+   ------------------------------------------------------------------ */
+.fone {
+  position: relative; width: 390px; max-width: 100%; height: 900px;
+  display: flex; flex-direction: column; overflow: hidden;
+  border: 1px solid var(--moldura); border-radius: 28px; background: var(--superficie);
+}
+.m-rola { flex: 1; overflow: hidden; }
+.m-cab { padding: 24px 20px 16px; background: var(--fundo); }
+.m-ctx { font-size: 15px; color: var(--secundario); font-weight: 500; }
+.m-obra {
+  display: flex; align-items: flex-end; justify-content: space-between; gap: 12px;
+  width: 100%; min-height: 44px; margin-top: 4px; padding: 0;
+  border: 0; background: none; text-align: left;
+}
+.m-obra .x { font-size: 34px; }
+.m-obra .ic { width: 28px; height: 28px; margin-bottom: 2px; stroke-width: 2.2; }
+.m-sub { margin-top: 8px; font-size: 15px; }
+.m-it { display: block; padding: 16px 20px 16px 22px; border-bottom: 1px solid var(--linha); text-decoration: none; }
+.m-it-l { display: flex; justify-content: space-between; gap: 12px; font-stretch: 75%; font-weight: 600; font-size: 15px; font-variant-numeric: tabular-nums; }
+.m-it h3 { margin-top: 4px; font-size: 19px; font-weight: 620; line-height: 1.25; }
+.m-setor { margin-top: 2px; font-size: 15px; color: var(--secundario); }
+.m-it .rg { margin-top: 14px; }
+.m-est { margin-top: 8px; font-stretch: 75%; font-weight: 600; font-size: 15px; }
+.m-grupo { padding: 22px 20px 6px; font-size: 15px; font-weight: 650; }
+.m-acao { padding: 12px 16px; background: var(--superficie); border-top: 1px solid var(--linha); }
+.m-nav { display: grid; grid-template-columns: repeat(3, 1fr); border-top: 1px solid var(--linha); background: var(--superficie); padding-bottom: 10px; }
+.m-nav a { position: relative; display: grid; place-items: center; min-height: 52px; font-size: 15px; font-weight: 500; text-decoration: none; color: var(--secundario); }
+.m-nav a[aria-current="page"] { color: var(--texto); font-weight: 700; }
+.m-nav a[aria-current="page"]::before { content: ""; position: absolute; top: -1px; left: 28%; right: 28%; height: 3px; background: var(--acento); }
+
+.m-reg-cab { padding: 8px 20px 14px; background: var(--fundo); }
+.m-voltar { display: inline-flex; align-items: center; gap: 4px; min-height: 44px; margin-left: -6px; padding: 0 6px; font-size: 15px; font-weight: 600; text-decoration: none; }
+.m-reg-cab h1 { font-size: 27px; text-wrap: balance; }
+.m-reg-cab p { margin-top: 8px; font-size: 15px; }
+.m-form { padding: 14px 20px 20px; display: flex; flex-direction: column; gap: 14px; }
+.m-form .campo-l .sec { font-weight: 400; }
+.m-form textarea.inp { min-height: 96px; }
+.m-foto-bt { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.m-foto-bt .bt { min-height: 56px; font-size: 15px; padding: 0 12px; }
+.thumbs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-top: 12px; }
+.th .foto { aspect-ratio: 1; border-radius: 2px; }
+.th-st { display: flex; align-items: center; gap: 4px; margin-top: 6px; font-stretch: 75%; font-weight: 600; font-size: 13px; }
+.th-st .ic { width: 15px; height: 15px; stroke-width: 2.4; }
+.th-f { position: relative; }
+.th.is-falhou .foto { opacity: .4; }
+.th .bt-repetir { position: absolute; left: 6px; right: 6px; bottom: 6px; min-height: 44px; padding: 0 4px; font-size: 13px; border-color: var(--erro); color: var(--erro); }
+.resultado { display: grid; grid-template-columns: repeat(3, 1fr); border: 1px solid var(--campo-borda); border-radius: 4px; overflow: hidden; }
+.resultado label { position: relative; display: grid; place-items: center; min-height: 52px; font-size: 15px; font-weight: 600; cursor: pointer; }
+.resultado label + label { border-left: 1px solid var(--campo-borda); }
+.resultado input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
+.resultado label:has(input:checked) { background: var(--texto); color: var(--superficie); }
+.resultado label:has(input:focus-visible) { outline: 2px solid var(--foco); outline-offset: -4px; }
+
+/* ------------------------------------------------------------------
+   Fotos de obra feitas em CSS (sem imagens)
+   ------------------------------------------------------------------ */
+.foto { position: relative; overflow: hidden; aspect-ratio: 4 / 3; background-color: #B3B5AF; box-shadow: inset 0 0 70px rgba(20,22,21,.32); }
+.foto::before, .foto::after { content: ""; position: absolute; }
+.grao {
+  background-image:
+    radial-gradient(rgba(255,255,255,.10) 1px, transparent 1.4px),
+    radial-gradient(rgba(0,0,0,.10) 1px, transparent 1.6px),
+    radial-gradient(rgba(0,0,0,.06) 1.5px, transparent 2px);
+  background-size: 5px 5px, 7px 7px, 13px 11px;
+  background-position: 0 0, 2px 3px, 5px 1px;
+}
+.azulejo {
+  background-color: #DCD9D0;
+  background-image:
+    linear-gradient(90deg, #BEBAAF 0 2px, transparent 2px),
+    linear-gradient(#BEBAAF 0 2px, transparent 2px);
+  background-size: 22% 26%;
+  background-position: 6% 12%;
+}
+/* quadro de disjuntores com um desarmado */
+.f-quadro::before { left: 27%; top: 9%; width: 46%; height: 82%; background: #6F7370; border: 6px solid #C6C8C2; box-shadow: inset 0 0 0 9px #5A5E5B; }
+.f-quadro::after {
+  left: 34%; top: 24%; width: 32%; height: 48%;
+  background:
+    linear-gradient(#2F3230, #2F3230) 52% 0 / 9% 30% no-repeat,
+    repeating-linear-gradient(90deg, #E1E1DA 0 9%, transparent 9% 13%) 0 0 / 100% 30% no-repeat,
+    repeating-linear-gradient(90deg, #E1E1DA 0 9%, transparent 9% 13%) 0 100% / 100% 30% no-repeat;
+}
+/* tomada com marca de queimado */
+.f-queimada { background-color: #DCD9D0; }
+.f-queimada::before { left: 38%; top: 28%; width: 25%; height: 40%; background: #EEECE5; border-radius: 6px; box-shadow: 0 3px 0 rgba(0,0,0,.14); }
+.f-queimada::after {
+  left: 38%; top: 28%; width: 25%; height: 40%; border-radius: 6px;
+  background:
+    radial-gradient(circle at 42% 50%, #1E1E1E 0 4%, transparent 5%),
+    radial-gradient(circle at 58% 50%, #1E1E1E 0 4%, transparent 5%),
+    radial-gradient(circle at 50% 50%, #CFCCC3 0 24%, transparent 25%),
+    radial-gradient(ellipse at 60% 36%, rgba(38,28,20,.92) 0 16%, rgba(74,54,38,.55) 34%, transparent 62%);
+}
+/* forro aberto com o cabo novo */
+.f-forro {
+  background-color: #CFCEC7;
+  background-image: linear-gradient(90deg, #B3B2AB 0 2px, transparent 2px), linear-gradient(#B3B2AB 0 2px, transparent 2px);
+  background-size: 34% 50%; background-position: 12% 0;
+}
+.f-forro::before { left: 12%; top: 0; width: 34%; height: 50%; background: #34352F; box-shadow: inset 0 0 0 4px #A6A59E; }
+.f-forro::after { left: 26%; top: 24%; width: 46%; height: 66%; border: 7px solid transparent; border-left-color: #24262A; border-bottom-color: #24262A; border-radius: 0 0 0 70%; }
+/* disjuntor novo identificado */
+.f-novo::before { left: 27%; top: 9%; width: 46%; height: 82%; background: #747875; border: 6px solid #C6C8C2; box-shadow: inset 0 0 0 9px #5A5E5B; }
+.f-novo::after {
+  left: 34%; top: 24%; width: 32%; height: 52%;
+  background:
+    linear-gradient(#F4F4EF, #F4F4EF) 88% 100% / 30% 16% no-repeat,
+    linear-gradient(#F7F7F2, #F7F7F2) 88% 0 / 9% 30% no-repeat,
+    repeating-linear-gradient(90deg, #DCDCD5 0 9%, transparent 9% 13%) 0 0 / 100% 30% no-repeat,
+    repeating-linear-gradient(90deg, #DCDCD5 0 9%, transparent 9% 13%) 0 62% / 100% 30% no-repeat;
+}
+/* duas tomadas novas na bancada */
+.f-duas::before, .f-duas::after {
+  top: 32%; width: 19%; height: 32%; background: #F5F4EF; border-radius: 6px; box-shadow: 0 3px 0 rgba(0,0,0,.12);
+  background-image:
+    radial-gradient(circle at 42% 50%, #2A2A2A 0 5%, transparent 6%),
+    radial-gradient(circle at 58% 50%, #2A2A2A 0 5%, transparent 6%),
+    radial-gradient(circle at 50% 50%, #D6D3CB 0 26%, transparent 27%);
+}
+.f-duas::before { left: 30%; }
+.f-duas::after { left: 53%; }
+/* teste com os aparelhos ligados */
+.f-bancada { background: linear-gradient(#DCD9D0 0 62%, #6E716C 62% 64%, #8A8D88 64%); }
+.f-bancada::before { left: 18%; bottom: 36%; width: 15%; height: 30%; background: #2B2E31; border-radius: 10px 10px 2px 2px; box-shadow: inset -6px 0 0 #3A3E42; }
+.f-bancada::after { left: 46%; bottom: 36%; width: 36%; height: 28%; background: linear-gradient(90deg, #3A3D3F 0 68%, #B7BAB4 68%); border: 5px solid #B7BAB4; border-radius: 3px; }
+/* escada sem o corrimão */
+.f-escada { background: repeating-linear-gradient(170deg, #A9ABA6 0 15%, #858883 15% 19%); }
+.f-escada::before { right: 0; top: 0; width: 34%; height: 100%; background: #C8C3B6; }
+.f-escada::after { right: 12%; top: 30%; width: 9%; height: 9%; border-radius: 50%; background: #3B3A36; box-shadow: 0 90px 0 #3B3A36; }
+/* furos no reboco */
+.f-furos { background-color: #C9C3B4; }
+.f-furos::before { left: 30%; top: 40%; width: 14%; height: 14%; border-radius: 50%; background: radial-gradient(circle, #2F2D29 0 40%, #8E8676 46%, transparent 64%); }
+.f-furos::after { left: 58%; top: 34%; width: 16%; height: 16%; border-radius: 50%; background: radial-gradient(circle, #2F2D29 0 38%, #8E8676 46%, transparent 66%); }
+/* corrimão retirado no chão */
+.f-tubo { background: linear-gradient(#9C9E99 0 55%, #7D807B 55%); }
+.f-tubo::before { left: -10%; top: 60%; width: 120%; height: 9%; background: linear-gradient(#E1E4E4, #8F9595); transform: rotate(-14deg); border-radius: 6px; }
+.f-tubo::after { left: 20%; top: 18%; width: 22%; height: 22%; background: #B9B3A5; border-radius: 2px; }
+
+/* Faixa de tokens */
+.tokens { margin-top: 96px; padding-top: 40px; border-top: 1px solid var(--linha); }
+.tokens > h2 { font-size: 27px; }
+.tk-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 40px 56px; margin-top: 28px; }
+.tk-pal h3 { font-size: 17px; font-weight: 650; margin-bottom: 12px; }
+.tk-sw { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 16px 12px; }
+.tk-sw li { font-size: 13px; line-height: 1.3; }
+.tk-sw i { display: block; height: 44px; margin-bottom: 6px; border: 1px solid rgba(0,0,0,.12); }
+.tk-sw b { display: block; font-weight: 600; }
+.tk-sw span { font-stretch: 75%; font-weight: 500; font-size: 13px; font-variant-numeric: tabular-nums; color: var(--secundario); }
+.tk-letra { margin-top: 48px; display: grid; gap: 0; }
+.tk-l { display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 8px 32px; align-items: baseline; padding: 18px 0; border-top: 1px solid var(--linha); }
+.tk-l p:first-child { font-size: 13px; color: var(--secundario); }
+.tk-l p:first-child b { display: block; color: var(--texto); font-size: 15px; font-weight: 650; }
+.tk-estados { margin-top: 40px; }
+.tk-estados h3 { font-size: 17px; font-weight: 650; margin-bottom: 14px; }
+.tk-est { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 20px 28px; }
+.tk-est p { margin-top: 8px; font-stretch: 75%; font-weight: 600; font-size: 15px; }
+
+@media (max-width: 720px) {
+  .pg { padding: 28px 16px 64px; }
+  .intro h1 { font-size: 34px; }
+  .quadro { margin-top: 56px; }
+  .tk-grid { grid-template-columns: 1fr; }
+  .tk-l { grid-template-columns: 1fr; }
+  .fones { gap: 40px; }
+}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-desce" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></symbol>
+  <symbol id="i-volta" viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></symbol>
+  <symbol id="i-camera" viewBox="0 0 24 24"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></symbol>
+  <symbol id="i-galeria" viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="14" rx="1"/><path d="M4 16l5-5 4 4 2-2 5 5"/><circle cx="15.5" cy="9.5" r="1.5"/></symbol>
+  <symbol id="i-ok" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
+  <symbol id="i-falha" viewBox="0 0 24 24"><path d="M12 7v6"/><path d="M12 17v.5"/><circle cx="12" cy="12" r="9"/></symbol>
+  <symbol id="i-cal" viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="15" rx="1"/><path d="M4 10h16M9 3v4M15 3v4"/></symbol>
+</svg>
+
+<div class="pg">
+
+  <header class="intro">
+    <div class="intro-t">
+      <h1 class="x">Régua de obra</h1>
+      <p>Proposta visual para a plataforma Megagyn Service. A situação de cada ordem de serviço aparece como uma trena: de longe dá para ver em que etapa o serviço está e onde ele parou. Em volta dela a tela fica quieta, com uma só família de letra em três larguras, linhas finas e uma cor de destaque usada só onde há algo a fazer.</p>
+      <p class="sec">Protótipo estático com dados fictícios. Referência: quarta-feira, 04/11/2026.</p>
+    </div>
+    <div class="paleta" role="group" aria-label="Paleta de cores">
+      <button type="button" data-set-paleta="a" aria-pressed="true">Paleta A: Sinal</button>
+      <button type="button" data-set-paleta="b" aria-pressed="false">Paleta B: Petróleo</button>
+    </div>
+  </header>
+
+  <!-- ============================ PAINEL ============================ -->
+  <section class="quadro" id="q-painel" aria-labelledby="t-painel">
+    <div class="quadro-h">
+      <h2 class="x" id="t-painel">Painel</h2>
+      <p>Computador, 1440 px. A administração começa o dia pela fila do que precisa dela.</p>
+    </div>
+    <div class="moldura" id="m-painel">
+      <div class="app">
+        <nav class="menu" aria-label="Menu principal">
+          <a class="marca" href="#"><span class="marca-m" aria-hidden="true">M</span><span class="marca-n">Megagyn<span>Service</span></span></a>
+          <a class="menu-a" href="#" aria-current="page">Hoje</a>
+          <div class="menu-g">
+            <p class="menu-gt">Operação</p>
+            <a class="menu-a" href="#">Ordens de serviço <span class="c">8</span></a>
+            <a class="menu-a" href="#">Tarefas e agenda <span class="c">4</span></a>
+            <a class="menu-a" href="#">Diário</a>
+          </div>
+          <div class="menu-g">
+            <p class="menu-gt">Comercial</p>
+            <a class="menu-a" href="#">Orçamentos <span class="c">2</span></a>
+            <a class="menu-a" href="#">Contratos</a>
+          </div>
+          <div class="menu-g">
+            <p class="menu-gt">Cadastros</p>
+            <a class="menu-a" href="#">Clientes</a>
+            <a class="menu-a" href="#">Obras e unidades</a>
+            <a class="menu-a" href="#">Colaboradores</a>
+          </div>
+          <div class="menu-g">
+            <p class="menu-gt">Sistema</p>
+            <a class="menu-a" href="#">Relatórios</a>
+            <a class="menu-a" href="#">Configurações</a>
+          </div>
+          <div class="menu-pe">
+            <p>Luciana Ferraz<br><span class="sec">Administração</span></p>
+            <a class="lk" href="#">Sair</a>
+          </div>
+        </nav>
+
+        <main class="main">
+          <div class="topo-estreito">
+            <a class="marca" href="#"><span class="marca-m" aria-hidden="true">M</span><span class="marca-n">Megagyn<span>Service</span></span></a>
+            <button class="bt bt-s" type="button">Menu</button>
+          </div>
+          <div class="main-in">
+            <div class="cab">
+              <div>
+                <h1 class="x s44">Hoje, quarta-feira, 4 de novembro</h1>
+                <p class="resumo"><a class="lk" href="#">8 ordens abertas</a>, <a class="lk" href="#">2 com prazo vencido</a>, <a class="lk" href="#">1 aguarda sua validação</a> e <a class="lk" href="#">4 tarefas para hoje</a>.</p>
+              </div>
+              <a class="bt bt-p" href="#">Nova O.S.</a>
+            </div>
+
+            <div class="filtros">
+              <label class="filtro">Cliente
+                <span class="sel"><select><option>Todos os clientes</option><option>Condomínio Jardim das Paineiras</option><option>Prado Reis Advocacia</option><option>Clínica Ortovida</option><option>Residencial Vila Serena</option></select><svg class="ic" aria-hidden="true"><use href="#i-desce"/></svg></span>
+              </label>
+              <label class="filtro">Obra
+                <span class="sel"><select><option>Todas as obras</option></select><svg class="ic" aria-hidden="true"><use href="#i-desce"/></svg></span>
+              </label>
+              <span class="filtro">Período
+                <button class="per n" type="button">01/11/2026 a 30/11/2026 <svg class="ic" style="width:16px;height:16px" aria-hidden="true"><use href="#i-cal"/></svg></button>
+              </span>
+            </div>
+
+            <section class="fila" aria-labelledby="t-fila">
+              <div class="sec-h">
+                <h2 class="x s27" id="t-fila">O que precisa de você</h2>
+              </div>
+              <table class="tb">
+                <thead>
+                  <tr><th scope="col">O.S.</th><th scope="col">Serviço e local</th><th scope="col" class="td-resp">Responsável</th><th scope="col">Prazo</th><th scope="col">Situação</th><th scope="col"><span class="sr">Ação</span></th></tr>
+                </thead>
+                <tbody>
+                  <tr class="vencida">
+                    <td class="td-num"><a href="#">0211</a></td>
+                    <td><p class="os-t">Rejunte soltando na piscina adulto</p><p class="os-l">Condomínio Jardim das Paineiras, área da piscina</p></td>
+                    <td class="td-resp">Raimundo Teles</td>
+                    <td class="td-prazo"><span class="c">31/10</span><span class="c erro">Venceu há 4 dias</span></td>
+                    <td class="td-sit"><ol data-regua="p" data-etapa="2" data-estado="pendente"></ol><p class="alerta">Pendente: falta de material</p></td>
+                    <td class="td-acao"><button class="bt-t" type="button">Ver pendência</button></td>
+                  </tr>
+                  <tr class="vencida">
+                    <td class="td-num"><a href="#">0216</a></td>
+                    <td><p class="os-t">Porta do consultório 3 raspando no piso</p><p class="os-l">Clínica Ortovida, unidade Marista</p></td>
+                    <td class="td-resp">Cícero Alves</td>
+                    <td class="td-prazo"><span class="c">03/11</span><span class="c erro">Venceu ontem</span></td>
+                    <td class="td-sit"><ol data-regua="p" data-etapa="1"></ol><p>Programada para 03/11, não iniciada</p></td>
+                    <td class="td-acao"><button class="bt-t" type="button">Reprogramar</button></td>
+                  </tr>
+                  <tr>
+                    <td class="td-num"><a href="#">0214</a></td>
+                    <td><p class="os-t">Tomadas sem energia na copa</p><p class="os-l">Prado Reis Advocacia, sala 1204</p></td>
+                    <td class="td-resp">Edvaldo Rocha</td>
+                    <td class="td-prazo"><span class="c">05/11</span></td>
+                    <td class="td-sit"><ol data-regua="p" data-etapa="3"></ol><p>Executada em 03/11, aguarda você</p></td>
+                    <td class="td-acao"><button class="bt-t" type="button">Validar serviço</button></td>
+                  </tr>
+                  <tr>
+                    <td class="td-num"><a href="#">0219</a></td>
+                    <td><p class="os-t">Vazamento no forro do corredor do 3º andar</p><p class="os-l">Condomínio Jardim das Paineiras, Torre B</p></td>
+                    <td class="td-resp sec">A definir</td>
+                    <td class="td-prazo"><span class="c sec">A definir</span></td>
+                    <td class="td-sit"><ol data-regua="p" data-etapa="0"></ol><p>Aberta hoje às 07:52 pela síndica</p></td>
+                    <td class="td-acao"><button class="bt-t" type="button">Fazer triagem</button></td>
+                  </tr>
+                  <tr>
+                    <td class="td-num"><a href="#">0217</a></td>
+                    <td><p class="os-t">Lâmpadas queimadas no hall social</p><p class="os-l">Residencial Vila Serena, hall do bloco 2</p></td>
+                    <td class="td-resp">Thiago Moura</td>
+                    <td class="td-prazo"><span class="c">07/11</span></td>
+                    <td class="td-sit"><ol data-regua="p" data-etapa="1" data-estado="pendente"></ol><p class="alerta">Pendente: sem acesso ao local</p></td>
+                    <td class="td-acao"><button class="bt-t" type="button">Ver pendência</button></td>
+                  </tr>
+                </tbody>
+              </table>
+              <p class="mais">Outras 3 ordens seguem no prazo.<a class="lk" href="#">Ver todas as ordens</a></p>
+            </section>
+
+            <section class="tarefas" aria-labelledby="t-tarefas">
+              <div class="sec-h">
+                <h2 class="x s21" id="t-tarefas">Tarefas de hoje</h2>
+                <a class="lk s15" href="#">Abrir a agenda da semana</a>
+              </div>
+              <ul>
+                <li class="tf"><span class="tf-h">07:30</span><span class="tf-t">Comprar rejunte epóxi e retomar a borda da piscina</span><span class="tf-q">Raimundo Teles<span>Jardim das Paineiras</span></span><a class="tf-o lk c" href="#">O.S. 0211</a></li>
+                <li class="tf"><span class="tf-h">08:00</span><span class="tf-t">Ajustar a porta do consultório 3</span><span class="tf-q">Cícero Alves<span>Clínica Ortovida</span></span><a class="tf-o lk c" href="#">O.S. 0216</a></li>
+                <li class="tf"><span class="tf-h">10:00</span><span class="tf-t">Pintura do muro da rampa, segunda demão</span><span class="tf-q">Thiago Moura<span>Jardim das Paineiras</span></span><a class="tf-o lk c" href="#">O.S. 0209</a></li>
+                <li class="tf"><span class="tf-h">14:30</span><span class="tf-t">Vistoria do quadro elétrico do 12º andar</span><span class="tf-q">Edvaldo Rocha<span>Prado Reis Advocacia</span></span><span class="tf-o sec s13">Tarefa avulsa</span></li>
+              </ul>
+            </section>
+          </div>
+        </main>
+      </div>
+    </div>
+  </section>
+
+  <!-- ======================== DETALHE DA O.S. ======================== -->
+  <section class="quadro" id="q-os" aria-labelledby="t-os">
+    <div class="quadro-h">
+      <h2 class="x" id="t-os">Detalhe da O.S.</h2>
+      <p>A régua grande mostra a data de cada etapa. As fotos ficam numa folha de contato, para conferir antes de validar.</p>
+    </div>
+    <div class="moldura" id="m-os">
+      <div class="app">
+        <nav class="menu" aria-label="Menu principal">
+          <a class="marca" href="#"><span class="marca-m" aria-hidden="true">M</span><span class="marca-n">Megagyn<span>Service</span></span></a>
+          <a class="menu-a" href="#">Hoje</a>
+          <div class="menu-g">
+            <p class="menu-gt">Operação</p>
+            <a class="menu-a" href="#" aria-current="page">Ordens de serviço <span class="c">8</span></a>
+            <a class="menu-a" href="#">Tarefas e agenda <span class="c">4</span></a>
+            <a class="menu-a" href="#">Diário</a>
+          </div>
+          <div class="menu-g">
+            <p class="menu-gt">Comercial</p>
+            <a class="menu-a" href="#">Orçamentos <span class="c">2</span></a>
+            <a class="menu-a" href="#">Contratos</a>
+          </div>
+          <div class="menu-g">
+            <p class="menu-gt">Cadastros</p>
+            <a class="menu-a" href="#">Clientes</a>
+            <a class="menu-a" href="#">Obras e unidades</a>
+            <a class="menu-a" href="#">Colaboradores</a>
+          </div>
+          <div class="menu-g">
+            <p class="menu-gt">Sistema</p>
+            <a class="menu-a" href="#">Relatórios</a>
+            <a class="menu-a" href="#">Configurações</a>
+          </div>
+          <div class="menu-pe">
+            <p>Luciana Ferraz<br><span class="sec">Administração</span></p>
+            <a class="lk" href="#">Sair</a>
+          </div>
+        </nav>
+
+        <main class="main">
+          <div class="topo-estreito">
+            <a class="marca" href="#"><span class="marca-m" aria-hidden="true">M</span><span class="marca-n">Megagyn<span>Service</span></span></a>
+            <button class="bt bt-s" type="button">Menu</button>
+          </div>
+          <div class="main-in">
+            <a class="voltar lk" href="#"><svg class="ic" aria-hidden="true"><use href="#i-volta"/></svg>Ordens de serviço</a>
+            <header class="os-cab">
+              <h1><span class="os-num x n">O.S. 0214</span><span class="os-tit x">Tomadas sem energia na copa</span></h1>
+              <dl class="os-meta">
+                <div><dt>Cliente</dt><dd>Prado Reis Advocacia</dd></div>
+                <div><dt>Local</dt><dd>Edifício Metropolitan, sala 1204</dd></div>
+                <div><dt>Setor</dt><dd>Copa</dd></div>
+                <div><dt>Responsável</dt><dd>Edvaldo Rocha</dd></div>
+                <div><dt>Prioridade</dt><dd>Alta</dd></div>
+                <div><dt>Prazo</dt><dd class="n">05/11/2026</dd></div>
+              </dl>
+            </header>
+
+            <section class="rg-sec" aria-label="Situação da ordem">
+              <ol data-regua="g" data-etapa="3"
+                  data-datas="28/10/2026, 09:12|29/10/2026, 14:05|30/10/2026, 08:40|03/11/2026, 16:42|"
+                  data-notas="|||Aguarda sua validação|Depois da validação"></ol>
+            </section>
+
+            <div class="os-grid">
+              <div>
+                <section class="bloco sol" aria-labelledby="t-sol">
+                  <h2 class="x" id="t-sol">Solicitação</h2>
+                  <p>As duas tomadas da bancada da copa pararam depois que ligamos a cafeteira nova. O disjuntor desarma toda vez que alguém liga a cafeteira e o micro-ondas juntos.</p>
+                  <p class="sec">Aberta por Fernanda Reis, da Prado Reis Advocacia, em 28/10/2026 às 09:12.</p>
+                </section>
+
+                <section class="bloco" aria-labelledby="t-at">
+                  <h2 class="x" id="t-at">Atendimentos</h2>
+                  <ol class="tl">
+                    <li class="tl-i">
+                      <p class="tl-d">30/10/2026<span>sexta-feira</span></p>
+                      <div class="tl-c">
+                        <p class="tl-a">Edvaldo Rocha <span class="sec">enviado às 10:21</span></p>
+                        <p class="tl-x">O circuito da copa divide o disjuntor de 16 A com as salas 1203 e 1204. A tomada da cafeteira está com o plástico derretido. Isolei a tomada e deixei o restante funcionando.</p>
+                        <dl class="tl-f"><dt>Materiais</dt><dd>Nenhum</dd><dt>Resultado</dt><dd>Andamento</dd></dl>
+                      </div>
+                    </li>
+                    <li class="tl-i">
+                      <p class="tl-d">02/11/2026<span>segunda-feira</span></p>
+                      <div class="tl-c">
+                        <p class="tl-a">Edvaldo Rocha <span class="sec">enviado às 17:05</span></p>
+                        <p class="tl-x">Passei um circuito só para a copa, do quadro até a bancada, por cima do forro. Instalei um disjuntor novo de 20 A e identifiquei no quadro.</p>
+                        <dl class="tl-f"><dt>Materiais</dt><dd>14 m de cabo 4 mm², 1 disjuntor 20 A</dd><dt>Resultado</dt><dd>Andamento</dd></dl>
+                      </div>
+                    </li>
+                    <li class="tl-i is-ultimo">
+                      <p class="tl-d">03/11/2026<span>terça-feira</span></p>
+                      <div class="tl-c">
+                        <p class="tl-a">Edvaldo Rocha <span class="sec">enviado às 16:42</span></p>
+                        <p class="tl-x">Troquei as duas tomadas da bancada por tomadas de 20 A no circuito novo. Deixei a cafeteira e o micro-ondas ligados juntos por 20 minutos e o disjuntor não desarmou.</p>
+                        <dl class="tl-f"><dt>Materiais</dt><dd>2 tomadas 20 A, 1 caixa 4×2</dd><dt>Resultado</dt><dd>Executada</dd></dl>
+                      </div>
+                    </li>
+                  </ol>
+                </section>
+              </div>
+
+              <aside class="valida" aria-labelledby="t-val">
+                <h2 class="x" id="t-val">Sua validação</h2>
+                <p>Edvaldo marcou o serviço como executado em 03/11/2026 às 16:42. Confira o último atendimento e as fotos.</p>
+                <button class="bt bt-p" type="button">Validar serviço</button>
+                <p class="nota">A O.S. passa para Concluída e entra no relatório de novembro da Prado Reis.</p>
+                <div class="devolver">
+                  <label class="campo-l" for="motivo">Motivo para devolver</label>
+                  <textarea class="inp" id="motivo" rows="3" placeholder="Ex.: falta a foto do disjuntor identificado"></textarea>
+                  <button class="bt bt-s" type="button">Devolver para correção</button>
+                  <p class="nota">Edvaldo recebe o motivo no celular e a O.S. volta para Em execução.</p>
+                </div>
+              </aside>
+            </div>
+
+            <section class="fotos" aria-labelledby="t-fotos">
+              <div class="sec-h">
+                <h2 class="x s21" id="t-fotos">Fotos</h2>
+                <p class="sec s15">6 fotos de 3 atendimentos, da mais antiga para a mais nova</p>
+              </div>
+              <div class="folha">
+                <figure><div class="foto grao f-quadro" role="img" aria-label="Quadro de disjuntores com um desarmado"></div><figcaption><span>30/10/2026 08:52</span><span>Edvaldo Rocha</span></figcaption></figure>
+                <figure><div class="foto azulejo f-queimada" role="img" aria-label="Tomada da cafeteira com marca de queimado"></div><figcaption><span>30/10/2026 09:10</span><span>Edvaldo Rocha</span></figcaption></figure>
+                <figure><div class="foto grao f-forro" role="img" aria-label="Forro aberto com o cabo do circuito novo"></div><figcaption><span>02/11/2026 11:37</span><span>Edvaldo Rocha</span></figcaption></figure>
+                <figure><div class="foto grao f-novo" role="img" aria-label="Disjuntor novo identificado no quadro"></div><figcaption><span>02/11/2026 16:48</span><span>Edvaldo Rocha</span></figcaption></figure>
+                <figure><div class="foto azulejo f-duas" role="img" aria-label="Duas tomadas novas na bancada"></div><figcaption><span>03/11/2026 15:59</span><span>Edvaldo Rocha</span></figcaption></figure>
+                <figure><div class="foto f-bancada" role="img" aria-label="Cafeteira e micro-ondas ligados juntos no teste"></div><figcaption><span>03/11/2026 16:31</span><span>Edvaldo Rocha</span></figcaption></figure>
+              </div>
+            </section>
+          </div>
+        </main>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================ CELULAR ============================ -->
+  <section class="quadro" id="q-celular" aria-label="Celular">
+    <div class="fones" id="m-celular">
+      <div class="fone-bloco">
+        <div class="quadro-h">
+          <h2 class="x">Celular: minhas demandas</h2>
+          <p>390 px. Raimundo, funcionário, na obra.</p>
+        </div>
+        <div class="fone">
+          <div class="m-rola">
+            <header class="m-cab">
+              <p class="m-ctx">Minhas demandas</p>
+              <button class="m-obra" type="button" aria-label="Trocar de obra. Obra atual: Jardim das Paineiras"><span class="x">Jardim das Paineiras</span><svg class="ic" aria-hidden="true"><use href="#i-desce"/></svg></button>
+              <p class="m-sub">3 em andamento e 1 aguardando validação</p>
+            </header>
+            <ul>
+              <li><a class="m-it fita" href="#">
+                <span class="m-it-l"><span>O.S. 0211</span><span class="erro">Venceu em 31/10</span></span>
+                <h3>Rejunte soltando na piscina adulto</h3>
+                <p class="m-setor">Área da piscina</p>
+                <ol data-regua="m" data-etapa="2" data-estado="pendente"></ol>
+                <p class="m-est alerta">Pendente: falta de material</p>
+              </a></li>
+              <li><a class="m-it" href="#">
+                <span class="m-it-l"><span>O.S. 0215</span><span class="sec">Prazo 06/11</span></span>
+                <h3>Corrimão solto na escada da Torre A</h3>
+                <p class="m-setor">Torre A, escada de serviço</p>
+                <ol data-regua="m" data-etapa="2"></ol>
+                <p class="m-est">Em execução desde 03/11</p>
+              </a></li>
+              <li><a class="m-it" href="#">
+                <span class="m-it-l"><span>O.S. 0220</span><span class="sec">Prazo 07/11</span></span>
+                <h3>Interfone da Torre B sem áudio</h3>
+                <p class="m-setor">Portaria</p>
+                <ol data-regua="m" data-etapa="1"></ol>
+                <p class="m-est">Programada para hoje, 15:00</p>
+              </a></li>
+            </ul>
+            <p class="m-grupo">Aguardando validação da Megagyn</p>
+            <ul>
+              <li><a class="m-it" href="#">
+                <span class="m-it-l"><span>O.S. 0208</span><span class="sec">Executada em 02/11</span></span>
+                <h3>Grelha do ralo da garagem quebrada</h3>
+                <ol data-regua="m" data-etapa="3"></ol>
+              </a></li>
+            </ul>
+          </div>
+          <div class="m-acao"><a class="bt bt-p bt-xl" href="#">Registrar o que foi feito</a></div>
+          <nav class="m-nav" aria-label="Navegação">
+            <a href="#" aria-current="page">Demandas</a>
+            <a href="#">Agenda</a>
+            <a href="#">Histórico</a>
+          </nav>
+        </div>
+      </div>
+
+      <div class="fone-bloco">
+        <div class="quadro-h">
+          <h2 class="x">Celular: registro</h2>
+          <p>O que foi feito, com foto e resultado.</p>
+        </div>
+        <div class="fone">
+          <div class="m-rola">
+            <header class="m-reg-cab">
+              <a class="m-voltar" href="#"><svg class="ic" aria-hidden="true"><use href="#i-volta"/></svg>Minhas demandas</a>
+              <h1 class="x">Registrar o que foi feito</h1>
+              <p><span class="c">O.S. 0215</span> Corrimão solto na escada da Torre A</p>
+            </header>
+            <form class="m-form" onsubmit="return false">
+              <div>
+                <label class="campo-l" for="m-data">Data da atividade <span class="sec">(o dia em que foi feito)</span></label>
+                <input class="inp n" id="m-data" type="text" inputmode="numeric" value="04/11/2026">
+              </div>
+              <div>
+                <label class="campo-l" for="m-feito">O que foi feito</label>
+                <textarea class="inp" id="m-feito" rows="3">Tirei o corrimão solto do 2º lance e limpei os furos. A bucha 10 não segura no reboco; falta chumbador químico.</textarea>
+              </div>
+              <fieldset>
+                <legend class="campo-l">Fotos</legend>
+                <div class="m-foto-bt">
+                  <button class="bt bt-s" type="button"><svg class="ic" aria-hidden="true"><use href="#i-camera"/></svg>Tirar foto</button>
+                  <button class="bt bt-s" type="button"><svg class="ic" aria-hidden="true"><use href="#i-galeria"/></svg>Da galeria</button>
+                </div>
+                <ul class="thumbs">
+                  <li class="th"><div class="foto grao f-escada" role="img" aria-label="Escada sem o corrimão"></div><p class="th-st ok"><svg class="ic" aria-hidden="true"><use href="#i-ok"/></svg>Recebido</p></li>
+                  <li class="th"><div class="foto grao f-furos" role="img" aria-label="Furos no reboco"></div><p class="th-st ok"><svg class="ic" aria-hidden="true"><use href="#i-ok"/></svg>Recebido</p></li>
+                  <li class="th is-falhou"><div class="th-f"><div class="foto grao f-tubo" role="img" aria-label="Corrimão retirado"></div><button class="bt bt-s bt-repetir" type="button">Tentar de novo</button></div><p class="th-st erro"><svg class="ic" aria-hidden="true"><use href="#i-falha"/></svg>Falhou</p></li>
+                </ul>
+              </fieldset>
+              <fieldset>
+                <legend class="campo-l">Resultado</legend>
+                <div class="resultado">
+                  <label><input type="radio" name="res" value="andamento">Andamento</label>
+                  <label><input type="radio" name="res" value="pendencia" checked>Pendência</label>
+                  <label><input type="radio" name="res" value="executada">Executada</label>
+                </div>
+              </fieldset>
+              <div>
+                <label class="campo-l" for="m-motivo">Motivo da pendência</label>
+                <span class="sel sel-bloco"><select id="m-motivo"><option>Falta de material</option><option>Sem acesso ao local</option><option>Aguardando autorização</option></select><svg class="ic" aria-hidden="true"><use href="#i-desce"/></svg></span>
+              </div>
+            </form>
+          </div>
+          <div class="m-acao"><button class="bt bt-p bt-xl" type="button">Enviar</button></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================ TOKENS ============================ -->
+  <section class="tokens" aria-labelledby="t-tokens">
+    <h2 class="x" id="t-tokens">Cores e letra</h2>
+    <div class="tk-grid">
+      <div class="tk-pal">
+        <h3>Paleta A: Sinal</h3>
+        <ul class="tk-sw">
+          <li><i style="background:#F1F1EE"></i><b>Fundo</b><span>#F1F1EE</span></li>
+          <li><i style="background:#FFFFFF"></i><b>Superfície</b><span>#FFFFFF</span></li>
+          <li><i style="background:#222423"></i><b>Texto</b><span>#222423</span></li>
+          <li><i style="background:#686C6A"></i><b>Secundário</b><span>#686C6A</span></li>
+          <li><i style="background:#D9DAD6"></i><b>Linha</b><span>#D9DAD6</span></li>
+          <li><i style="background:#FFC72C"></i><b>Sinal</b><span>#FFC72C</span></li>
+          <li><i style="background:#1B6E45"></i><b>Ok</b><span>#1B6E45</span></li>
+          <li><i style="background:#94530A"></i><b>Alerta</b><span>#94530A</span></li>
+          <li><i style="background:#B42318"></i><b>Erro</b><span>#B42318</span></li>
+        </ul>
+      </div>
+      <div class="tk-pal">
+        <h3>Paleta B: Petróleo</h3>
+        <ul class="tk-sw">
+          <li><i style="background:#ECF0EE"></i><b>Fundo</b><span>#ECF0EE</span></li>
+          <li><i style="background:#FBFCFB"></i><b>Superfície</b><span>#FBFCFB</span></li>
+          <li><i style="background:#172723"></i><b>Texto</b><span>#172723</span></li>
+          <li><i style="background:#5D6E69"></i><b>Secundário</b><span>#5D6E69</span></li>
+          <li><i style="background:#D3DCD8"></i><b>Linha</b><span>#D3DCD8</span></li>
+          <li><i style="background:#0B6E63"></i><b>Petróleo</b><span>#0B6E63</span></li>
+          <li><i style="background:#E3A21A"></i><b>Âmbar</b><span>#E3A21A</span></li>
+          <li><i style="background:#3B6A1E"></i><b>Ok</b><span>#3B6A1E</span></li>
+          <li><i style="background:#B42318"></i><b>Erro</b><span>#B42318</span></li>
+        </ul>
+      </div>
+    </div>
+    <div class="tk-letra">
+      <div class="tk-l"><p><b>Archivo expandida</b>Largura 122, peso 780. Títulos e números grandes.</p><p class="x s34">O.S. 0214, quarta-feira</p></div>
+      <div class="tk-l"><p><b>Archivo normal</b>Largura 100, peso 400 e 600. Texto e campos.</p><p class="s17">Troquei as duas tomadas da bancada por tomadas de 20 A no circuito novo.</p></div>
+      <div class="tk-l"><p><b>Archivo condensada</b>Largura 75, peso 600, números tabulares. Tabelas, O.S. e régua.</p><p class="c s21">0214&ensp;03/11/2026&ensp;16:42&ensp;Em execução&ensp;R$ 1.280,00</p></div>
+    </div>
+    <div class="tk-estados">
+      <h3>A régua em cada situação</h3>
+      <div class="tk-est">
+        <div><ol data-regua="p" data-etapa="0"></ol><p>Aberta</p></div>
+        <div><ol data-regua="p" data-etapa="1"></ol><p>Programada</p></div>
+        <div><ol data-regua="p" data-etapa="2"></ol><p>Em execução</p></div>
+        <div><ol data-regua="p" data-etapa="2" data-estado="pendente"></ol><p class="alerta">Pendente em execução</p></div>
+        <div><ol data-regua="p" data-etapa="3"></ol><p>Executada, aguarda validação</p></div>
+        <div><ol data-regua="p" data-etapa="4" data-estado="concluida"></ol><p>Concluída</p></div>
+        <div><ol data-regua="p" data-etapa="1" data-estado="cancelada"></ol><p class="erro">Cancelada</p></div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<script>
+(function () {
+  var ETAPAS = ["Aberta", "Programada", "Em execução", "Executada", "Concluída"];
+
+  document.querySelectorAll("[data-regua]").forEach(function (el) {
+    var tipo = el.dataset.regua;
+    var atual = Number(el.dataset.etapa || 0);
+    var estado = el.dataset.estado || "normal";
+    var datas = (el.dataset.datas || "").split("|");
+    var notas = (el.dataset.notas || "").split("|");
+    el.classList.add("rg", "rg--" + tipo);
+    if (estado === "cancelada") el.classList.add("is-cancelada");
+
+    el.innerHTML = ETAPAS.map(function (nome, i) {
+      var st = i < atual ? "feita" : i > atual ? "futura" : "atual";
+      if (i === atual && estado === "pendente") st = "pend";
+      if (i === atual && estado === "concluida") st = "feita";
+      if (i === atual && estado === "cancelada") st = "futura";
+      var barra = st === "pend" ? '<span class="rg-b"><i class="rg-pf"></i></span>' : '<span class="rg-b"></span>';
+      var txt = "";
+      if (tipo === "g") {
+        txt = '<span class="rg-nome">' + nome + "</span>" +
+              '<span class="rg-data">' + (datas[i] || (st === "futura" ? "" : "")) + "</span>" +
+              (notas[i] ? '<span class="rg-nota' + (st === "atual" ? "" : " sec") + '">' + notas[i] + "</span>" : "");
+      }
+      return '<li class="rg-s is-' + st + '" style="--i:' + i + '"><span class="rg-t">' + barra + "</span>" + txt + "</li>";
+    }).join("");
+
+    if (tipo !== "g") el.setAttribute("aria-hidden", "true");
+  });
+
+  var root = document.documentElement;
+  var botoes = document.querySelectorAll("[data-set-paleta]");
+  function aplicar(p) {
+    root.setAttribute("data-paleta", p);
+    botoes.forEach(function (b) { b.setAttribute("aria-pressed", String(b.dataset.setPaleta === p)); });
+    try { localStorage.setItem("megagyn-paleta", p); } catch (e) {}
+  }
+  botoes.forEach(function (b) { b.addEventListener("click", function () { aplicar(b.dataset.setPaleta); }); });
+  var inicial = new URLSearchParams(location.search).get("paleta");
+  if (!inicial) { try { inicial = localStorage.getItem("megagyn-paleta"); } catch (e) {} }
+  aplicar(inicial === "b" ? "b" : "a");
+})();
+</script>
+</body>
+</html>
