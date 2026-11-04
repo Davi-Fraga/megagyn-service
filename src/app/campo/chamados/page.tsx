@@ -3,6 +3,7 @@ import Link from "next/link";
 import { formatDateBR, todayIso } from "@/domain/dates";
 import { isOverdue, type RequestStatus } from "@/domain/request-status";
 import { requireProfile } from "@/server/auth";
+import { fieldRequestsQuery } from "@/server/field-queries";
 import { createSupabaseServer } from "@/server/supabase/server";
 import { cn } from "@/ui/cn";
 import { EmptyState } from "@/ui/page";
@@ -25,17 +26,12 @@ export default async function FieldRequestsPage({ searchParams }: { searchParams
   const db = await createSupabaseServer();
   const today = todayIso();
 
-  const [{ data }, assignments] = await Promise.all([
-    db
-      .from("service_requests")
-      .select("id, number, title, status, scheduled_date, due_date, site:sites(name), area:site_areas(name)")
-      .in("status", tab.statuses)
-      .order(tab.key === "encerrados" ? "updated_at" : "scheduled_date", { ascending: tab.key !== "encerrados", nullsFirst: false })
-      .limit(100),
-    db.from("request_assignments").select("service_request_id").eq("profile_id", profile.id).is("unassigned_at", null),
-  ]);
-  const mine = new Set((assignments.data ?? []).map((a) => a.service_request_id));
-  const rows = (data ?? []).filter((r) => !onlyMine || mine.has(r.id) || tab.key === "triagem");
+  // Na triagem ninguém foi atribuído ainda: a aba mostra todos os chamados dos locais da pessoa.
+  const assignedTo = onlyMine && tab.key !== "triagem" ? profile.id : null;
+  const { data } = await fieldRequestsQuery(db, tab.statuses, assignedTo)
+    .order(tab.key === "encerrados" ? "updated_at" : "scheduled_date", { ascending: tab.key !== "encerrados", nullsFirst: false })
+    .limit(100);
+  const rows = data ?? [];
 
   return (
     <>
