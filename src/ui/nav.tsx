@@ -119,16 +119,19 @@ export function AdminNav({ userName, unread, signOutAction }: { userName: string
         </div>
       )}
 
-      <aside className="sticky top-0 hidden h-dvh flex-col overflow-y-auto bg-concreto py-5 lg:flex">
-        <div className="mb-4 flex items-center justify-between pl-6 pr-3">
-          <Link href="/admin" aria-label="Painel">
-            <Brand />
-          </Link>
-          <BellLink href="/admin/notificacoes" unread={unread} />
-        </div>
-        <div className="flex-1">{links}</div>
-        <SignOut userName={userName} action={signOutAction} />
-      </aside>
+      {/* O fundo fica na coluna inteira; o menu fica preso no topo dentro dela. */}
+      <div className="hidden bg-concreto lg:block">
+        <aside className="sticky top-0 flex h-dvh flex-col overflow-y-auto py-5">
+          <div className="mb-4 flex items-center justify-between pl-6 pr-3">
+            <Link href="/admin" aria-label="Painel">
+              <Brand />
+            </Link>
+            <BellLink href="/admin/notificacoes" unread={unread} />
+          </div>
+          <div className="flex-1">{links}</div>
+          <SignOut userName={userName} action={signOutAction} />
+        </aside>
+      </div>
     </>
   );
 }
