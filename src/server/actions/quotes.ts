@@ -271,8 +271,9 @@ export async function createSiteFromQuoteAction(_: ActionState, fd: FormData): P
   const { data: quote } = await db.from("quotes").select("id, status, client_id, service_location_text").eq("id", id).maybeSingle();
   if (!quote) return { ok: false, message: "Orçamento não encontrado." };
   if (quote.status !== "aprovado") return { ok: false, message: "Só um orçamento aprovado pode gerar uma obra." };
+  // Uma obra por orçamento (índice sites_quote_uidx): clique repetido ou outra aba levam à obra que já existe.
   const { data: existing } = await db.from("sites").select("id").eq("quote_id", id).limit(1).maybeSingle();
-  if (existing) return { ok: false, message: "Já existe uma obra criada a partir deste orçamento." };
+  if (existing) redirect(`/admin/locais/${existing.id}`);
 
   const { data, error } = await db
     .from("sites")
@@ -287,7 +288,13 @@ export async function createSiteFromQuoteAction(_: ActionState, fd: FormData): P
     })
     .select("id")
     .single();
-  if (error?.code === "23505") return invalid({ code: "Já existe um local com este código." });
+  if (error?.code === "23505") {
+    if (error.message.includes("sites_quote_uidx")) {
+      const { data: created } = await db.from("sites").select("id").eq("quote_id", id).maybeSingle();
+      if (created) redirect(`/admin/locais/${created.id}`);
+    }
+    return invalid({ code: "Já existe um local com este código." });
+  }
   if (error || !data) return fail(error, "quote.site_fail");
   refresh();
   redirect(`/admin/locais/${data.id}`);
