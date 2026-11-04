@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { formatDateBR, formatDateTimeBR, todayIso } from "@/domain/dates";
 import { UUID_RE } from "@/domain/ids";
 import { isOverdue } from "@/domain/request-status";
+import { rulerStageDates } from "@/domain/status-ruler";
 import {
   cancelRequestAction,
   commentAction,
@@ -22,7 +23,8 @@ import { DescriptionList, Notice, PageHeader, Panel } from "@/ui/page";
 import { PhotoGrid } from "@/ui/photo-grid";
 import { ReasonAction } from "@/ui/reason-action";
 import { RequestTimeline } from "@/ui/request-timeline";
-import { AlertTape, StatusBadge } from "@/ui/status";
+import { AlertTape } from "@/ui/status";
+import { StatusRuler } from "@/ui/status-ruler";
 import { GenerateReportButton } from "@/ui/report-button";
 
 // Esta página pede PDFs; a geração roda após a resposta e precisa caber no tempo da função (Vercel Hobby: até 300 s).
@@ -83,11 +85,12 @@ export default async function AdminRequestPage({
         eyebrow={<span className="tipo-placa text-2xl text-grafite">{r.number}</span>}
         title={r.title}
         description={
-          <span className="flex flex-wrap items-center gap-2">
-            <StatusBadge status={r.status} />
-            {overdue && <AlertTape>Prazo vencido</AlertTape>}
-            {r.is_internal && <span className="text-sm font-semibold">Demanda interna</span>}
-          </span>
+          (overdue || r.is_internal) && (
+            <span className="flex flex-wrap items-center gap-x-4 gap-y-2">
+              {overdue && <AlertTape>Prazo vencido</AlertTape>}
+              {r.is_internal && <span className="text-sm font-semibold text-grafite">Demanda interna</span>}
+            </span>
+          )
         }
         actions={
           <>
@@ -98,6 +101,14 @@ export default async function AdminRequestPage({
           </>
         }
       />
+
+      <div className="mb-8 border-b border-linha pb-8">
+        <StatusRuler
+          status={r.status}
+          dates={rulerStageDates(detail.events)}
+          note={r.status === "pendente" ? (pending?.pending_reason ?? null) : r.status === "executada" ? "Aguarda sua validação" : null}
+        />
+      </div>
 
       <div className="mb-4 space-y-2">
         {feito && DONE_MESSAGE[feito] && <Notice tone="ok">{DONE_MESSAGE[feito]}</Notice>}

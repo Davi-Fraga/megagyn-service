@@ -109,6 +109,117 @@
     line-height: 1.05;
     font-variant-numeric: tabular-nums;
   }
+  /*
+   * Régua da situação (src/ui/status-ruler.tsx), o único elemento marcante da tela.
+   * Etapas cumpridas em texto escuro, a atual no acento, as futuras num traço claro.
+   * Pendente: a etapa para no meio, com um entalhe no corte. Cancelada: régua riscada.
+   */
+  .regua {
+    --regua-h: 8px;
+    --regua-fh: 2px;
+    --regua-gap: 3px;
+  }
+  .regua--compacta .regua-trena {
+    max-width: 13rem;
+  }
+  .regua--grande {
+    --regua-h: 14px;
+    --regua-fh: 3px;
+    --regua-gap: 4px;
+  }
+  .regua-trena {
+    position: relative;
+    display: flex;
+    gap: var(--regua-gap);
+  }
+  .regua-etapa {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+  .regua-t {
+    display: flex;
+    align-items: flex-end;
+    height: var(--regua-h);
+  }
+  .regua-barra {
+    position: relative;
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+  .regua-etapa.is-feita .regua-barra {
+    background: var(--color-grafite);
+  }
+  .regua-etapa.is-atual .regua-barra {
+    background: var(--color-acento);
+  }
+  .regua-etapa.is-futura .regua-barra {
+    height: var(--regua-fh);
+    background: var(--color-futura);
+  }
+  .regua-etapa.is-pausada .regua-barra::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 56%;
+    background: var(--color-acento);
+    clip-path: polygon(0 0, 100% 0, 62% 50%, 100% 100%, 0 100%);
+  }
+  .regua-etapa.is-pausada .regua-barra::after {
+    content: "";
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    width: calc(44% - 3px);
+    height: var(--regua-fh);
+    background: var(--color-futura);
+  }
+  /* Graduação de trena na régua grande. */
+  .regua--grande .is-feita {
+    --regua-tick: rgb(255 255 255 / 0.4);
+  }
+  .regua--grande .is-atual {
+    --regua-tick: rgb(255 255 255 / 0.55);
+  }
+  .regua--grande .is-feita .regua-barra::after,
+  .regua--grande .is-atual .regua-barra::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background:
+      repeating-linear-gradient(90deg, var(--regua-tick) 0 1px, transparent 1px 40px) 0 0 / 100% 75% no-repeat,
+      repeating-linear-gradient(90deg, var(--regua-tick) 0 1px, transparent 1px 8px) 0 0 / 100% 38% no-repeat;
+  }
+  .regua.is-cancelada .regua-t {
+    opacity: 0.38;
+  }
+  .regua.is-cancelada .regua-trena::after {
+    content: "";
+    position: absolute;
+    left: -3px;
+    right: -3px;
+    top: calc(var(--regua-h) - var(--regua-fh) / 2 - 1px);
+    height: 2px;
+    background: var(--color-erro);
+  }
+  /* A régua do detalhe enche da esquerda para a direita ao abrir (um só movimento). */
+  @media (prefers-reduced-motion: no-preference) {
+    .regua--animada .regua-t {
+      transform-origin: left center;
+      animation: regua-enche 0.42s cubic-bezier(0.25, 0.7, 0.2, 1) both;
+      animation-delay: calc(var(--i, 0) * 80ms + 120ms);
+    }
+  }
+  @keyframes regua-enche {
+    from {
+      transform: scaleX(0);
+    }
+    to {
+      transform: scaleX(1);
+    }
+  }
   /* Fita zebrada de obra: só para prazo vencido. */
   .faixa-alerta {
     background-image: repeating-linear-gradient(

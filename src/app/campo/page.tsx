@@ -8,7 +8,8 @@ import { fieldRequestsQuery } from "@/server/field-queries";
 import { createSupabaseServer } from "@/server/supabase/server";
 import { cn } from "@/ui/cn";
 import { Notice } from "@/ui/page";
-import { AlertTape, Badge, StatusBadge } from "@/ui/status";
+import { AlertTape, Badge } from "@/ui/status";
+import { StatusRuler } from "@/ui/status-ruler";
 
 export const metadata: Metadata = { title: "Hoje" };
 
@@ -98,7 +99,6 @@ export default async function FieldTodayPage({ searchParams }: { searchParams: P
                 <Link href={`/campo/chamados/${r.id}`} className="block space-y-1.5 px-4 py-3 hover:bg-concreto">
                   <div className="flex items-center justify-between gap-2">
                     <span className="tipo-condensada">{r.number}</span>
-                    <StatusBadge status={r.status} />
                   </div>
                   <p className="font-semibold">{r.title}</p>
                   <p className="text-sm text-muted">
@@ -106,6 +106,7 @@ export default async function FieldTodayPage({ searchParams }: { searchParams: P
                     {r.area ? ` · ${r.area.name}` : ""}
                     {r.due_date ? ` · prazo ${formatDateBR(r.due_date)}` : ""}
                   </p>
+                  <StatusRuler status={r.status} size="grande" className="pt-1" />
                   {isOverdue(r.due_date, r.status, today) && <AlertTape>Prazo vencido</AlertTape>}
                 </Link>
               </li>

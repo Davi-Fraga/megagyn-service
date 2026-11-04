@@ -1,6 +1,4 @@
 import type { LucideIcon } from "lucide-react";
-import type { RequestStatus } from "@/domain/request-status";
-import { STATUS_LABEL } from "@/domain/request-status";
 import { cn } from "./cn";
 
 export type Tone = "neutral" | "ok" | "alerta" | "erro" | "info" | "acento";
@@ -13,19 +11,10 @@ const TONE: Record<Tone, { text: string; mark: string }> = {
   acento: { text: "text-acento-escuro", mark: "bg-acento" },
 };
 
-const STATUS_TONE: Record<RequestStatus, Tone> = {
-  aberta: "info",
-  programada: "neutral",
-  em_execucao: "acento",
-  pendente: "alerta",
-  executada: "info",
-  concluida: "ok",
-  cancelada: "erro",
-};
-
 /**
  * Selo de situação: texto condensado na cor do tom, com um marcador quadrado
  * (ou o ícone). Sem pílula nem fundo: o nome da situação é sempre o que informa.
+ * A situação da O.S. usa a régua (src/ui/status-ruler.tsx), não este selo.
  */
 export function Badge({ tone = "neutral", children, icon: Icon, className }: { tone?: Tone; children: React.ReactNode; icon?: LucideIcon; className?: string }) {
   const t = TONE[tone];
@@ -34,14 +23,6 @@ export function Badge({ tone = "neutral", children, icon: Icon, className }: { t
       {Icon ? <Icon aria-hidden className="size-4 shrink-0" /> : <span aria-hidden className={cn("size-[7px] shrink-0", t.mark)} />}
       {children}
     </span>
-  );
-}
-
-export function StatusBadge({ status, className }: { status: RequestStatus; className?: string }) {
-  return (
-    <Badge tone={STATUS_TONE[status]} className={className}>
-      {STATUS_LABEL[status]}
-    </Badge>
   );
 }
 

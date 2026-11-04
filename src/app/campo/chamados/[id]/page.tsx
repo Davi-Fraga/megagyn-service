@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { formatDateBR, todayIso } from "@/domain/dates";
 import { UUID_RE } from "@/domain/ids";
 import { availableActions, isOverdue } from "@/domain/request-status";
+import { rulerStageDates } from "@/domain/status-ruler";
 import { requireProfile } from "@/server/auth";
 import { addRequestPhotosAction, commentAction, resumeRequestAction, startRequestAction } from "@/server/actions/requests";
 import { getRequestDetail, loadProfiles } from "@/server/data";
@@ -14,7 +15,8 @@ import { MediaUploader } from "@/ui/media-uploader";
 import { Notice, PageHeader, Panel } from "@/ui/page";
 import { PhotoGrid } from "@/ui/photo-grid";
 import { RequestTimeline } from "@/ui/request-timeline";
-import { AlertTape, StatusBadge } from "@/ui/status";
+import { AlertTape } from "@/ui/status";
+import { StatusRuler } from "@/ui/status-ruler";
 
 export const metadata: Metadata = { title: "Chamado" };
 
@@ -51,13 +53,11 @@ export default async function FieldRequestPage({
         back={{ href: "/campo/chamados", label: "Chamados" }}
         eyebrow={<span className="tipo-placa text-2xl text-grafite">{r.number}</span>}
         title={r.title}
-        description={
-          <span className="flex flex-wrap items-center gap-2">
-            <StatusBadge status={r.status} />
-            {isOverdue(r.due_date, r.status, todayIso()) && <AlertTape>Prazo vencido</AlertTape>}
-          </span>
-        }
+        description={isOverdue(r.due_date, r.status, todayIso()) && <AlertTape>Prazo vencido</AlertTape>}
       />
+      <div className="mb-6 border-b border-linha pb-6">
+        <StatusRuler status={r.status} dates={rulerStageDates(detail.events)} />
+      </div>
       {feito && DONE[feito] && (
         <div className="mb-4">
           <Notice tone="ok">{DONE[feito]}</Notice>

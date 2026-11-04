@@ -8,7 +8,8 @@ import { filtersToQuery, listRequests, parseRequestFilters } from "@/server/requ
 import { createSupabaseServer } from "@/server/supabase/server";
 import { ButtonLink, buttonClass } from "@/ui/button";
 import { EmptyState, PageHeader } from "@/ui/page";
-import { AlertTape, StatusBadge } from "@/ui/status";
+import { AlertTape } from "@/ui/status";
+import { StatusRuler } from "@/ui/status-ruler";
 
 export const metadata: Metadata = { title: "Chamados e OS" };
 
@@ -163,19 +164,19 @@ export default async function AdminRequestsPage({ searchParams }: { searchParams
                     <Link href={`/admin/chamados/${r.id}`} className="font-semibold hover:underline">
                       {r.title}
                     </Link>
-                    <p className="text-sm text-muted">
-                      {r.client?.display_name} — {r.site?.name}
-                      {r.priority ? ` · ${r.priority.name}` : ""}
-                      {r.is_internal ? " · Interna" : ""}
+                    <p className="flex flex-wrap gap-x-3 text-sm text-muted">
+                      <span>
+                        {r.client?.display_name}, {r.site?.name}
+                      </span>
+                      {r.priority && <span>Prioridade {r.priority.name.toLowerCase()}</span>}
+                      {r.is_internal && <span>Interna</span>}
                     </p>
-                    {r.status === "pendente" && r.current_pending && (
-                      <p className="text-sm text-alerta">
-                        {String((r.current_pending as Record<string, unknown>).pending_reason ?? "")}
-                      </p>
-                    )}
                   </td>
-                  <td className="space-y-1 px-3 py-2.5">
-                    <StatusBadge status={r.status} />
+                  <td className="space-y-2 px-3 py-2.5">
+                    <StatusRuler
+                      status={r.status}
+                      note={r.status === "pendente" && r.current_pending ? String((r.current_pending as Record<string, unknown>).pending_reason ?? "") || null : null}
+                    />
                     {r.overdue && (
                       <div>
                         <AlertTape>Prazo vencido</AlertTape>
