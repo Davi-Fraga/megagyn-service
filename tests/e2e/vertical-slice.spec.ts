@@ -22,7 +22,8 @@ test("chamado de ponta a ponta com evidências e validação", async ({ page, br
 
   await page.waitForURL(/\/admin\/chamados\/[0-9a-f-]{36}/);
   await expect(page.getByText("Chamado aberto.")).toBeVisible();
-  await expect(page.getByText("Programada").first()).toBeVisible();
+  // A régua mostra o nome das cinco etapas; a situação atual é o nome da lista da régua.
+  await expect(page.getByRole("list", { name: "Situação: Programada", exact: true })).toBeVisible();
   const number = (await page.locator("main").getByText(/^\d{4}-\d{6}$/).first().innerText()).trim();
   expect(number).toMatch(/^\d{4}-\d{6}$/);
   const requestUrl = page.url();
@@ -45,7 +46,7 @@ test("chamado de ponta a ponta com evidências e validação", async ({ page, br
   await uploadPhotos(worker, [PHOTO_B]);
   await worker.getByRole("button", { name: "Enviar para validação" }).click();
   await expect(worker.getByText("Execução enviada. Agora a Megagyn confere e valida.")).toBeVisible();
-  await expect(worker.getByText("Executada").first()).toBeVisible();
+  await expect(worker.getByRole("list", { name: "Situação: Executada", exact: true })).toBeVisible();
   await worker.context().close();
 
   // 3. Administração valida.
@@ -53,7 +54,7 @@ test("chamado de ponta a ponta com evidências e validação", async ({ page, br
   await page.getByRole("button", { name: "Validar e concluir" }).click();
   await expect(page.getByText("Execução validada. Chamado concluído.")).toBeVisible();
   await page.reload();
-  await expect(page.getByText("Concluída").first()).toBeVisible();
+  await expect(page.getByRole("list", { name: "Situação: Concluída", exact: true })).toBeVisible();
   await expect(page.getByText("Execução informada — aguardando validação")).toBeVisible();
   await expect(page.getByText("Validado e concluído")).toBeVisible();
 
