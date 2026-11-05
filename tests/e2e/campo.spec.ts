@@ -151,7 +151,8 @@ test("minhas atividades: filtro por período e entrada inválida", async ({ brow
   await worker.getByLabel("O que foi feito").fill(text);
   await uploadPhotos(worker, [PHOTO_A]);
   await worker.getByRole("button", { name: "Salvar registro" }).click();
-  await worker.waitForURL(/\/campo/, { timeout: 60_000 });
+  // /\/campo/ já casaria com /campo/registrar e seguiria antes de o registro gravar.
+  await worker.waitForURL(/feito=registro/, { timeout: 60_000 });
 
   await worker.goto("/campo/atividades");
   await expect(worker.getByText(text)).toBeVisible({ timeout: 60_000 });
