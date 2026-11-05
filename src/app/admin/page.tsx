@@ -13,6 +13,7 @@ import { ButtonLink, buttonClass } from "@/ui/button";
 import { cn } from "@/ui/cn";
 import { AlertEdge } from "@/ui/status";
 import { StatusRuler } from "@/ui/status-ruler";
+import { DataTable } from "@/ui/data-table";
 
 export const metadata: Metadata = { title: "Painel" };
 
@@ -240,72 +241,76 @@ export default async function AdminDashboard({
         {queue.length === 0 ? (
           <p className="border-y border-linha py-6 text-muted">Nada vencido, nada para validar, triar ou destravar com esses filtros.</p>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[60rem] text-left">
-              <thead>
-                <tr className="tipo-condensada text-[0.8125rem] text-muted">
-                  <th scope="col" className="border-b border-grafite pb-2 pl-4 pr-5 font-semibold">
-                    O.S.
-                  </th>
-                  <th scope="col" className="border-b border-grafite pb-2 pr-5 font-semibold">
-                    Serviço e local
-                  </th>
-                  <th scope="col" className="border-b border-grafite pb-2 pr-5 font-semibold">
-                    Responsável
-                  </th>
-                  <th scope="col" className="border-b border-grafite pb-2 pr-5 font-semibold">
-                    Prazo
-                  </th>
-                  <th scope="col" className="border-b border-grafite pb-2 pr-5 font-semibold">
-                    Situação
-                  </th>
-                  <th scope="col" className="border-b border-grafite pb-2 pr-1">
-                    <span className="sr-only">Ação</span>
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {queue.map((r) => {
-                  const info = queueInfo.get(r.id);
-                  const site = siteById.get(r.site_id);
-                  const people = (r.assignees ?? []).filter((a) => a.unassigned_at === null).map((a) => profiles.name(a.profile_id));
-                  const reason = r.status === "pendente" ? ((r.current_pending ?? {}) as Record<string, string>).pending_reason : null;
-                  const href = `/admin/chamados/${r.id}`;
-                  return (
-                    <tr key={r.id} className="align-top hover:bg-concreto/45 [&>td]:border-b [&>td]:border-linha">
-                      <td className="relative py-4 pl-4 pr-5">
-                        {r.overdue && <AlertEdge />}
-                        <Link href={href} className="tipo-condensada whitespace-nowrap text-[1.0625rem] underline-offset-4 hover:underline">
-                          {info?.number ?? "Abrir"}
-                        </Link>
-                      </td>
-                      <td className="py-4 pr-5">
-                        <p className="text-[1.0625rem] font-semibold leading-snug">{info?.title}</p>
-                        <p className="mt-0.5 text-[0.9375rem] text-muted">{site ? `${site.clientName}, ${site.name}` : "—"}</p>
-                      </td>
-                      <td className={cn("py-4 pr-5 text-[0.9375rem]", people.length === 0 && "text-muted")}>{people.length ? people.join(", ") : "A definir"}</td>
-                      <td className="tipo-condensada whitespace-nowrap py-4 pr-5 text-[0.9375rem]">
-                        <span className={cn("block", !r.due_date && "text-muted")}>{r.due_date ? formatDateBR(r.due_date) : "Sem prazo"}</span>
-                        {r.overdue && <span className="block text-erro">Prazo vencido</span>}
-                      </td>
-                      <td className="w-56 py-4 pr-5 pt-[1.3rem]">
-                        <StatusRuler status={r.status} note={reason || null} />
-                      </td>
-                      <td className="py-2 pr-1 text-right">
-                        <Link
-                          href={href}
-                          className="inline-flex min-h-11 items-center whitespace-nowrap px-0.5 font-semibold text-acento underline decoration-1 underline-offset-4 hover:decoration-2"
-                        >
-                          {QUEUE_ACTION[r.status] ?? "Abrir a ordem"}
-                          <span className="sr-only"> {info?.number}</span>
-                        </Link>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+          <DataTable
+            variant="ruler"
+            minWidth="min-w-[60rem]"
+            rows={queue.map((r) => ({
+              r,
+              info: queueInfo.get(r.id),
+              site: siteById.get(r.site_id),
+              people: (r.assignees ?? []).filter((a) => a.unassigned_at === null).map((a) => profiles.name(a.profile_id)),
+              reason: r.status === "pendente" ? ((r.current_pending ?? {}) as Record<string, string>).pending_reason : null,
+              href: `/admin/chamados/${r.id}`,
+            }))}
+            rowKey={(q) => q.r.id}
+            columns={[
+              {
+                header: "O.S.",
+                className: "relative",
+                cell: ({ r, info, href }) => (
+                  <>
+                    {r.overdue && <AlertEdge />}
+                    <Link href={href} className="tipo-condensada whitespace-nowrap text-[1.0625rem] underline-offset-4 hover:underline">
+                      {info?.number ?? "Abrir"}
+                    </Link>
+                  </>
+                ),
+              },
+              {
+                header: "Serviço e local",
+                cell: ({ info, site }) => (
+                  <>
+                    <p className="text-[1.0625rem] font-semibold leading-snug">{info?.title}</p>
+                    <p className="mt-0.5 text-[0.9375rem] text-muted">{site ? `${site.clientName}, ${site.name}` : "—"}</p>
+                  </>
+                ),
+              },
+              {
+                header: "Responsável",
+                className: ({ people }) => cn("text-[0.9375rem]", people.length === 0 && "text-muted"),
+                cell: ({ people }) => (people.length ? people.join(", ") : "A definir"),
+              },
+              {
+                header: "Prazo",
+                className: "tipo-condensada whitespace-nowrap text-[0.9375rem]",
+                cell: ({ r }) => (
+                  <>
+                    <span className={cn("block", !r.due_date && "text-muted")}>{r.due_date ? formatDateBR(r.due_date) : "Sem prazo"}</span>
+                    {r.overdue && <span className="block text-erro">Prazo vencido</span>}
+                  </>
+                ),
+              },
+              {
+                header: "Situação",
+                className: "w-56 pt-[1.3rem]",
+                cell: ({ r, reason }) => <StatusRuler status={r.status} note={reason || null} />,
+              },
+              {
+                header: <span className="sr-only">Ação</span>,
+                padY: "py-2",
+                className: "text-right",
+                cell: ({ r, info, href }) => (
+                  <Link
+                    href={href}
+                    className="inline-flex min-h-11 items-center whitespace-nowrap px-0.5 font-semibold text-acento underline decoration-1 underline-offset-4 hover:decoration-2"
+                  >
+                    {QUEUE_ACTION[r.status] ?? "Abrir a ordem"}
+                    <span className="sr-only"> {info?.number}</span>
+                  </Link>
+                ),
+              },
+            ]}
+          />
         )}
         {needsYou.length > queue.length && (
           <p className="mt-4 text-[0.9375rem] text-muted">
