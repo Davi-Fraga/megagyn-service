@@ -5,6 +5,7 @@ import { loadProfiles } from "@/server/data";
 import { createSupabaseServer } from "@/server/supabase/server";
 import { buttonClass } from "@/ui/button";
 import { EmptyState, PageHeader } from "@/ui/page";
+import { List } from "@/ui/list";
 
 export const metadata: Metadata = { title: "Auditoria" };
 
@@ -124,7 +125,7 @@ export default async function AuditPage({ searchParams }: { searchParams: Promis
       {(data ?? []).length === 0 ? (
         <EmptyState title="Nenhum registro no período." />
       ) : (
-        <ul className="divide-y divide-linha overflow-hidden rounded-panel border border-linha bg-papel">
+        <List variant="boxed">
           {(data ?? []).map((e) => {
             const keys = e.action === "update" ? changedKeys(e.before, e.after) : [];
             return (
@@ -141,7 +142,7 @@ export default async function AuditPage({ searchParams }: { searchParams: Promis
               </li>
             );
           })}
-        </ul>
+        </List>
       )}
     </>
   );

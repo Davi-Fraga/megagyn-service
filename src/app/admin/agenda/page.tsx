@@ -14,6 +14,7 @@ import { ActionForm, TextAreaField, TextField } from "@/ui/form";
 import { OccurrenceBadge } from "@/ui/occurrence-status";
 import { EmptyState, Notice, PageHeader } from "@/ui/page";
 import { ReasonAction } from "@/ui/reason-action";
+import { List } from "@/ui/list";
 
 export const metadata: Metadata = { title: "Agenda" };
 
@@ -150,7 +151,7 @@ export default async function AgendaPage({ searchParams }: { searchParams: Promi
               {dayOcc.length === 0 && dayReq.length === 0 ? (
                 <p className="text-sm text-muted">Nada programado.</p>
               ) : (
-                <ul className="divide-y divide-linha overflow-hidden rounded-panel border border-linha bg-papel">
+                <List variant="boxed">
                   {dayReq.map((r) => (
                     <li key={r.id} className="flex flex-wrap items-center justify-between gap-2 px-4 py-3">
                       <span>
@@ -213,7 +214,7 @@ export default async function AgendaPage({ searchParams }: { searchParams: Promi
                       )}
                     </li>
                   ))}
-                </ul>
+                </List>
               )}
             </section>
           );
