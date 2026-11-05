@@ -62,7 +62,7 @@ export function AdminNav({ userName, unread, signOutAction }: { userName: string
   const links = (
     <nav aria-label="Menu da administração">
       {ADMIN_GROUPS.map((g) => (
-        <div key={g.title ?? "hoje"} className={cn(g.title && "mt-5")}>
+        <div key={g.title ?? "hoje"} className={cn(g.title && "mt-5 lg:mt-4")}>
           {g.title && <p className="px-6 pb-1 text-[0.8125rem] font-medium text-muted">{g.title}</p>}
           <ul>
             {g.items.map((item) => {
@@ -73,7 +73,8 @@ export function AdminNav({ userName, unread, signOutAction }: { userName: string
                     href={item.href}
                     aria-current={active ? "page" : undefined}
                     className={cn(
-                      "relative flex min-h-10 items-center px-6 text-[0.9375rem]",
+                      // Mais baixo no computador para o menu inteiro caber em monitor Full HD; no celular segue 40 px.
+                      "relative flex min-h-10 items-center px-6 text-[0.9375rem] lg:min-h-9",
                       active
                         ? "bg-papel font-[680] before:absolute before:inset-y-0 before:left-0 before:w-[3px] before:bg-acento"
                         : "hover:bg-papel/55",
@@ -115,30 +116,32 @@ export function AdminNav({ userName, unread, signOutAction }: { userName: string
           if ((e.target as HTMLElement).closest("a")) setOpen(false);
         }}>
           {links}
-          <SignOut userName={userName} action={signOutAction} />
+          <SignOut userName={userName} action={signOutAction} className="mt-6 pt-4" />
         </div>
       )}
 
-      {/* O fundo fica na coluna inteira; o menu fica preso no topo dentro dela. */}
+      {/* O fundo fica na coluna inteira; o menu fica preso no topo dentro dela.
+          Em tela baixa só a lista rola: quem está logado e o "Sair" ficam sempre à vista. */}
       <div className="hidden bg-concreto lg:block">
-        <aside className="sticky top-0 flex h-dvh flex-col overflow-y-auto py-5">
-          <div className="mb-4 flex items-center justify-between pl-6 pr-3">
+        <aside className="sticky top-0 flex h-dvh flex-col py-5">
+          <div className="mb-3 flex items-center justify-between pl-6 pr-3">
             <Link href="/admin" aria-label="Painel">
               <Brand />
             </Link>
             <BellLink href="/admin/notificacoes" unread={unread} />
           </div>
-          <div className="flex-1">{links}</div>
-          <SignOut userName={userName} action={signOutAction} />
+          {/* Barra fina: em notebook a lista rola, e a barra é o sinal de que há mais itens abaixo. */}
+          <div className="min-h-0 flex-1 overflow-y-auto pb-2 [scrollbar-width:thin]">{links}</div>
+          <SignOut userName={userName} action={signOutAction} className="border-t border-linha pt-3" />
         </aside>
       </div>
     </>
   );
 }
 
-function SignOut({ userName, action }: { userName: string; action: () => Promise<void> }) {
+function SignOut({ userName, action, className }: { userName: string; action: () => Promise<void>; className: string }) {
   return (
-    <form action={action} className="mt-6 px-6 pt-4">
+    <form action={action} className={cn("px-6", className)}>
       <p className="truncate text-[0.9375rem] font-semibold leading-snug">{userName}</p>
       <p className="text-[0.8125rem] text-muted">Administração</p>
       <button type="submit" className="mt-1 min-h-10 text-[0.8125rem] text-acento underline decoration-1 underline-offset-[3px] hover:decoration-2">
