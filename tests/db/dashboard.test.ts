@@ -3,7 +3,7 @@ import { addDaysIso, todayIso, zonedMidnightUtc } from "@/domain/dates";
 import { REQUEST_STATUSES, type RequestStatus } from "@/domain/request-status";
 import { loadDashboardRows, type DashboardFilters } from "@/server/dashboard";
 import { listRequests, type RequestFilters } from "@/server/request-list";
-import { addMembership, createClientWithSite, createSite, createUser, serviceClient, uid, type TestUser } from "./helpers";
+import { addMembership, createClientWithSite, createSite, createUser, serviceClient, sql, uid, type TestUser } from "./helpers";
 
 /**
  * F5.6 e etapa 4 da trilha visual: o número do cartão do painel é o mesmo da lista que ele
@@ -227,9 +227,33 @@ describe("painel da administração", () => {
     expect(blind.summary.requests.by_status).toEqual({});
     expect(blind.summary.requests.not_closed).toBe(0);
     expect(blind.summary.attention).toEqual({ total: 0, rows: [] });
+    expect(blind.summary.work_entries).toEqual({ total: 0, by_site: [] });
 
+    // Com vínculo só na obra A: vê os chamados e as atividades dela, não as da obra B.
     await addMembership(outsider.id, mixedSiteId);
     const seen = await loadDashboardRows(outsider.db, filters({ clientId: mixedClientId }));
     expect(seen.summary.requests.not_closed).toBe(8);
+    expect(seen.summary.work_entries).toEqual({ total: 2, by_site: [{ site_id: mixedSiteId, count: 2 }] });
   }, 60_000);
+
+  it("usuário anônimo não conta nada", async () => {
+    const { createClient } = await import("@supabase/supabase-js");
+    const anonDb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, { auth: { persistSession: false } });
+    const { data, error } = await anonDb.rpc("dashboard_summary", { p_today: today, p_from: today, p_to: today });
+    expect(error).toBeNull();
+    const s = data as unknown as { requests: { not_closed: number }; work_entries: { total: number }; active_sites: number };
+    expect([s.requests.not_closed, s.work_entries.total, s.active_sites]).toEqual([0, 0, 0]);
+  });
+
+  it("leitura de chamados e atividades decide o admin uma vez por consulta", () => {
+    // Sem o atalho, has_site_access roda linha a linha (cerca de 100 µs cada), e o painel
+    // passa de 2 s com 18 mil chamados. A regra é a mesma: has_site_access já aceita o admin.
+    for (const [table, policy] of [
+      ["service_requests", "service_requests_select"],
+      ["work_entries", "work_entries_select"],
+    ]) {
+      const qual = sql(`select qual from pg_policies where schemaname = 'public' and tablename = '${table}' and policyname = '${policy}'`);
+      expect(qual, policy).toMatch(/^\(\( SELECT (public\.)?is_admin\(\) AS is_admin\) OR (public\.)?has_site_access\(site_id\)\)$/);
+    }
+  });
 });
