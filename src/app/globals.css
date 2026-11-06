@@ -1,34 +1,43 @@
 @import "tailwindcss";
 
 /*
- * Megagyn Service — tokens.
- * Concreto (fundo frio), grafite (texto), laranja Megagyn escurecido para contraste AA em texto/botões.
- * O laranja vivo aparece só em elementos não textuais (faixa zebrada de alerta, marcadores).
+ * Megagyn Service — tokens (direção "Régua de obra", Paleta B: Petróleo).
+ * Fundo e superfície frios, texto quase preto esverdeado, um acento petróleo para o que
+ * pede ação (botão principal, etapa atual da régua, item ativo do menu, links).
+ * O âmbar (sinal) aparece só no prazo vencido, na faixa zebrada. O laranja da marca
+ * fica só no logotipo oficial (src/assets/brand). Todos os pares de texto passam no AA.
  */
 @theme {
-  --color-concreto: #eef0f1;
-  --color-concreto-2: #e2e5e7;
-  --color-papel: #ffffff;
-  --color-grafite: #1e2326;
-  --color-grafite-2: #3a4247;
-  --color-muted: #545e64;
-  --color-linha: #cbd1d4;
-  --color-laranja: #c2410c;
-  --color-laranja-escuro: #9a3412;
-  --color-laranja-vivo: #f28c28;
-  --color-laranja-claro: #fdebdd;
-  --color-ok: #1b6e45;
-  --color-ok-claro: #e2f1e8;
+  --color-concreto: #ecf0ee;
+  --color-concreto-2: #e2e8e5;
+  --color-papel: #fbfcfb;
+  --color-grafite: #172723;
+  --color-grafite-2: #2e403b;
+  --color-muted: #5d6e69;
+  --color-linha: #d3dcd8;
+  /* Borda de campo: 3:1 na superfície (contorno de controle). */
+  --color-controle: #839490;
+  --color-acento: #0b6e63;
+  --color-acento-escuro: #095a51;
+  --color-acento-claro: #e0ede9;
+  /* Âmbar: só para prazo vencido (faixa zebrada). Nunca em texto. */
+  --color-sinal: #e3a21a;
+  /* Traço das etapas futuras da régua (o nome da etapa vai sempre em texto). */
+  --color-futura: #a3b2ad;
+  --color-ok: #3b6a1e;
+  --color-ok-claro: #e6eedf;
   --color-alerta: #94530a;
-  --color-alerta-claro: #fcefd8;
+  --color-alerta-claro: #f8edd7;
   --color-erro: #b42318;
-  --color-erro-claro: #fde7e5;
-  --color-info: #1d4e89;
-  --color-info-claro: #e4edf8;
+  --color-erro-claro: #fbe9e7;
+  /* A paleta não tem azul: informação e links usam o petróleo. */
+  --color-info: #0b6e63;
+  --color-info-claro: #e0ede9;
 
   --font-sans: var(--font-archivo), "Segoe UI", system-ui, sans-serif;
-  --radius-ctl: 6px;
-  --radius-panel: 10px;
+  /* Raio pequeno só em controles; blocos e listas ficam retos. */
+  --radius-ctl: 4px;
+  --radius-panel: 0px;
 }
 
 @layer base {
@@ -44,7 +53,7 @@
     font-variant-numeric: tabular-nums;
   }
   :focus-visible {
-    outline: 3px solid var(--color-info);
+    outline: 2px solid var(--color-acento);
     outline-offset: 2px;
   }
   h1,
@@ -52,6 +61,14 @@
   h3 {
     line-height: 1.2;
     text-wrap: balance;
+  }
+  /* Títulos na Archivo expandida: a hierarquia vem da largura e do peso, não de caixas. */
+  h1,
+  h2 {
+    font-stretch: 122%;
+    font-weight: 780;
+    letter-spacing: -0.015em;
+    line-height: 1.1;
   }
   @media (prefers-reduced-motion: reduce) {
     *,
@@ -64,32 +81,166 @@
 }
 
 @layer components {
-  /* Fita zebrada: só para impedimentos e prazos vencidos (sinal de alerta da obra). */
+  /*
+   * Uma família, três larguras. Expandida em títulos e números grandes; normal no texto
+   * e nos campos; condensada em tabelas, números de O.S. e rótulos da régua.
+   */
+  .tipo-expandida {
+    font-stretch: 122%;
+    font-weight: 780;
+    letter-spacing: -0.02em;
+    line-height: 1.05;
+  }
+  .tipo-normal {
+    font-stretch: 100%;
+    letter-spacing: 0;
+  }
+  .tipo-condensada {
+    font-stretch: 75%;
+    font-weight: 600;
+    letter-spacing: 0;
+    font-variant-numeric: tabular-nums;
+  }
+  /* Número em destaque (totais e indicadores): expandida com algarismos tabulares. */
+  .tipo-placa {
+    font-stretch: 122%;
+    font-weight: 780;
+    letter-spacing: -0.02em;
+    line-height: 1.05;
+    font-variant-numeric: tabular-nums;
+  }
+  /*
+   * Régua da situação (src/ui/status-ruler.tsx), o único elemento marcante da tela.
+   * Etapas cumpridas em texto escuro, a atual no acento, as futuras num traço claro.
+   * Pendente: a etapa para no meio, com um entalhe no corte. Cancelada: régua riscada.
+   */
+  .regua {
+    --regua-h: 8px;
+    --regua-fh: 2px;
+    --regua-gap: 3px;
+  }
+  .regua--compacta .regua-trena {
+    max-width: 13rem;
+  }
+  .regua--grande {
+    --regua-h: 14px;
+    --regua-fh: 3px;
+    --regua-gap: 4px;
+  }
+  .regua-trena {
+    position: relative;
+    display: flex;
+    gap: var(--regua-gap);
+  }
+  .regua-etapa {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+  .regua-t {
+    display: flex;
+    align-items: flex-end;
+    height: var(--regua-h);
+  }
+  .regua-barra {
+    position: relative;
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+  .regua-etapa.is-feita .regua-barra {
+    background: var(--color-grafite);
+  }
+  .regua-etapa.is-atual .regua-barra {
+    background: var(--color-acento);
+  }
+  .regua-etapa.is-futura .regua-barra {
+    height: var(--regua-fh);
+    background: var(--color-futura);
+  }
+  .regua-etapa.is-pausada .regua-barra::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 56%;
+    background: var(--color-acento);
+    clip-path: polygon(0 0, 100% 0, 62% 50%, 100% 100%, 0 100%);
+  }
+  .regua-etapa.is-pausada .regua-barra::after {
+    content: "";
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    width: calc(44% - 3px);
+    height: var(--regua-fh);
+    background: var(--color-futura);
+  }
+  /* Graduação de trena na régua grande. */
+  .regua--grande .is-feita {
+    --regua-tick: rgb(255 255 255 / 0.4);
+  }
+  .regua--grande .is-atual {
+    --regua-tick: rgb(255 255 255 / 0.55);
+  }
+  .regua--grande .is-feita .regua-barra::after,
+  .regua--grande .is-atual .regua-barra::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background:
+      repeating-linear-gradient(90deg, var(--regua-tick) 0 1px, transparent 1px 40px) 0 0 / 100% 75% no-repeat,
+      repeating-linear-gradient(90deg, var(--regua-tick) 0 1px, transparent 1px 8px) 0 0 / 100% 38% no-repeat;
+  }
+  .regua.is-cancelada .regua-t {
+    opacity: 0.38;
+  }
+  .regua.is-cancelada .regua-trena::after {
+    content: "";
+    position: absolute;
+    left: -3px;
+    right: -3px;
+    top: calc(var(--regua-h) - var(--regua-fh) / 2 - 1px);
+    height: 2px;
+    background: var(--color-erro);
+  }
+  /* A régua do detalhe enche da esquerda para a direita ao abrir (um só movimento). */
+  @media (prefers-reduced-motion: no-preference) {
+    .regua--animada .regua-t {
+      transform-origin: left center;
+      animation: regua-enche 0.42s cubic-bezier(0.25, 0.7, 0.2, 1) both;
+      animation-delay: calc(var(--i, 0) * 80ms + 120ms);
+    }
+  }
+  @keyframes regua-enche {
+    from {
+      transform: scaleX(0);
+    }
+    to {
+      transform: scaleX(1);
+    }
+  }
+  /* Fita zebrada de obra: só para prazo vencido. */
   .faixa-alerta {
     background-image: repeating-linear-gradient(
-      -45deg,
-      var(--color-laranja-vivo) 0 7px,
-      var(--color-grafite) 7px 14px
+      135deg,
+      var(--color-sinal) 0 4px,
+      var(--color-grafite) 4px 8px
     );
-  }
-  /* Largura expandida da Archivo para números de OS e ações de campo. */
-  .tipo-placa {
-    font-stretch: 118%;
-    font-weight: 750;
-    letter-spacing: -0.01em;
   }
   .campo-input {
     width: 100%;
-    border: 1.5px solid var(--color-linha);
+    border: 1px solid var(--color-controle);
     background: var(--color-papel);
     border-radius: var(--radius-ctl);
     min-height: 2.75rem;
-    padding: 0.7rem 0.8rem;
+    padding: 0.65rem 0.75rem;
     font-size: 1rem;
+    font-weight: 400;
     color: var(--color-grafite);
   }
   .campo-input:focus {
-    border-color: var(--color-info);
+    border-color: var(--color-acento);
   }
   .campo-input[aria-invalid="true"] {
     border-color: var(--color-erro);

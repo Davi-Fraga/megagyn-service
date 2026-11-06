@@ -65,7 +65,7 @@ export function QuoteItemsEditor({ initial }: { initial: QuoteItemDraft[] }) {
           <fieldset key={row.key} className="space-y-4 rounded-panel border border-linha bg-concreto/40 p-4">
             <legend className="sr-only">Item {i + 1}</legend>
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <p aria-hidden className="tipo-placa text-laranja-escuro">
+              <p aria-hidden className="tipo-condensada text-[1.0625rem]">
                 Item {i + 1}
               </p>
               <div className="flex gap-1">
@@ -109,7 +109,7 @@ export function QuoteItemsEditor({ initial }: { initial: QuoteItemDraft[] }) {
                       value={o.value}
                       checked={row.pricingMode === o.value}
                       onChange={() => update(row.key, { pricingMode: o.value })}
-                      className="size-5 accent-laranja"
+                      className="size-5 accent-acento"
                     />
                     <span>{o.label}</span>
                   </label>

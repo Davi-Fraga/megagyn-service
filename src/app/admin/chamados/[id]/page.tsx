@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { formatDateBR, formatDateTimeBR, todayIso } from "@/domain/dates";
 import { UUID_RE } from "@/domain/ids";
 import { isOverdue } from "@/domain/request-status";
+import { rulerStageDates } from "@/domain/status-ruler";
 import {
   cancelRequestAction,
   commentAction,
@@ -22,7 +23,8 @@ import { DescriptionList, Notice, PageHeader, Panel } from "@/ui/page";
 import { PhotoGrid } from "@/ui/photo-grid";
 import { ReasonAction } from "@/ui/reason-action";
 import { RequestTimeline } from "@/ui/request-timeline";
-import { AlertTape, StatusBadge } from "@/ui/status";
+import { AlertTape } from "@/ui/status";
+import { StatusRuler } from "@/ui/status-ruler";
 import { GenerateReportButton } from "@/ui/report-button";
 
 // Esta página pede PDFs; a geração roda após a resposta e precisa caber no tempo da função (Vercel Hobby: até 300 s).
@@ -80,14 +82,15 @@ export default async function AdminRequestPage({
     <>
       <PageHeader
         back={{ href: "/admin/chamados", label: "Chamados" }}
-        eyebrow={<span className="tipo-placa text-lg text-laranja-escuro">{r.number}</span>}
+        eyebrow={<span className="tipo-placa text-2xl text-grafite">{r.number}</span>}
         title={r.title}
         description={
-          <span className="flex flex-wrap items-center gap-2">
-            <StatusBadge status={r.status} />
-            {overdue && <AlertTape>Prazo vencido</AlertTape>}
-            {r.is_internal && <span className="text-sm font-semibold">Demanda interna</span>}
-          </span>
+          (overdue || r.is_internal) && (
+            <span className="flex flex-wrap items-center gap-x-4 gap-y-2">
+              {overdue && <AlertTape>Prazo vencido</AlertTape>}
+              {r.is_internal && <span className="text-sm font-semibold text-grafite">Demanda interna</span>}
+            </span>
+          )
         }
         actions={
           <>
@@ -99,13 +102,21 @@ export default async function AdminRequestPage({
         }
       />
 
+      <div className="mb-10">
+        <StatusRuler
+          status={r.status}
+          dates={rulerStageDates(detail.events)}
+          note={r.status === "pendente" ? (pending?.pending_reason ?? null) : r.status === "executada" ? "Aguarda sua validação" : null}
+        />
+      </div>
+
       <div className="mb-4 space-y-2">
         {feito && DONE_MESSAGE[feito] && <Notice tone="ok">{DONE_MESSAGE[feito]}</Notice>}
         {aviso && <Notice tone="alerta">{aviso}</Notice>}
       </div>
 
-      <div className="grid gap-5 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
-        <div className="space-y-5">
+      <div className="grid gap-x-14 gap-y-10 lg:grid-cols-[minmax(0,1fr)_22rem]">
+        <div className="space-y-10">
           <Panel title="Solicitação">
             <DescriptionList
               items={[
@@ -131,10 +142,9 @@ export default async function AdminRequestPage({
           </Panel>
 
           {r.status === "pendente" && pending && (
-            <section className="overflow-hidden rounded-panel border border-alerta bg-papel">
-              <div aria-hidden className="faixa-alerta h-2" />
-              <div className="space-y-1 p-4">
-                <h2 className="text-lg font-bold">Pendência atual: {pending.pending_reason}</h2>
+            <section className="border-l-[3px] border-alerta pl-4">
+              <div className="space-y-1">
+                <h2 className="text-[1.3125rem] text-alerta">Pendência atual: {pending.pending_reason}</h2>
                 <p>{pending.explanation}</p>
                 <p>
                   <span className="text-muted">Providência: </span>
@@ -153,7 +163,7 @@ export default async function AdminRequestPage({
           </Panel>
         </div>
 
-        <div className="space-y-5">
+        <div className="space-y-10">
           {r.status === "executada" && (
             <Panel title="Validar a execução">
               <p className="mb-3 text-muted">Confira a solução e as fotos do resultado no histórico antes de decidir.</p>
@@ -213,9 +223,9 @@ export default async function AdminRequestPage({
           </Panel>
 
           {!terminal && (
-            <details className="rounded-panel border border-linha bg-papel">
-              <summary className="cursor-pointer px-4 py-3 text-lg font-bold">Editar dados do chamado</summary>
-              <div className="border-t border-linha p-4">
+            <details className="border-t border-linha pt-3">
+              <summary className="tipo-expandida flex min-h-11 cursor-pointer items-center text-[1.3125rem]">Editar dados do chamado</summary>
+              <div className="pt-4">
                 <ActionForm action={updateRequestAction} submitLabel="Salvar alterações">
                   <input type="hidden" name="request_id" value={r.id} />
                   <TextField label="Título" name="title" required defaultValue={r.title} />

@@ -8,7 +8,7 @@ export default async function FieldLayout({ children }: { children: React.ReactN
   const supabase = await createSupabaseServer();
   const { count } = await supabase.from("notifications").select("id", { count: "exact", head: true }).is("read_at", null);
   return (
-    <div className="min-h-dvh pb-24" style={{ "--sticky-offset": "calc(4.25rem + env(safe-area-inset-bottom))" } as React.CSSProperties}>
+    <div className="min-h-dvh bg-papel pb-24" style={{ "--sticky-offset": "calc(4rem + 1px + env(safe-area-inset-bottom))" } as React.CSSProperties}>
       <FieldNav isForeman={profile.role !== "worker"} unread={count ?? 0} userName={profile.fullName} signOutAction={signOut} />
       <main id="conteudo" className="mx-auto w-full max-w-3xl px-4 py-5">
         {children}

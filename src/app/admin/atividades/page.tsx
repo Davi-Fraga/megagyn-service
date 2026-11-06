@@ -194,7 +194,7 @@ export default async function ActivitiesPage({
                     name="work_entry_ids"
                     value={r.id}
                     aria-label={`Selecionar ${r.description}`}
-                    className="mt-1 size-5 accent-laranja"
+                    className="mt-1 size-5 accent-acento"
                   />
                 ) : (
                   <span className="size-5" />

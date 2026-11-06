@@ -45,7 +45,7 @@ export default async function MyHoursPage() {
       {(data ?? []).length === 0 ? (
         <EmptyState title="Nenhuma jornada informada." />
       ) : (
-        <ul className="divide-y divide-linha overflow-hidden rounded-panel border border-linha bg-papel">
+        <ul className="-mx-4 divide-y divide-linha border-y border-linha">
           {(data ?? []).map((t) => (
             <li key={t.id} className="flex items-center justify-between gap-2 px-4 py-3">
               <span>
@@ -53,7 +53,7 @@ export default async function MyHoursPage() {
                 <span className="text-sm text-muted">{t.site?.name}</span>
               </span>
               <span className="flex items-center gap-2">
-                <span className="tipo-placa">{t.hours === null ? "—" : `${String(t.hours).replace(".", ",")} h`}</span>
+                <span className="tipo-condensada text-[1.0625rem]">{t.hours === null ? "—" : `${String(t.hours).replace(".", ",")} h`}</span>
                 {t.approved_at && <Badge tone="ok">Conferida</Badge>}
               </span>
             </li>

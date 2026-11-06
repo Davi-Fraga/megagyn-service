@@ -31,13 +31,13 @@ export async function NotificationsList({ base }: { base: "/admin" | "/campo" })
       {list.length === 0 ? (
         <EmptyState title="Nenhuma notificação." />
       ) : (
-        <ul className="divide-y divide-linha overflow-hidden rounded-panel border border-linha bg-papel">
+        <ul className="divide-y divide-linha border-y border-linha">
           {list.map((n) => {
             const href = fix(n.link);
             const content = (
               <>
                 <p className={cn(!n.read_at && "font-bold")}>
-                  {!n.read_at && <span className="mr-2 inline-block size-2 rounded-full bg-laranja-vivo" aria-label="Não lida" />}
+                  {!n.read_at && <span className="mr-2 inline-block size-2 rounded-full bg-acento" aria-label="Não lida" />}
                   {n.title}
                 </p>
                 {n.body && <p className="text-sm">{n.body}</p>}

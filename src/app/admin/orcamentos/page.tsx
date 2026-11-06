@@ -119,7 +119,7 @@ export default async function QuotesPage({ searchParams }: { searchParams: Promi
                 return (
                   <tr key={r.id} className="align-top hover:bg-concreto/60">
                     <td className="px-3 py-2.5">
-                      <Link href={`/admin/orcamentos/${r.id}`} className="tipo-placa whitespace-nowrap text-laranja-escuro hover:underline">
+                      <Link href={`/admin/orcamentos/${r.id}`} className="tipo-condensada whitespace-nowrap text-[1.0625rem] underline-offset-4 hover:underline">
                         {r.number}
                       </Link>
                     </td>

@@ -71,7 +71,7 @@ export function NewRequestForm({
                 value={o.value}
                 checked={origin === o.value}
                 onChange={() => setOrigin(o.value)}
-                className="mt-1 size-5 accent-laranja"
+                className="mt-1 size-5 accent-acento"
               />
               <span>
                 <span className="block font-semibold">{o.label}</span>
@@ -128,7 +128,7 @@ export function NewRequestForm({
 
       <div className="rounded-panel border border-linha bg-papel p-4">
         <label className="flex items-center gap-3 font-semibold">
-          <input type="checkbox" checked={scheduleNow} onChange={(e) => setScheduleNow(e.target.checked)} className="size-5 accent-laranja" />
+          <input type="checkbox" checked={scheduleNow} onChange={(e) => setScheduleNow(e.target.checked)} className="size-5 accent-acento" />
           Já definir responsável e data
         </label>
         {scheduleNow && site && (

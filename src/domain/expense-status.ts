@@ -2,7 +2,7 @@ import type { ExpenseReviewStatus } from "./expense-totals";
 
 export type ReimbursementStatus = "pendente" | "parcial" | "quitado";
 export type ExpenseReviewAction = "enviada" | "reenviada" | "editada" | "aprovada" | "devolvida" | "invalidada";
-type ToneName = "neutral" | "ok" | "alerta" | "erro" | "info" | "laranja";
+type ToneName = "neutral" | "ok" | "alerta" | "erro" | "info" | "acento";
 
 export const EXPENSE_STATUS_LABEL: Record<ExpenseReviewStatus, string> = {
   rascunho: "Rascunho",
@@ -26,7 +26,7 @@ export const REIMBURSEMENT_STATUS_LABEL: Record<ReimbursementStatus, string> = {
 
 export const REIMBURSEMENT_STATUS_TONE: Record<ReimbursementStatus, ToneName> = {
   pendente: "alerta",
-  parcial: "laranja",
+  parcial: "acento",
   quitado: "ok",
 };
 

@@ -19,7 +19,7 @@ function RequestTable({ title, note, items, detail }: { title: string; note?: st
           {items.map((i) => (
             <li key={i.id} className="space-y-0.5 px-3 py-2">
               <p>
-                <span className="tipo-placa mr-2 text-laranja-escuro">{i.number}</span>
+                <span className="tipo-condensada mr-2">{i.number}</span>
                 <span className="font-semibold">{i.title}</span>
               </p>
               <p className="text-sm text-muted">

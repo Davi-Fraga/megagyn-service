@@ -137,7 +137,7 @@ export function ActionForm({
             "flex flex-wrap items-center gap-3",
             stickySubmit &&
               // --sticky-offset: altura do menu inferior do campo (definida no layout); 0 na administração.
-              "sticky bottom-[var(--sticky-offset,0px)] z-10 -mx-4 border-t border-linha bg-concreto/95 px-4 py-3 backdrop-blur sm:static sm:mx-0 sm:border-0 sm:bg-transparent sm:p-0",
+              "sticky bottom-[var(--sticky-offset,0px)] z-10 -mx-4 border-t border-linha bg-papel/95 px-4 py-3 backdrop-blur sm:static sm:mx-0 sm:border-0 sm:bg-transparent sm:p-0",
           )}
         >
           <button
@@ -167,14 +167,14 @@ export function ActionForm({
 export function FormMessage({ state, successMessage }: { state: ActionState; successMessage?: string }) {
   if (state.ok && (state.message || successMessage)) {
     return (
-      <p role="status" className="rounded-ctl border border-ok bg-ok-claro px-3 py-2 text-sm font-medium text-ok">
+      <p role="status" className="border-l-[3px] border-ok bg-ok-claro px-3 py-2 text-sm font-medium text-ok">
         {state.message ?? successMessage}
       </p>
     );
   }
   if (!state.ok && state.message) {
     return (
-      <p role="alert" className="rounded-ctl border border-erro bg-erro-claro px-3 py-2 text-sm font-medium text-erro">
+      <p role="alert" className="border-l-[3px] border-erro bg-erro-claro px-3 py-2 text-sm font-medium text-erro">
         {state.message}
       </p>
     );
@@ -274,7 +274,7 @@ export function CheckboxField({
   const id = useId();
   return (
     <label htmlFor={id} className="flex min-h-11 cursor-pointer items-start gap-3 py-1.5">
-      <input id={id} type="checkbox" name={name} value={value} defaultChecked={defaultChecked} className="mt-0.5 size-5 shrink-0 accent-laranja" />
+      <input id={id} type="checkbox" name={name} value={value} defaultChecked={defaultChecked} className="mt-0.5 size-5 shrink-0 accent-acento" />
       <span className="text-[0.95rem]">
         <span className="font-semibold">{label}</span>
         {hint && <span className="block text-sm text-muted">{hint}</span>}
@@ -317,7 +317,7 @@ export function CheckboxGroup({
               name={name}
               value={o.value}
               defaultChecked={defaultValues.includes(o.value)}
-              className="size-5 accent-laranja"
+              className="size-5 accent-acento"
             />
             <span>{o.label}</span>
           </label>

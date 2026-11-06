@@ -190,7 +190,7 @@ export function ExpenseForm({
                   value={o.v}
                   checked={paidBy === o.v}
                   onChange={() => setPaidBy(o.v)}
-                  className="size-5 accent-laranja"
+                  className="size-5 accent-acento"
                 />
                 {o.l}
               </label>

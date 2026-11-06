@@ -5,7 +5,7 @@ import { Brand } from "./brand";
 export function CenteredPanel({ alert = false, children }: { alert?: boolean; children: ReactNode }) {
   return (
     <main className="flex min-h-dvh flex-col">
-      {alert && <div aria-hidden className="faixa-alerta h-2" />}
+      {alert && <div aria-hidden className="h-1 bg-erro" />}
       <div className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center px-4 py-10">
         <div className="mb-8">
           <Brand />

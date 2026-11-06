@@ -26,6 +26,14 @@ const ROLE_LABEL: Record<string, string> = {
   referencia: "Serviço semelhante",
 };
 
+/** `meta` chega como "Autor · 24/10/2026 14:02" (loadPhotos): separa autor e data/hora para a legenda. */
+function splitMeta(meta: string | null | undefined): { author: string | null; when: string | null } {
+  if (!meta) return { author: null, when: null };
+  const parts = meta.split(" · ");
+  const when = parts.find((p) => /^\d{2}\/\d{2}\/\d{4}/.test(p)) ?? null;
+  return { author: parts.filter((p) => p !== when).join(" ") || null, when };
+}
+
 /**
  * Grade de fotos com ampliação. Os arquivos vêm de /api/files (acesso conferido no servidor).
  * Com `revokeAction`, cada foto ganha "Remover foto" com motivo (só páginas da administração).
@@ -54,60 +62,74 @@ export function PhotoGrid({
 
   return (
     <>
-      <ul className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
-        {photos.map((p, index) => (
-          <li key={p.id} className="overflow-hidden rounded-ctl border border-linha bg-papel">
-            <button
-              type="button"
-              onClick={() => setOpen(index)}
-              className="block w-full text-left"
-              aria-label={`Ampliar ${p.caption ?? ROLE_LABEL[p.role ?? ""] ?? "foto"}`}
-            >
-              <div className={cn("aspect-[4/3] bg-concreto-2", p.revoked && "opacity-40")}>
-                {p.mime === "application/pdf" ? (
-                  <div className="flex size-full items-center justify-center text-muted">
-                    <FileText aria-hidden className="size-10" />
-                  </div>
-                ) : (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={`/api/files/${p.id}?v=thumb`} alt="" loading="lazy" className="size-full object-cover" />
-                )}
-              </div>
-              <div className="space-y-0.5 px-2 py-1.5 text-sm">
-                {p.role && <span className="block font-semibold">{ROLE_LABEL[p.role] ?? p.role}</span>}
-                {p.caption && <span className="block text-muted">{p.caption}</span>}
-                {p.meta && <span className="block text-xs text-muted">{p.meta}</span>}
-                {p.revoked && <span className="block font-semibold text-erro">Removida</span>}
-              </div>
-            </button>
-            {revokeAction && !p.revoked && (
-              <div className="px-2 pb-2">
-                <ReasonAction
-                  action={revokeAction}
-                  hidden={{ attachment_id: p.id }}
-                  label="Remover foto"
-                  confirmLabel="Confirmar remoção"
-                  reasonLabel="Por que remover?"
-                  variant="danger"
-                />
-              </div>
-            )}
-          </li>
-        ))}
+      <ul className="grid grid-cols-2 gap-x-3 gap-y-5 sm:grid-cols-3 sm:gap-x-4 sm:gap-y-7">
+        {photos.map((p, index) => {
+          const { author, when } = splitMeta(p.meta);
+          return (
+            <li key={p.id} className="min-w-0">
+              <button
+                type="button"
+                onClick={() => setOpen(index)}
+                className="block w-full text-left"
+                aria-label={`Ampliar ${p.caption ?? ROLE_LABEL[p.role ?? ""] ?? "foto"}`}
+              >
+                <div className={cn("aspect-[4/3] overflow-hidden rounded-[2px] bg-concreto-2", p.revoked && "opacity-40")}>
+                  {p.mime === "application/pdf" ? (
+                    <div className="flex size-full items-center justify-center text-muted">
+                      <FileText aria-hidden className="size-10" />
+                    </div>
+                  ) : (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={`/api/files/${p.id}?v=thumb`} alt="" loading="lazy" className="size-full object-cover" />
+                  )}
+                </div>
+                <div className="mt-2 space-y-0.5 text-[0.8125rem] leading-snug">
+                  {(when || author) && (
+                    <span className="tipo-condensada flex flex-wrap justify-between gap-x-3">
+                      {when && <span>{when}</span>}
+                      {author && <span className="font-medium text-muted">{author}</span>}
+                    </span>
+                  )}
+                  {p.role && <span className="tipo-condensada block">{ROLE_LABEL[p.role] ?? p.role}</span>}
+                  {p.caption && <span className="block text-muted">{p.caption}</span>}
+                  {p.revoked && <span className="tipo-condensada block text-erro">Removida</span>}
+                </div>
+              </button>
+              {revokeAction && !p.revoked && (
+                <div className="mt-2">
+                  <ReasonAction
+                    action={revokeAction}
+                    hidden={{ attachment_id: p.id }}
+                    label="Remover foto"
+                    confirmLabel="Confirmar remoção"
+                    reasonLabel="Por que remover?"
+                    variant="danger"
+                  />
+                </div>
+              )}
+            </li>
+          );
+        })}
       </ul>
 
       <dialog
         ref={dialogRef}
         onClose={() => setOpen(null)}
-        className="m-auto max-h-[95vh] w-[min(100vw-1rem,72rem)] rounded-panel bg-grafite p-0 text-white backdrop:bg-black/80"
+        className="m-auto max-h-[95vh] w-[min(100vw-1rem,72rem)] bg-grafite p-0 text-white backdrop:bg-black/80"
       >
         {current && (
           <div className="flex flex-col">
-            <div className="flex items-center justify-between gap-2 px-3 py-2">
-              <p className="min-w-0 truncate text-sm">
-                {ROLE_LABEL[current.role ?? ""] ?? ""} {current.caption ? `— ${current.caption}` : ""} {current.meta ? `· ${current.meta}` : ""}
+            <div className="flex items-center justify-between gap-2 px-3 py-1">
+              <p className="tipo-condensada flex min-w-0 flex-wrap gap-x-3 text-[0.9375rem]">
+                {[ROLE_LABEL[current.role ?? ""], current.caption, splitMeta(current.meta).when, splitMeta(current.meta).author]
+                  .filter(Boolean)
+                  .map((part, i) => (
+                    <span key={i} className={cn("truncate", i > 0 && "font-medium text-white/80")}>
+                      {part}
+                    </span>
+                  ))}
               </p>
-              <button type="button" onClick={() => setOpen(null)} className="rounded-full p-2 hover:bg-white/10" aria-label="Fechar">
+              <button type="button" onClick={() => setOpen(null)} className="inline-flex size-11 shrink-0 items-center justify-center rounded-ctl hover:bg-white/10" aria-label="Fechar">
                 <X aria-hidden className="size-5" />
               </button>
             </div>
