@@ -1207,6 +1207,9 @@ isOneToOne: false
 "current_app_role":
 { Args: Record<PropertyKey, never>; Returns: Database["public"]['Enums']["user_role"]
                            },
+"dashboard_summary":
+{ Args: { "p_attention_size"?: number,"p_client_id"?: string,"p_from": string,"p_person_id"?: string,"p_site_id"?: string,"p_to": string,"p_today": string }; Returns: Json
+                           },
 "expense_approve":
 { Args: { "p_expense_id": string,"p_note"?: string }; Returns: {
               "approval_version": number,
