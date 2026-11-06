@@ -74,12 +74,12 @@ export function MediaUploader({
   const accept = purpose === "receipt" ? "image/jpeg,image/png,image/webp,application/pdf" : "image/jpeg,image/png,image/webp";
 
   useEffect(() => {
-    setBusy(busyKey, items.some((i) => i.status === "enviando"));
+    setBusy(busyKey, items.some((i) => i.status === "enviando") ? "enviando" : items.some((i) => i.status === "falhou") ? "falhou" : null);
   }, [items, busyKey, setBusy]);
 
   useEffect(
     () => () => {
-      setBusy(busyKey, false);
+      setBusy(busyKey, null);
     },
     [busyKey, setBusy],
   );

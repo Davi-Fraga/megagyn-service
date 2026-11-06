@@ -111,14 +111,14 @@ isOneToOne: false
                   ]
                 },"client_contact_sites": {
                   Row: {
-                    "can_open_requests": boolean,"can_view_reports": boolean,"client_contact_id": string,"site_id": string
+                    "can_open_requests": boolean,"can_view_reports": boolean,"client_contact_id": string,"ended_at": string | null,"site_id": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "can_open_requests"?: boolean,"can_view_reports"?: boolean,"client_contact_id": string,"site_id": string
+                    "can_open_requests"?: boolean,"can_view_reports"?: boolean,"client_contact_id": string,"ended_at"?: string | null,"site_id": string
                   }
                   Update: {
-                    "can_open_requests"?: boolean,"can_view_reports"?: boolean,"client_contact_id"?: string,"site_id"?: string
+                    "can_open_requests"?: boolean,"can_view_reports"?: boolean,"client_contact_id"?: string,"ended_at"?: string | null,"site_id"?: string
                   }
                   Relationships: [
                     {
@@ -1005,17 +1005,23 @@ isOneToOne: false
                   ]
                 },"tasks": {
                   Row: {
-                    "client_request_id": string,"created_at": string,"created_by": string,"description": string | null,"due_date": string | null,"id": string,"kind_id": string | null,"priority_id": string | null,"scheduled_date": string,"service_request_id": string | null,"status": Database["public"]['Enums']["task_status"],"title": string,"updated_at": string
+                    "cancel_reason": string | null,"cancelled_at": string | null,"cancelled_by": string | null,"client_request_id": string,"created_at": string,"created_by": string,"description": string | null,"due_date": string | null,"id": string,"kind_id": string | null,"priority_id": string | null,"scheduled_date": string,"service_request_id": string | null,"status": Database["public"]['Enums']["task_status"],"title": string,"updated_at": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "client_request_id": string,"created_at"?: string,"created_by": string,"description"?: string | null,"due_date"?: string | null,"id"?: string,"kind_id"?: string | null,"priority_id"?: string | null,"scheduled_date": string,"service_request_id"?: string | null,"status"?: Database["public"]['Enums']["task_status"],"title": string,"updated_at"?: string
+                    "cancel_reason"?: string | null,"cancelled_at"?: string | null,"cancelled_by"?: string | null,"client_request_id": string,"created_at"?: string,"created_by": string,"description"?: string | null,"due_date"?: string | null,"id"?: string,"kind_id"?: string | null,"priority_id"?: string | null,"scheduled_date": string,"service_request_id"?: string | null,"status"?: Database["public"]['Enums']["task_status"],"title": string,"updated_at"?: string
                   }
                   Update: {
-                    "client_request_id"?: string,"created_at"?: string,"created_by"?: string,"description"?: string | null,"due_date"?: string | null,"id"?: string,"kind_id"?: string | null,"priority_id"?: string | null,"scheduled_date"?: string,"service_request_id"?: string | null,"status"?: Database["public"]['Enums']["task_status"],"title"?: string,"updated_at"?: string
+                    "cancel_reason"?: string | null,"cancelled_at"?: string | null,"cancelled_by"?: string | null,"client_request_id"?: string,"created_at"?: string,"created_by"?: string,"description"?: string | null,"due_date"?: string | null,"id"?: string,"kind_id"?: string | null,"priority_id"?: string | null,"scheduled_date"?: string,"service_request_id"?: string | null,"status"?: Database["public"]['Enums']["task_status"],"title"?: string,"updated_at"?: string
                   }
                   Relationships: [
                     {
+      foreignKeyName: "tasks_cancelled_by_fkey"
+      columns: ["cancelled_by"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
       foreignKeyName: "tasks_created_by_fkey"
       columns: ["created_by"]
 isOneToOne: false
@@ -1172,6 +1178,9 @@ isOneToOne: false
                            },
 "attachment_set_captions":
 { Args: { "p_captions": Json }; Returns: number
+                           },
+"audit_admin_action":
+{ Args: { "p_action": string,"p_entity": string,"p_entity_id": string,"p_reason"?: string }; Returns: number
                            },
 "closing_version_create":
 { Args: { "p_closing_id": string,"p_criteria": Json,"p_cutoff_at": string,"p_header": Json,"p_payload": Json,"p_period_start": string,"p_reason"?: string,"p_summary": Json }; Returns: {
@@ -1888,7 +1897,10 @@ isOneToOne: false
       } },
 "task_cancel":
 { Args: { "p_reason": string,"p_task_id": string }; Returns: {
-              "client_request_id": string,
+              "cancel_reason": string | null,
+"cancelled_at": string | null,
+"cancelled_by": string | null,
+"client_request_id": string,
 "created_at": string,
 "created_by": string,
 "description": string | null,
@@ -1910,7 +1922,10 @@ isOneToOne: false
       } },
 "task_create":
 { Args: { "p_assignee_ids": (string)[],"p_client_request_id": string,"p_description"?: string,"p_due_date"?: string,"p_kind_id"?: string,"p_occurrences": Json,"p_priority_id"?: string,"p_scheduled_date": string,"p_service_request_id"?: string,"p_title": string }; Returns: {
-              "client_request_id": string,
+              "cancel_reason": string | null,
+"cancelled_at": string | null,
+"cancelled_by": string | null,
+"client_request_id": string,
 "created_at": string,
 "created_by": string,
 "description": string | null,

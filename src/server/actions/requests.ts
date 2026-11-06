@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { toActionError, type ActionState } from "@/domain/action-errors";
 import { fdBool, fdCaptions, fdDate, fdNumber, fdStr, fdUuid, fdUuids } from "@/domain/form-data";
 import { newId } from "@/domain/ids";
+import { actionReturnPath } from "@/domain/safe-redirect";
 import { requireProfile } from "@/server/auth";
 import { errorInfo, log } from "@/server/log";
 import { createSupabaseServer, type ServerDb } from "@/server/supabase/server";
@@ -283,7 +284,7 @@ export async function reportPendingAction(_: ActionState, fd: FormData): Promise
   if (error) return fail(error, "request.pending_fail");
   await saveCaptions(db, fd);
   refresh();
-  redirect(`${fdStr(fd, "base") ?? "/campo/chamados"}/${id}?feito=pendencia`);
+  redirect(actionReturnPath(fdStr(fd, "base"), "/campo/chamados", id, "pendencia"));
 }
 
 export async function markExecutedAction(_: ActionState, fd: FormData): Promise<ActionState> {
@@ -304,5 +305,5 @@ export async function markExecutedAction(_: ActionState, fd: FormData): Promise<
   if (error) return fail(error, "request.executed_fail");
   await saveCaptions(db, fd);
   refresh();
-  redirect(`${fdStr(fd, "base") ?? "/campo/chamados"}/${id}?feito=executada`);
+  redirect(actionReturnPath(fdStr(fd, "base"), "/campo/chamados", id, "executada"));
 }

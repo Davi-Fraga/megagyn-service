@@ -32,3 +32,9 @@ export function safeRedirectPath(next: string | null | undefined, fallback = "/"
     return fallback;
   }
 }
+
+/** Volta de uma ação para `<base>/<id>?feito=<done>`; `base` vem do formulário e só vale se for caminho interno. */
+export function actionReturnPath(base: string | null | undefined, fallback: string, id: string, done: string): string {
+  const path = safeRedirectPath(base, fallback).split(/[?#]/)[0]!.replace(/\/+$/, "");
+  return `${path || fallback}/${id}?feito=${done}`;
+}

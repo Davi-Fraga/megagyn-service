@@ -25,7 +25,7 @@ registerBuilder("despesas_internas", async (admin, job) => {
   const p = parseExpenseReportParams(job.params);
   if (!p) throw new Error("Período do relatório de despesas não encontrado.");
   const [list, profiles, site] = await Promise.all([
-    listExpenses(admin, { from: p.from, to: p.to, siteId: p.siteId, supplierId: null, purchaserId: null, categoryId: null, status: null, q: null }),
+    listExpenses(admin, { from: p.from, to: p.to, siteId: p.siteId, clientId: null, supplierId: null, purchaserId: null, categoryId: null, status: null, q: null }),
     loadProfiles(admin),
     p.siteId ? admin.from("sites").select("name").eq("id", p.siteId).maybeSingle() : Promise.resolve({ data: null }),
   ]);

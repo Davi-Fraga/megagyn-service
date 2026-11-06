@@ -30,17 +30,22 @@ const SHOW_ROWS = 300;
 export default async function AdminExpensesPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const filters = parseExpenseFilters(await searchParams);
   const db = await createSupabaseServer();
-  const [list, sites, profiles, suppliers, categories] = await Promise.all([
+  const [list, sites, profiles, suppliers, categories, clients] = await Promise.all([
     listExpenses(db, filters),
     loadSites(db),
     loadProfiles(db),
     db.from("suppliers").select("id, name").order("name"),
     db.from("expense_categories").select("id, name").order("sort_order"),
+    db.from("clients").select("id, display_name").order("display_name"),
   ]);
   const query = expenseFiltersToQuery(filters);
-  const headline = headlineTotals(list.totals, filters.siteId);
+  const headline = headlineTotals(list.totals, filters.siteId, filters.clientId);
   const siteName = new Map(sites.map((s) => [s.id, s]));
   const filteredSite = filters.siteId ? siteName.get(filters.siteId) : null;
+  const filteredClient = filters.clientId ? (clients.data ?? []).find((c) => c.id === filters.clientId) : null;
+  // Parcela que conta no filtro (obra e/ou cliente): é o que a coluna "Atribuído" e os totais somam.
+  const inFilter = (a: { siteId: string; clientId: string | null }) =>
+    (!filters.siteId || a.siteId === filters.siteId) && (!filters.clientId || a.clientId === filters.clientId);
   const buyers = profiles.list.filter((p) => p.role === "admin" || p.role === "foreman" || p.role === "worker");
   const counts = list.totals.counts;
   // PDF: período do filtro; sem período, o mês corrente até hoje.
@@ -83,6 +88,17 @@ export default async function AdminExpensesPage({ searchParams }: { searchParams
         <label className="space-y-1 text-sm font-semibold">
           Compra até
           <input type="date" name="ate" defaultValue={filters.to ?? ""} className="campo-input" />
+        </label>
+        <label className="space-y-1 text-sm font-semibold">
+          Cliente
+          <select name="cliente" defaultValue={filters.clientId ?? ""} className="campo-input">
+            <option value="">Todos</option>
+            {(clients.data ?? []).map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.display_name}
+              </option>
+            ))}
+          </select>
         </label>
         <label className="space-y-1 text-sm font-semibold">
           Obra
@@ -159,12 +175,16 @@ export default async function AdminExpensesPage({ searchParams }: { searchParams
         <h2 id="totais" className="text-lg font-bold">
           {headline.scope === "obra"
             ? `Valor atribuído a ${filteredSite?.name ?? "esta obra"} (parcelas do rateio)`
-            : "Total da empresa (soma das compras, cada uma uma vez)"}
+            : headline.scope === "cliente"
+              ? `Valor atribuído a ${filteredClient?.display_name ?? "este cliente"} (parcelas do rateio)`
+              : "Total da empresa (soma das compras, cada uma uma vez)"}
         </h2>
         <p className="mb-3 text-sm text-muted">
           {headline.scope === "obra"
             ? "Considera só a parte de cada compra destinada a esta obra, não o valor inteiro da nota."
-            : "Uma compra dividida entre obras conta uma única vez pelo valor total da nota."}{" "}
+            : headline.scope === "cliente"
+              ? "Considera só a parte de cada compra destinada aos locais deste cliente, não o valor inteiro da nota."
+              : "Uma compra dividida entre obras conta uma única vez pelo valor total da nota."}{" "}
           Aprovadas e em conferência ficam separadas: não some os quadros.
         </p>
         <div className="grid gap-3 sm:grid-cols-3">
@@ -176,7 +196,7 @@ export default async function AdminExpensesPage({ searchParams }: { searchParams
             </div>
           ))}
         </div>
-        {!filters.siteId && list.totals.bySite.length > 0 && (
+        {!filters.siteId && !filters.clientId && list.totals.bySite.length > 0 && (
           <details className="mt-4">
             <summary className="cursor-pointer font-semibold text-info">Ver quanto foi atribuído a cada obra</summary>
             <div className="mt-2 overflow-x-auto">
@@ -235,7 +255,9 @@ export default async function AdminExpensesPage({ searchParams }: { searchParams
                 <th className="px-3 py-2 font-semibold">Rateio</th>
                 <th className="px-3 py-2 font-semibold">Comprador</th>
                 <th className="px-3 py-2 text-right font-semibold">Total da compra</th>
-                {filters.siteId && <th className="px-3 py-2 text-right font-semibold">Atribuído à obra</th>}
+                {(filters.siteId || filters.clientId) && (
+                  <th className="px-3 py-2 text-right font-semibold">{filters.siteId ? "Atribuído à obra" : "Atribuído ao cliente"}</th>
+                )}
                 <th className="px-3 py-2 font-semibold">Situação</th>
               </tr>
             </thead>
@@ -255,7 +277,7 @@ export default async function AdminExpensesPage({ searchParams }: { searchParams
                   <td className="px-3 py-2.5 text-sm">
                     <ul>
                       {e.allocations.map((a) => (
-                        <li key={a.siteId} className={cn(filters.siteId === a.siteId && "font-semibold")}>
+                        <li key={a.siteId} className={cn((filters.siteId || filters.clientId) && inFilter(a) && "font-semibold")}>
                           {a.siteName}: <span className="tabular-nums">{formatBRL(a.amountCents)}</span>
                         </li>
                       ))}
@@ -263,9 +285,9 @@ export default async function AdminExpensesPage({ searchParams }: { searchParams
                   </td>
                   <td className="px-3 py-2.5 text-sm">{profiles.name(e.purchasedBy)}</td>
                   <td className="px-3 py-2.5 text-right font-semibold tabular-nums">{formatBRL(e.totalCents)}</td>
-                  {filters.siteId && (
+                  {(filters.siteId || filters.clientId) && (
                     <td className="px-3 py-2.5 text-right font-semibold tabular-nums">
-                      {formatBRL(e.allocations.filter((a) => a.siteId === filters.siteId).reduce((n, a) => n + a.amountCents, 0))}
+                      {formatBRL(e.allocations.filter(inFilter).reduce((n, a) => n + a.amountCents, 0))}
                     </td>
                   )}
                   <td className="space-y-1 px-3 py-2.5">

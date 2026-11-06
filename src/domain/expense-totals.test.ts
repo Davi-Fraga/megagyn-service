@@ -94,6 +94,47 @@ describe("headlineTotals — painel da tela", () => {
   });
 });
 
+describe("headlineTotals — filtro de cliente (painel e lista usam a mesma soma)", () => {
+  // Cliente X tem as obras A e C; a obra B é do cliente Y.
+  const list: ExpenseForTotals[] = [
+    {
+      id: "e1",
+      totalCents: 100000,
+      reviewStatus: "aprovado",
+      allocations: [
+        { siteId: A, clientId: "X", amountCents: 60000 },
+        { siteId: B, clientId: "Y", amountCents: 40000 },
+      ],
+    },
+    { id: "e2", totalCents: 30000, reviewStatus: "enviado_para_conferencia", allocations: [{ siteId: C, clientId: "X", amountCents: 30000 }] },
+  ];
+
+  it("soma só as parcelas dos locais do cliente", () => {
+    const h = headlineTotals(summarizeExpenses(list), null, "X");
+    expect(h.scope).toBe("cliente");
+    expect(h.values).toEqual({ approved: 60000, inReview: 30000, returned: 0, draft: 0 });
+    expect(headlineTotals(summarizeExpenses(list), null, "Y").values.approved).toBe(40000);
+  });
+
+  it("com obra e cliente vale o atribuído à obra", () => {
+    const h = headlineTotals(summarizeExpenses(list), A, "X");
+    expect(h.scope).toBe("obra");
+    expect(h.values.approved).toBe(60000);
+  });
+
+  it("cliente sem parcelas no resultado mostra zeros", () => {
+    expect(headlineTotals(summarizeExpenses(list), null, "Z").values).toEqual({ approved: 0, inReview: 0, returned: 0, draft: 0 });
+  });
+
+  it("CSV com filtro de cliente traz só as parcelas dos locais dele", () => {
+    const rows = allocationRows(list, null, "X");
+    expect(rows.map((r) => [r.siteId, r.attributedCents])).toEqual([
+      [A, 60000],
+      [C, 30000],
+    ]);
+  });
+});
+
 describe("allocationRows — uma linha por parcela (CSV)", () => {
   it("cada linha traz o total da compra e o valor atribuído; somar o atribuído dá o consolidado (sem duplicar)", () => {
     const expenses = [

@@ -77,7 +77,7 @@ export default async function ClientPage({
     db.from("sites").select("id, name, code, site_type, status, address_text, planned_start, planned_end").eq("client_id", id).order("name"),
     db
       .from("client_contacts")
-      .select("id, name, email, phone, role_title, is_active, anonymized_at, updated_at, sites:client_contact_sites(site_id)")
+      .select("id, name, email, phone, role_title, is_active, anonymized_at, updated_at, sites:client_contact_sites(site_id, ended_at)")
       .eq("client_id", id)
       .order("is_active", { ascending: false })
       .order("name"),
@@ -166,7 +166,8 @@ export default async function ClientPage({
             ) : (
               <ul className="mb-4 divide-y divide-linha rounded-panel border border-linha">
                 {contacts.map((c) => {
-                  const linked = c.sites.map((s) => s.site_id);
+                  // Vínculo encerrado (ended_at) fica só no histórico.
+                  const linked = c.sites.filter((s) => !s.ended_at).map((s) => s.site_id);
                   const anonymized = !!c.anonymized_at;
                   return (
                     <li key={c.id} className="space-y-2 px-4 py-3">

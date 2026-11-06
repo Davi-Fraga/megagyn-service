@@ -33,6 +33,24 @@ async function requestWithPhoto() {
   return { request: data, photo };
 }
 
+describe("alcance da foto removida (A-02)", () => {
+  it("funcionário deixa de ler a foto removida e o vínculo dela; a administração continua lendo", async () => {
+    const { photo } = await requestWithPhoto();
+    const before = await worker.db.from("attachments").select("id").eq("id", photo.id);
+    expect(before.data).toHaveLength(1);
+
+    const { error } = await admin.db.rpc("attachment_revoke", { p_attachment_id: photo.id, p_reason: "Foto de outra obra" });
+    expect(error).toBeNull();
+
+    const after = await worker.db.from("attachments").select("id").eq("id", photo.id);
+    expect(after.data).toEqual([]);
+    const links = await worker.db.from("attachment_links").select("attachment_id").eq("attachment_id", photo.id);
+    expect(links.data).toEqual([]);
+    const adminView = await admin.db.from("attachments").select("revoked_at").eq("id", photo.id).single();
+    expect(adminView.data?.revoked_at).not.toBeNull();
+  });
+});
+
 describe("remover foto", () => {
   it("admin remove foto com motivo: grava evento anexo_revogado e mantém o arquivo", async () => {
     const { request, photo } = await requestWithPhoto();

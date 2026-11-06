@@ -1,5 +1,5 @@
 import { beforeAll, describe, expect, it } from "vitest";
-import { addMembership, createClientWithSite, createUser, fakePhoto, today, uid, type TestUser } from "./helpers";
+import { addMembership, createClientWithSite, createUser, fakePhoto, serviceClient, today, uid, type TestUser } from "./helpers";
 
 let admin: TestUser;
 let worker: TestUser;
@@ -226,5 +226,122 @@ describe("jornada (horas) separada de diárias faturáveis", () => {
     });
     expect(Number(adminAdjust.data!.billing_units)).toBe(0.5);
     expect(adminAdjust.data!.id).toBe(own.data!.id);
+  });
+});
+
+/** Tarefa de um local (obra A) atribuída ao encarregado, que também tem vínculo com a obra B. */
+async function singleSiteTask(title: string) {
+  const { data: task, error } = await admin.db.rpc("task_create", {
+    p_client_request_id: uid(),
+    p_title: title,
+    p_scheduled_date: today(),
+    p_assignee_ids: [foreman.id],
+    p_occurrences: [{ site_id: siteA.id }],
+  });
+  expect(error).toBeNull();
+  const { data: occ } = await admin.db.from("task_occurrences").select("id").eq("task_id", task!.id).single();
+  return { task: task!, occ: occ! };
+}
+
+async function taskStatus(taskId: string) {
+  const { data } = await admin.db.from("tasks").select("status").eq("id", taskId).single();
+  return data!.status;
+}
+
+describe("B-06 — tarefa não fica presa em cancelada (A-05)", () => {
+  it("tarefa de um local não realizada e remarcada volta a planejada e aceita novo local", async () => {
+    const { task, occ } = await singleSiteTask("Troca de lâmpadas do hall");
+    const notDone = await foreman.db.rpc("task_occurrence_not_done", {
+      p_occurrence_id: occ.id,
+      p_reason: "Material não chegou",
+    });
+    expect(notDone.error).toBeNull();
+    expect(await taskStatus(task.id)).toBe("planejada"); // aguardando remarcação, não cancelada
+
+    const moved = await admin.db.rpc("task_occurrence_reschedule", {
+      p_occurrence_id: occ.id,
+      p_scheduled_date: today(),
+      p_reason: "Material entregue",
+    });
+    expect(moved.error).toBeNull();
+    expect(moved.data!.status).toBe("prevista");
+    expect(await taskStatus(task.id)).toBe("planejada");
+
+    const added = await admin.db.rpc("task_add_occurrence", {
+      p_task_id: task.id,
+      p_site_id: siteB.id,
+      p_scheduled_date: today(),
+    });
+    expect(added.error).toBeNull();
+    expect(added.data!.status).toBe("prevista");
+    expect(await taskStatus(task.id)).toBe("planejada");
+  });
+
+  it("cancelamento explícito continua cancelado", async () => {
+    const { task, occ } = await singleSiteTask("Pintura da guarita");
+    const cancelled = await admin.db.rpc("task_cancel", { p_task_id: task.id, p_reason: "  Cliente desistiu  " });
+    expect(cancelled.error).toBeNull();
+    expect(cancelled.data!.status).toBe("cancelada");
+    expect(cancelled.data!.cancelled_at).toEqual(expect.any(String));
+    expect(cancelled.data!.cancelled_by).toBe(admin.id);
+    expect(cancelled.data!.cancel_reason).toBe("Cliente desistiu");
+
+    const added = await admin.db.rpc("task_add_occurrence", {
+      p_task_id: task.id,
+      p_site_id: siteB.id,
+      p_scheduled_date: today(),
+    });
+    expect(added.error?.code).toBe("P0002");
+
+    const entry = await foreman.db.rpc("work_entry_create", {
+      p_client_request_id: uid(),
+      p_site_id: siteA.id,
+      p_activity_date: today(),
+      p_description: "Pintura iniciada",
+      p_task_occurrence_id: occ.id,
+    });
+    expect(entry.error?.message).toContain("cancelada");
+    expect(await taskStatus(task.id)).toBe("cancelada");
+  });
+
+  it("cancelar tarefa com todas as ocorrências não realizadas grava o cancelamento", async () => {
+    const { task, occ } = await singleSiteTask("Limpeza da caixa d'água");
+    await foreman.db.rpc("task_occurrence_not_done", { p_occurrence_id: occ.id, p_reason: "Sem acesso ao telhado" });
+    expect(await taskStatus(task.id)).toBe("planejada");
+
+    const cancelled = await admin.db.rpc("task_cancel", { p_task_id: task.id, p_reason: "Serviço feito por terceiro" });
+    expect(cancelled.error).toBeNull();
+    expect(cancelled.data!.status).toBe("cancelada");
+    expect(cancelled.data!.cancelled_at).toEqual(expect.any(String));
+    expect(cancelled.data!.cancel_reason).toBe("Serviço feito por terceiro");
+
+    // Remarcar a ocorrência de uma tarefa cancelada de verdade não a reabre.
+    await admin.db.rpc("task_occurrence_reschedule", {
+      p_occurrence_id: occ.id,
+      p_scheduled_date: today(),
+      p_reason: "Remarcada por engano",
+    });
+    expect(await taskStatus(task.id)).toBe("cancelada");
+  });
+
+  it("cancelar de novo não troca data nem motivo", async () => {
+    const { task } = await singleSiteTask("Revisão do portão");
+    const first = await admin.db.rpc("task_cancel", { p_task_id: task.id, p_reason: "Portão substituído" });
+    expect(first.data!.cancelled_at).toEqual(expect.any(String));
+    const second = await admin.db.rpc("task_cancel", { p_task_id: task.id, p_reason: "Outro motivo" });
+    expect(second.error).toBeNull();
+    expect(second.data!.cancelled_at).toBe(first.data!.cancelled_at);
+    expect(second.data!.cancelled_by).toBe(admin.id);
+    expect(second.data!.cancel_reason).toBe("Portão substituído");
+  });
+
+  it("o banco recusa cancelada sem cancelled_at", async () => {
+    const { task } = await singleSiteTask("Troca de fechadura");
+    const svc = serviceClient();
+    const noDate = await svc.from("tasks").update({ status: "cancelada" }).eq("id", task.id);
+    expect(noDate.error?.code).toBe("23514");
+    const noStatus = await svc.from("tasks").update({ cancelled_at: new Date().toISOString() }).eq("id", task.id);
+    expect(noStatus.error?.code).toBe("23514");
+    expect(await taskStatus(task.id)).toBe("planejada");
   });
 });

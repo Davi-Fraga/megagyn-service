@@ -9,6 +9,8 @@ export type ExpenseFilters = {
   to: string | null;
   /** Obra: compras com parcela nesta obra; os totais passam a ser o valor atribuído a ela. */
   siteId: string | null;
+  /** Cliente: compras com parcela em local dele; os totais passam a ser a soma dessas parcelas. */
+  clientId: string | null;
   supplierId: string | null;
   purchaserId: string | null;
   categoryId: string | null;
@@ -33,6 +35,7 @@ export function parseExpenseFilters(p: Params): ExpenseFilters {
     from: date(one(p, "de")),
     to: date(one(p, "ate")),
     siteId: uuid(one(p, "obra")),
+    clientId: uuid(one(p, "cliente")),
     supplierId: uuid(one(p, "fornecedor")),
     purchaserId: uuid(one(p, "comprador")),
     categoryId: uuid(one(p, "categoria")),
@@ -51,6 +54,7 @@ export function expenseFiltersToQuery(f: ExpenseFilters): string {
   if (f.from) q.set("de", f.from);
   if (f.to) q.set("ate", f.to);
   if (f.siteId) q.set("obra", f.siteId);
+  if (f.clientId) q.set("cliente", f.clientId);
   if (f.supplierId) q.set("fornecedor", f.supplierId);
   if (f.purchaserId) q.set("comprador", f.purchaserId);
   if (f.categoryId) q.set("categoria", f.categoryId);

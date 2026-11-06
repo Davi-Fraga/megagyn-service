@@ -21,6 +21,7 @@ type Db = SupabaseClient<Database>;
 
 export type ExpenseAllocationItem = {
   siteId: string;
+  clientId: string | null;
   siteName: string;
   clientName: string;
   amountCents: number;
@@ -56,13 +57,15 @@ const BASE_SELECT = `id, expense_date, description, items_notes, total_cents, re
   purchased_by, created_by, document_number, supplier_name_free, submitted_at, reviewed_at, created_at,
   supplier:suppliers(name), category:expense_categories(name), payment:payment_methods(name),
   reimbursement:reimbursements(status, amount_due_cents, amount_paid_cents),
-  allocations:expense_allocations(site_id, amount_cents, purpose, sort_order, site:sites(name, client:clients(display_name)))`;
+  allocations:expense_allocations(site_id, amount_cents, purpose, sort_order, site:sites(name, client_id, client:clients(display_name)))`;
 
 function buildQuery(db: Db, f: ExpenseFilters) {
-  // Com obra: o embed "match" (inner) filtra as compras; "allocations" continua trazendo todas as parcelas.
-  const select = f.siteId
-    ? `${BASE_SELECT}, match:expense_allocations!inner(site_id)`
-    : BASE_SELECT;
+  // Com obra ou cliente: o embed "match" (inner) filtra as compras; "allocations" continua trazendo todas as parcelas.
+  const select = f.clientId
+    ? `${BASE_SELECT}, match:expense_allocations!inner(site_id, site:sites!inner(client_id))`
+    : f.siteId
+      ? `${BASE_SELECT}, match:expense_allocations!inner(site_id)`
+      : BASE_SELECT;
   let q = db
     .from("expenses")
     .select(select, { count: "exact" })
@@ -70,6 +73,7 @@ function buildQuery(db: Db, f: ExpenseFilters) {
     .order("created_at", { ascending: false })
     .order("id");
   if (f.siteId) q = q.eq("match.site_id", f.siteId);
+  if (f.clientId) q = q.eq("match.site.client_id", f.clientId);
   if (f.status) q = q.eq("review_status", f.status);
   else q = q.neq("review_status", "rascunho");
   if (f.from) q = q.gte("expense_date", f.from);
@@ -112,7 +116,7 @@ type RawRow = {
     amount_cents: number;
     purpose: string;
     sort_order: number;
-    site: { name: string; client: { display_name: string } | null } | null;
+    site: { name: string; client_id: string; client: { display_name: string } | null } | null;
   }>;
 };
 
@@ -124,6 +128,7 @@ export function normalizeExpense(r: RawRow): ExpenseListRow {
     )
     .map((a) => ({
       siteId: a.site_id,
+      clientId: a.site?.client_id ?? null,
       siteName: a.site?.name ?? "Obra sem acesso",
       clientName: a.site?.client?.display_name ?? "—",
       amountCents: a.amount_cents,

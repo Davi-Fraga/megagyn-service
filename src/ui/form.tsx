@@ -20,9 +20,12 @@ import { buttonClass, type ButtonSize, type ButtonVariant } from "./button";
 import { cn } from "./cn";
 import { useHydrated } from "./use-hydrated";
 
+/** Fotos de um campo: "enviando" segura o envio até terminar; "falhou" segura até reenviar ou retirar. */
+export type UploadState = "enviando" | "falhou" | null;
+
 type FormCtx = {
   errors: Record<string, string>;
-  setBusy: (key: string, busy: boolean) => void;
+  setBusy: (key: string, state: UploadState) => void;
 };
 const FormContext = createContext<FormCtx>({ errors: {}, setBusy: () => {} });
 
@@ -38,7 +41,7 @@ export type ActionFn = (state: ActionState, formData: FormData) => Promise<Actio
 /**
  * Formulário com server action: mostra erros por campo, impede envio duplo (botão
  * desabilitado + chave de idempotência `client_request_id` reaproveitada em reenvio)
- * e bloqueia o envio enquanto houver foto subindo.
+ * e bloqueia o envio enquanto houver foto subindo ou foto que falhou.
  */
 export function ActionForm({
   action,
@@ -72,7 +75,7 @@ export function ActionForm({
 }) {
   const keyRef = useRef<string | null>(null);
   const [formKey, setFormKey] = useState(0);
-  const [busy, setBusyMap] = useState<Record<string, boolean>>({});
+  const [busy, setBusyMap] = useState<Record<string, UploadState>>({});
   const formRef = useRef<HTMLFormElement>(null);
 
   // A mesma chave de idempotência é reaproveitada em reenvios até o primeiro sucesso.
@@ -93,10 +96,13 @@ export function ActionForm({
   // false no servidor e até a hidratação: evita envio nativo (GET) antes de o React assumir o formulário.
   const hydrated = useHydrated();
 
-  const setBusy = useCallback((key: string, value: boolean) => {
+  const setBusy = useCallback((key: string, value: UploadState) => {
     setBusyMap((prev) => (prev[key] === value ? prev : { ...prev, [key]: value }));
   }, []);
-  const uploading = Object.values(busy).some(Boolean);
+  const uploads = Object.values(busy);
+  const uploading = uploads.includes("enviando");
+  // Sem isso o registro sairia sem a foto que falhou, e a evidência se perderia.
+  const uploadFailed = !uploading && uploads.includes("falhou");
 
   useEffect(() => {
     if (state.ok || !state.fieldErrors) return;
@@ -116,7 +122,7 @@ export function ActionForm({
           // Envio via transição (em vez de <form action>) para NÃO limpar os campos quando o
           // servidor devolve erro: o React 19 reseta formulários após ações nativas.
           event.preventDefault();
-          if (!hydrated || pending || uploading || submitDisabled) return;
+          if (!hydrated || pending || uploading || uploadFailed || submitDisabled) return;
           const data = new FormData(event.currentTarget);
           startTransition(() => formAction(data));
         }}
@@ -134,10 +140,19 @@ export function ActionForm({
               "sticky bottom-[var(--sticky-offset,0px)] z-10 -mx-4 border-t border-linha bg-concreto/95 px-4 py-3 backdrop-blur sm:static sm:mx-0 sm:border-0 sm:bg-transparent sm:p-0",
           )}
         >
-          <button type="submit" disabled={!hydrated || pending || uploading || submitDisabled} className={buttonClass(submitVariant, submitSize)}>
+          <button
+            type="submit"
+            disabled={!hydrated || pending || uploading || uploadFailed || submitDisabled}
+            className={buttonClass(submitVariant, submitSize)}
+          >
             {pending ? pendingLabel : uploading ? "Aguarde o envio das fotos…" : submitLabel}
           </button>
           {extraActions}
+          {uploadFailed && (
+            <p role="status" className="basis-full text-sm font-semibold text-erro">
+              Uma foto não foi enviada. Toque em “Tentar de novo” ou retire a foto para salvar.
+            </p>
+          )}
           {submitDisabled && disabledReason && (
             <p role="status" className="basis-full text-sm font-semibold text-erro">
               {disabledReason}

@@ -300,3 +300,23 @@ describe("R-65 — duplicar", () => {
     expect(links).toEqual([{ attachment_id: photo.id, evidence_role: "local" }]);
   });
 });
+
+describe("B-12 — uma obra por orçamento", () => {
+  it("duas inserções simultâneas com o mesmo orçamento deixam uma obra só", async () => {
+    const q = await newQuote();
+    const site = (n: number) => ({
+      client_id: clientId,
+      name: `Obra do orçamento ${n} (teste)`,
+      code: `OQ-${randomUUID().slice(0, 8)}`,
+      site_type: "unidade_recorrente" as const,
+      quote_id: q.id,
+    });
+    const results = await Promise.all([admin.db.from("sites").insert(site(1)), admin.db.from("sites").insert(site(2))]);
+    const failed = results.filter((r) => r.error);
+    expect(failed).toHaveLength(1);
+    expect(failed[0]!.error?.code).toBe("23505");
+    expect(failed[0]!.error?.message).toContain("sites_quote_uidx");
+    const { data } = await serviceClient().from("sites").select("id").eq("quote_id", q.id);
+    expect(data).toHaveLength(1);
+  });
+});

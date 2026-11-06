@@ -12,9 +12,14 @@ export const runtime = "nodejs";
  * a sessão do usuário, o arquivo não existe para ele (404, sem distinguir de inexistente).
  * Os bytes passam pelo servidor; o Storage nunca é exposto ao navegador.
  */
+/** Todo 404 sai sem cache: "não visível" e "não existe" não se distinguem, nem no cabeçalho. */
+function notFound() {
+  return new NextResponse("Não encontrado", { status: 404, headers: { "Cache-Control": "no-store" } });
+}
+
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  if (!UUID_RE.test(id)) return new NextResponse("Não encontrado", { status: 404 });
+  if (!UUID_RE.test(id)) return notFound();
 
   const supabase = await createSupabaseServer();
   const {
@@ -24,12 +29,15 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
 
   const { data: att } = await supabase
     .from("attachments")
-    .select("bucket, storage_key, derivatives, mime_type, original_name")
+    .select("bucket, storage_key, derivatives, mime_type, original_name, revoked_at")
     .eq("id", id)
     .maybeSingle();
-  if (!att) return new NextResponse("Não encontrado", { status: 404 });
+  // A RLS já esconde a foto removida de quem não é da administração: ela cai aqui.
+  if (!att) return notFound();
 
   const { data: role } = await supabase.rpc("current_app_role");
+  // Segunda barreira, caso a política mude: foto removida segue fora do alcance de quem não é admin.
+  if (att.revoked_at && role !== "admin") return notFound();
   const plan = planFileResponse({
     mime: att.mime_type,
     storageKey: att.storage_key,
@@ -37,7 +45,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     variant: new URL(request.url).searchParams.get("v"),
     isAdmin: role === "admin",
   });
-  if (!plan) return new NextResponse("Não encontrado", { status: 404 });
+  if (!plan) return notFound();
 
   const { data, error } = await createSupabaseAdmin().storage.from(att.bucket).download(plan.key);
   if (error || !data) {

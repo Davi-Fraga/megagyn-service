@@ -4,6 +4,7 @@ import Link from "next/link";
 import { formatDateBR, longDatePt, todayIso } from "@/domain/dates";
 import { isOverdue } from "@/domain/request-status";
 import { requireProfile } from "@/server/auth";
+import { fieldRequestsQuery } from "@/server/field-queries";
 import { createSupabaseServer } from "@/server/supabase/server";
 import { cn } from "@/ui/cn";
 import { Notice } from "@/ui/page";
@@ -23,10 +24,8 @@ export default async function FieldTodayPage({ searchParams }: { searchParams: P
   const today = todayIso();
 
   const [requests, myAssignments, occurrences] = await Promise.all([
-    db
-      .from("service_requests")
-      .select("id, number, title, status, scheduled_date, due_date, site:sites(name), area:site_areas(name)")
-      .in("status", ["programada", "em_execucao", "pendente"])
+    fieldRequestsQuery(db, ["programada", "em_execucao", "pendente"], profile.role === "admin" ? null : profile.id)
+      .or(`status.eq.pendente,scheduled_date.is.null,scheduled_date.lte.${today}`)
       .order("scheduled_date", { ascending: true, nullsFirst: false })
       .limit(100),
     db.from("request_assignments").select("service_request_id").eq("profile_id", profile.id).is("unassigned_at", null),
@@ -39,10 +38,8 @@ export default async function FieldTodayPage({ searchParams }: { searchParams: P
   ]);
 
   const mine = new Set((myAssignments.data ?? []).map((a) => a.service_request_id));
-  const list = (requests.data ?? [])
-    .filter((r) => mine.has(r.id) || profile.role === "admin")
-    .filter((r) => r.status === "pendente" || !r.scheduled_date || r.scheduled_date <= today);
-  const pendingCount = (requests.data ?? []).filter((r) => r.status === "pendente" && mine.has(r.id)).length;
+  const list = requests.data ?? [];
+  const pendingCount = list.filter((r) => r.status === "pendente" && mine.has(r.id)).length;
   const tasksToday = (occurrences.data ?? []).length;
 
   const tiles = [
