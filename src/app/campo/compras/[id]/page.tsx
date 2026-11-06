@@ -73,7 +73,7 @@ export default async function PurchasePage({
     <>
       <PageHeader
         back={{ href: "/campo/compras", label: "Minhas compras" }}
-        eyebrow={`${formatDateBR(e.expenseDate)} · ${e.supplierName}`}
+        eyebrow={`${formatDateBR(e.expenseDate)}, ${e.supplierName}`}
         title={e.description}
         description={<ExpenseBadges detail={detail} />}
       />

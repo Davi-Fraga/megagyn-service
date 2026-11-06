@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { formatDateBR, formatDateTimeBR } from "@/domain/dates";
+import { formatDateBR, formatDateTimeBR, formatTimeBR, isoDateInTz } from "@/domain/dates";
 import {
   EXPENSE_STATUS_LABEL,
   EXPENSE_STATUS_TONE,
@@ -9,6 +9,7 @@ import {
   type ExpenseReviewAction,
 } from "@/domain/expense-status";
 import { formatBRL } from "@/domain/money";
+import { cn } from "@/ui/cn";
 import { DescriptionList } from "@/ui/page";
 import { Badge } from "@/ui/status";
 import type { ExpenseDetail } from "./expense-list";
@@ -47,10 +48,10 @@ export function ExpenseFacts({ detail, name, requestHref }: { detail: ExpenseDet
           value: detail.request ? (
             requestHref ? (
               <Link href={requestHref(detail.request.id)} className="text-info underline">
-                {detail.request.number} — {detail.request.title}
+                {detail.request.number}, {detail.request.title}
               </Link>
             ) : (
-              `${detail.request.number} — ${detail.request.title}`
+              `${detail.request.number}, ${detail.request.title}`
             )
           ) : (
             "—"
@@ -63,19 +64,31 @@ export function ExpenseFacts({ detail, name, requestHref }: { detail: ExpenseDet
   );
 }
 
+/**
+ * Histórico da conferência no desenho do histórico da O.S.: linha fina com marcador quadrado,
+ * o mais recente na cor de acento e a devolução na de alerta.
+ */
 export function ReviewHistory({ detail, name }: { detail: ExpenseDetail; name: NameOf }) {
   if (detail.reviews.length === 0) return <p className="text-sm text-muted">Ainda não enviada para conferência.</p>;
   return (
-    <ol className="space-y-3">
-      {detail.reviews.map((r) => (
-        <li key={r.id} className="border-l-2 border-linha pl-3">
-          <p className="font-semibold">{REVIEW_ACTION_LABEL[r.action as ExpenseReviewAction] ?? r.action}</p>
-          <p className="text-sm text-muted">
-            {formatDateTimeBR(r.created_at)} · {name(r.actor_id)}
-          </p>
-          {r.reason && <p className="mt-1 whitespace-pre-line text-[0.95rem]">Motivo: {r.reason}</p>}
-        </li>
-      ))}
+    <ol>
+      {detail.reviews.map((r, index) => {
+        const last = index === detail.reviews.length - 1;
+        return (
+          <li key={r.id} className={cn("relative ml-1 border-l border-linha pl-5", !last && "pb-6")}>
+            <span
+              aria-hidden
+              className={cn("absolute -left-1 top-2 size-[7px]", r.action === "devolvida" ? "bg-alerta" : last ? "bg-acento" : "bg-grafite")}
+            />
+            <p className="font-semibold leading-snug">{REVIEW_ACTION_LABEL[r.action as ExpenseReviewAction] ?? r.action}</p>
+            <p className="mt-0.5 text-[0.9375rem]">
+              <span className="font-semibold">{name(r.actor_id)}</span>
+              <span className="ml-2 text-muted">{`${formatDateBR(isoDateInTz(new Date(r.created_at)))} às ${formatTimeBR(r.created_at)}`}</span>
+            </p>
+            {r.reason && <p className="mt-1.5 max-w-[60ch] whitespace-pre-line text-[0.95rem]">Motivo: {r.reason}</p>}
+          </li>
+        );
+      })}
     </ol>
   );
 }
@@ -93,15 +106,17 @@ export function ReimbursementFacts({ detail, name }: { detail: ExpenseDetail; na
           { label: "Valor a reembolsar", value: formatBRL(r.amount_due_cents) },
           { label: "Já reembolsado", value: formatBRL(r.amount_paid_cents) },
           { label: "Saldo", value: <span className="font-bold">{formatBRL(balance)}</span> },
-          { label: "Último registro", value: r.settled_at ? `${formatDateTimeBR(r.settled_at)} · ${name(r.settled_by)}` : "—" },
+          { label: "Último registro", value: r.settled_at ? `${formatDateTimeBR(r.settled_at)}, por ${name(r.settled_by)}` : "—" },
         ]}
       />
       {r.settlement_notes && (
         <div>
-          <p className="text-sm text-muted">Pagamentos registrados</p>
-          <ul className="list-inside list-disc text-[0.95rem]">
+          <p className="mb-1 text-[0.8125rem] text-muted">Pagamentos registrados</p>
+          <ul className="divide-y divide-linha border-y border-linha text-[0.95rem] tabular-nums">
             {r.settlement_notes.split("\n").map((line, i) => (
-              <li key={i}>{line}</li>
+              <li key={i} className="py-1.5">
+                {line}
+              </li>
             ))}
           </ul>
         </div>
