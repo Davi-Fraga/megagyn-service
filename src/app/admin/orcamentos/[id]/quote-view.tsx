@@ -43,12 +43,12 @@ export function QuoteView({ bundle }: { bundle: QuoteBundle }) {
 
       <Panel title="Itens">
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[34rem] text-left text-[0.95rem]">
-            <thead className="border-b border-linha text-sm text-muted">
-              <tr>
-                <th className="py-2 pr-3 font-semibold">Local</th>
-                <th className="py-2 pr-3 font-semibold">Descrição</th>
-                <th className="py-2 text-right font-semibold">Valor</th>
+          <table className="w-full text-left text-[0.95rem] sm:min-w-[34rem]">
+            <thead>
+              <tr className="tipo-condensada text-[0.8125rem] text-muted">
+                <th scope="col" className="border-b border-grafite pb-2 pr-3 font-semibold">Local</th>
+                <th scope="col" className="border-b border-grafite pb-2 pr-3 font-semibold">Descrição</th>
+                <th scope="col" className="border-b border-grafite pb-2 text-right font-semibold">Valor</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-linha">
@@ -72,7 +72,7 @@ export function QuoteView({ bundle }: { bundle: QuoteBundle }) {
                     )}
                     {i.notes && <p className="text-sm">Obs: {i.notes}</p>}
                   </td>
-                  <td className="whitespace-nowrap py-2.5 text-right tabular-nums">{formatBRL(i.subtotal_cents)}</td>
+                  <td className="tipo-condensada whitespace-nowrap py-2.5 text-right text-[1.0625rem] tabular-nums">{formatBRL(i.subtotal_cents)}</td>
                 </tr>
               ))}
             </tbody>

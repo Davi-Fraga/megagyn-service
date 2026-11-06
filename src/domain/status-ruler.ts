@@ -10,6 +10,8 @@ export type RulerStage = (typeof RULER_STAGES)[number];
 export type RulerStepState = "feita" | "atual" | "pausada" | "futura";
 export type RulerStep = { stage: RulerStage; label: string; state: RulerStepState };
 export type StatusRulerView = { label: string; steps: RulerStep[]; paused: boolean; cancelled: boolean };
+/** Régua genérica: o mesmo desenho serve à O.S. e ao orçamento. */
+export type RulerView = { label: string; steps: Array<{ stage: string; label: string; state: RulerStepState }>; paused: boolean; cancelled: boolean };
 
 /** Etapa em que cada situação está (-1: fora da régua). */
 const STAGE_INDEX: Record<RequestStatus, number> = {
