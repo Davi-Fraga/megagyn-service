@@ -172,15 +172,15 @@ export default async function AdminExpensesPage({ searchParams }: { searchParams
         </div>
       </form>
 
-      <section aria-labelledby="totais" className="mb-5 rounded-panel border border-linha bg-papel p-4">
-        <h2 id="totais" className="text-lg font-bold">
+      <section aria-labelledby="totais" className="mb-10 border-t border-linha pt-5">
+        <h2 id="totais" className="text-[1.3125rem]">
           {headline.scope === "obra"
             ? `Valor atribuído a ${filteredSite?.name ?? "esta obra"} (parcelas do rateio)`
             : headline.scope === "cliente"
               ? `Valor atribuído a ${filteredClient?.display_name ?? "este cliente"} (parcelas do rateio)`
               : "Total da empresa (soma das compras, cada uma uma vez)"}
         </h2>
-        <p className="mb-3 text-sm text-muted">
+        <p className="mb-5 mt-1 max-w-prose text-sm text-muted">
           {headline.scope === "obra"
             ? "Considera só a parte de cada compra destinada a esta obra, não o valor inteiro da nota."
             : headline.scope === "cliente"
@@ -188,11 +188,12 @@ export default async function AdminExpensesPage({ searchParams }: { searchParams
               : "Uma compra dividida entre obras conta uma única vez pelo valor total da nota."}{" "}
           Aprovadas e em conferência ficam separadas: não some os quadros.
         </p>
-        <div className="grid gap-3 sm:grid-cols-3">
+        {/* Número sobre um traço fino, na cor da situação (o rótulo também diz a situação). */}
+        <div className="grid grid-cols-1 gap-x-8 gap-y-5 sm:grid-cols-3">
           {cards.map((c) => (
-            <div key={c.key} data-total={c.key} className={cn("rounded-ctl border-l-4 bg-concreto px-3 py-2", c.cls)}>
-              <p className="text-sm font-semibold text-muted">{c.label}</p>
-              <p className="text-2xl font-bold tabular-nums">{formatBRL(c.value)}</p>
+            <div key={c.key} data-total={c.key} className={cn("border-t-2 pt-2", c.cls)}>
+              <p className="text-[0.8125rem] text-muted">{c.label}</p>
+              <p className="tipo-placa text-2xl tabular-nums">{formatBRL(c.value)}</p>
               <p className="text-sm text-muted">{c.count} compra(s)</p>
             </div>
           ))}
@@ -205,12 +206,12 @@ export default async function AdminExpensesPage({ searchParams }: { searchParams
                 <caption className="pb-2 text-left text-sm text-muted">
                   Divisão do mesmo total pelas parcelas do rateio (a soma das obras é igual ao total da empresa).
                 </caption>
-                <thead className="border-b border-linha text-sm text-muted">
-                  <tr>
-                    <th className="py-2 pr-3 font-semibold">Obra</th>
-                    <th className="py-2 pr-3 text-right font-semibold">Aprovadas</th>
-                    <th className="py-2 pr-3 text-right font-semibold">Em conferência</th>
-                    <th className="py-2 text-right font-semibold">Devolvidas</th>
+                <thead>
+                  <tr className="tipo-condensada text-[0.8125rem] text-muted">
+                    <th scope="col" className="border-b border-grafite pb-2 pr-3 font-semibold">Obra</th>
+                    <th scope="col" className="border-b border-grafite pb-2 pr-3 text-right font-semibold">Aprovadas</th>
+                    <th scope="col" className="border-b border-grafite pb-2 pr-3 text-right font-semibold">Em conferência</th>
+                    <th scope="col" className="border-b border-grafite pb-2 text-right font-semibold">Devolvidas</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-linha">
@@ -248,29 +249,26 @@ export default async function AdminExpensesPage({ searchParams }: { searchParams
         <EmptyState title="Nenhuma compra com esses filtros." text="As compras registradas pelo encarregado aparecem aqui para conferência." />
       ) : (
         <DataTable
-          variant="boxed"
+          variant="ruler"
           minWidth="min-w-[60rem]"
           rows={list.rows.slice(0, SHOW_ROWS)}
           rowKey={(e) => e.id}
           columns={[
-            { header: "Data", className: "text-sm", cell: (e) => formatDateBR(e.expenseDate) },
+            { header: "Data", className: "tipo-condensada whitespace-nowrap text-[0.9375rem]", cell: (e) => formatDateBR(e.expenseDate) },
             {
               header: "Compra",
               cell: (e) => (
                 <>
-                  <Link href={`/admin/despesas/${e.id}`} className="font-semibold hover:underline">
+                  <Link href={`/admin/despesas/${e.id}`} className="text-[1.0625rem] font-semibold leading-snug hover:underline">
                     {e.description}
                   </Link>
-                  <p className="text-sm text-muted">
-                    {e.supplierName}
-                    {e.categoryName ? ` · ${e.categoryName}` : ""}
-                  </p>
+                  <p className="mt-0.5 text-[0.9375rem] text-muted">{[e.supplierName, e.categoryName].filter(Boolean).join(", ")}</p>
                 </>
               ),
             },
             {
               header: "Rateio",
-              className: "text-sm",
+              className: "text-[0.9375rem]",
               cell: (e) => (
                 <ul>
                   {e.allocations.map((a) => (
@@ -281,13 +279,18 @@ export default async function AdminExpensesPage({ searchParams }: { searchParams
                 </ul>
               ),
             },
-            { header: "Comprador", className: "text-sm", cell: (e) => profiles.name(e.purchasedBy) },
-            { header: "Total da compra", align: "right", className: "font-semibold tabular-nums", cell: (e) => formatBRL(e.totalCents) },
+            { header: "Comprador", className: "text-[0.9375rem]", cell: (e) => profiles.name(e.purchasedBy) },
+            {
+              header: "Total da compra",
+              align: "right",
+              className: "tipo-condensada whitespace-nowrap text-[1.0625rem] tabular-nums",
+              cell: (e) => formatBRL(e.totalCents),
+            },
             filters.siteId || filters.clientId
               ? {
                   header: filters.siteId ? "Atribuído à obra" : "Atribuído ao cliente",
                   align: "right",
-                  className: "font-semibold tabular-nums",
+                  className: "tipo-condensada whitespace-nowrap text-[1.0625rem] tabular-nums",
                   cell: (e) => formatBRL(e.allocations.filter(inFilter).reduce((n, a) => n + a.amountCents, 0)),
                 }
               : null,
