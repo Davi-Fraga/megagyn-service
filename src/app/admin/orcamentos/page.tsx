@@ -10,7 +10,8 @@ import { createSupabaseServer } from "@/server/supabase/server";
 import { ButtonLink, buttonClass } from "@/ui/button";
 import { EmptyState, PageHeader } from "@/ui/page";
 import { DataTable } from "@/ui/data-table";
-import { QuoteStatusBadge } from "./quote-status-badge";
+import { AlertEdge } from "@/ui/status";
+import { QuoteStatusRuler } from "./quote-status-ruler";
 
 export const metadata: Metadata = { title: "Orçamentos" };
 
@@ -102,41 +103,56 @@ export default async function QuotesPage({ searchParams }: { searchParams: Promi
         />
       ) : (
         <DataTable
-          variant="boxed"
-          minWidth="min-w-[52rem]"
-          rows={rows}
+          variant="ruler"
+          minWidth="min-w-[56rem]"
+          rows={rows.map((r) => ({ ...r, effective: effectiveQuoteStatus(r.status as QuoteStatus, r.valid_until, today) }))}
           rowKey={(r) => r.id}
           columns={[
             {
               header: "Número",
+              headerClassName: "whitespace-nowrap",
+              className: "relative",
               cell: (r) => (
-                <Link href={`/admin/orcamentos/${r.id}`} className="tipo-condensada whitespace-nowrap text-[1.0625rem] underline-offset-4 hover:underline">
-                  {r.number}
-                </Link>
+                <>
+                  {r.effective === "expirado" && <AlertEdge />}
+                  <Link href={`/admin/orcamentos/${r.id}`} className="tipo-condensada whitespace-nowrap text-[1.0625rem] underline-offset-4 hover:underline">
+                    {r.number}
+                  </Link>
+                </>
               ),
             },
-            { header: "Cliente", cell: (r) => r.client?.display_name ?? "—" },
             {
-              header: "Título / local",
+              header: "Orçamento",
               cell: (r) => {
                 const place = r.site?.name ?? r.service_location_text;
                 return (
                   <>
-                    <Link href={`/admin/orcamentos/${r.id}`} className="font-semibold hover:underline">
+                    <Link href={`/admin/orcamentos/${r.id}`} className="text-[1.0625rem] font-semibold leading-snug hover:underline">
                       {r.title || place || "Sem título"}
                     </Link>
-                    {r.title && place && <p className="text-sm text-muted">{place}</p>}
+                    <p className="mt-0.5 text-[0.9375rem] text-muted">{[r.client?.display_name, r.title ? place : null].filter(Boolean).join(", ") || "—"}</p>
                   </>
                 );
               },
             },
-            { header: "Total", align: "right", className: "whitespace-nowrap tabular-nums", cell: (r) => formatBRL(r.total_cents) },
+            { header: "Situação", className: "w-56 pt-[1.3rem]", cell: (r) => <QuoteStatusRuler status={r.effective} /> },
             {
-              header: "Situação",
-              cell: (r) => <QuoteStatusBadge status={effectiveQuoteStatus(r.status as QuoteStatus, r.valid_until, today)} />,
+              header: "Total",
+              align: "right",
+              className: "tipo-condensada whitespace-nowrap text-[1.0625rem] tabular-nums",
+              cell: (r) => formatBRL(r.total_cents),
             },
-            { header: "Emissão", className: "text-sm", cell: (r) => formatDateBR(r.issued_at) },
-            { header: "Validade", className: "text-sm", cell: (r) => formatDateBR(r.valid_until) },
+            { header: "Emissão", className: "tipo-condensada text-[0.9375rem]", cell: (r) => formatDateBR(r.issued_at) },
+            {
+              header: "Validade",
+              className: "tipo-condensada text-[0.9375rem]",
+              cell: (r) => (
+                <>
+                  <span className="block">{formatDateBR(r.valid_until)}</span>
+                  {r.effective === "expirado" && <span className="block text-erro">Validade vencida</span>}
+                </>
+              ),
+            },
           ]}
         />
       )}

@@ -58,7 +58,7 @@ test("orçamento com valor global e detalhado, foto, envio, aprovação e PDF", 
   // (Asserções sobre o estado salvo, não sobre o aviso: o dev server compartilhado pode recarregar a página.)
   await page.getByRole("button", { name: "Marcar como enviado" }).click();
   await expect(page.getByRole("button", { name: "Registrar aprovação do cliente" })).toBeVisible({ timeout: 120_000 });
-  await expect(page.getByText(/^Versão 1 · R\$ 8\.100,00$/)).toBeVisible();
+  await expect(page.getByRole("listitem").filter({ hasText: "Versão 1" })).toContainText("R$ 8.100,00");
   await expect(page.getByText("Proposta enviada", { exact: true })).toBeVisible();
   await expect(page.getByText("oito mil e cem reais")).toBeVisible();
 
@@ -66,8 +66,8 @@ test("orçamento com valor global e detalhado, foto, envio, aprovação e PDF", 
   await page.getByLabel("Quem aprovou e como").fill("Síndica Demo (fictícia), por e-mail em resposta à proposta.");
   await page.getByRole("button", { name: "Registrar aprovação do cliente" }).click();
   await expect(page.getByRole("button", { name: "Criar obra a partir deste orçamento" })).toBeVisible({ timeout: 120_000 });
-  await expect(page.getByText("Aprovado", { exact: true }).first()).toBeVisible();
-  await expect(page.getByText(/^Versão 2 · R\$ 8\.100,00$/)).toBeVisible();
+  await expect(page.getByRole("list", { name: "Situação: Aprovado" })).toBeVisible();
+  await expect(page.getByRole("listitem").filter({ hasText: "Versão 2" })).toContainText("R$ 8.100,00");
   await expect(page.getByText("Aprovação do cliente registrada", { exact: true })).toBeVisible();
 
   // PDF A4 com o número e o cliente no nome do arquivo.

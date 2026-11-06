@@ -26,7 +26,8 @@ import { ReasonAction } from "@/ui/reason-action";
 import { GenerateReportButton } from "@/ui/report-button";
 import { loadQuoteFormOptions } from "../load";
 import { QuoteForm } from "../quote-form";
-import { QuoteStatusBadge } from "../quote-status-badge";
+import { AlertTape } from "@/ui/status";
+import { QuoteStatusRuler } from "../quote-status-ruler";
 import { QuotePhotos } from "./quote-photos";
 import { QuoteView } from "./quote-view";
 
@@ -87,11 +88,11 @@ export default async function QuotePage({
         eyebrow={<span className="tipo-placa text-2xl text-grafite">{q.number}</span>}
         title={q.title || place || "Orçamento"}
         description={
-          <span className="flex flex-wrap items-center gap-2">
-            <QuoteStatusBadge status={status} />
+          <span className="flex flex-wrap items-center gap-x-6 gap-y-2">
+            {status === "expirado" && <AlertTape>Validade vencida</AlertTape>}
             <span>{q.client?.display_name}</span>
-            <span className="font-semibold text-grafite">{formatBRL(q.total_cents)}</span>
-            {q.current_version_no > 0 && <span className="text-sm">· versão {q.current_version_no}</span>}
+            <span className="tipo-condensada text-[1.0625rem] tabular-nums text-grafite">{formatBRL(q.total_cents)}</span>
+            {q.current_version_no > 0 && <span className="text-sm">Versão {q.current_version_no}</span>}
           </span>
         }
         actions={
@@ -103,6 +104,10 @@ export default async function QuotePage({
           </>
         }
       />
+
+      <div className="mb-10">
+        <QuoteStatusRuler status={status} size="grande" stages />
+      </div>
 
       <div className="mb-4 space-y-2">
         {feito && DONE_MESSAGE[feito] && <Notice tone="ok">{DONE_MESSAGE[feito]}</Notice>}
@@ -122,8 +127,9 @@ export default async function QuotePage({
         )}
       </div>
 
-      <div className="grid gap-5 lg:grid-cols-[minmax(0,1.7fr)_minmax(0,1fr)]">
-        <div className="space-y-5">
+      {/* grid-cols-1: sem ela, a coluna única do celular cresce até a largura mínima da tabela de itens. */}
+      <div className="grid grid-cols-1 gap-x-14 gap-y-10 lg:grid-cols-[minmax(0,1fr)_22rem]">
+        <div className="space-y-10">
           {can("editar") && options ? (
             <QuoteForm
               quoteId={q.id}
@@ -172,7 +178,7 @@ export default async function QuotePage({
           />
         </div>
 
-        <div className="space-y-5">
+        <div className="space-y-10">
           <Panel title="Situação">
             <div className="space-y-4">
               {can("enviar") && (
@@ -190,7 +196,7 @@ export default async function QuotePage({
               )}
 
               {can("aprovar") && (
-                <div className="rounded-ctl border border-linha p-3">
+                <div className="border-t border-linha pt-4">
                   <h3 className="mb-2 font-semibold">Aprovação do cliente</h3>
                   <ActionForm action={approveQuoteAction} submitLabel="Registrar aprovação do cliente" pendingLabel="Registrando…">
                     <input type="hidden" name="quote_id" value={q.id} />
@@ -208,7 +214,7 @@ export default async function QuotePage({
               )}
 
               {can("renovar") && (
-                <div className="rounded-ctl border border-linha p-3">
+                <div className="border-t border-linha pt-4">
                   <h3 className="mb-2 font-semibold">Renovar validade</h3>
                   <ActionForm action={renewQuoteAction} submitLabel="Renovar validade" pendingLabel="Renovando…">
                     <input type="hidden" name="quote_id" value={q.id} />
@@ -303,10 +309,10 @@ export default async function QuotePage({
             ) : (
               <ol className="space-y-3">
                 {(versions.data ?? []).map((v) => (
-                  <li key={v.id} className="border-l-[3px] border-acento pl-3">
-                    <p className="font-semibold">
-                      Versão {v.version_no}
-                      {v.total ? <span className="font-normal text-muted"> · {formatBRL(Number(v.total))}</span> : null}
+                  <li key={v.id} className="border-t border-linha pt-3 first:border-t-0 first:pt-0">
+                    <p className="flex items-baseline justify-between gap-4 font-semibold">
+                      <span>Versão {v.version_no}</span>
+                      {v.total ? <span className="tipo-condensada text-[1.0625rem] tabular-nums">{formatBRL(Number(v.total))}</span> : null}
                     </p>
                     <p className="text-sm">{v.reason}</p>
                     <p className="text-sm text-muted">
