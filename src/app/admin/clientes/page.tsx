@@ -7,6 +7,7 @@ import { createSupabaseServer } from "@/server/supabase/server";
 import { ButtonLink, buttonClass } from "@/ui/button";
 import { ActionForm } from "@/ui/form";
 import { EmptyState, PageHeader, Panel } from "@/ui/page";
+import { DataTable } from "@/ui/data-table";
 import { ActiveBadge, ClientFields } from "./_shared/fields";
 
 export const metadata: Metadata = { title: "Clientes" };
@@ -86,43 +87,42 @@ export default async function ClientsPage({ searchParams }: { searchParams: Prom
               text={filtered ? "Ajuste a busca ou a situação." : "Cadastre o primeiro cliente no formulário ao lado."}
             />
           ) : (
-            <div className="overflow-x-auto rounded-panel border border-linha bg-papel">
-              <table className="w-full min-w-[40rem] text-left text-[0.95rem]">
-                <thead className="border-b border-linha bg-concreto text-sm text-muted">
-                  <tr>
-                    <th className="px-3 py-2 font-semibold">Cliente</th>
-                    <th className="px-3 py-2 font-semibold">Contato</th>
-                    <th className="px-3 py-2 text-right font-semibold">Locais</th>
-                    <th className="px-3 py-2 font-semibold">Situação</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-linha">
-                  {clients.map((c) => (
-                    <tr key={c.id} className="align-top hover:bg-concreto/60">
-                      <td className="px-3 py-2.5">
-                        <Link href={`/admin/clientes/${c.id}`} className="font-semibold hover:underline">
-                          {c.display_name}
-                        </Link>
-                        <p className="text-sm text-muted">
-                          {c.legal_name !== c.display_name ? `${c.legal_name} · ` : ""}
-                          {CLIENT_KIND_LABEL[c.kind]}
-                          {c.document ? ` · ${c.document}` : ""}
-                        </p>
-                      </td>
-                      <td className="px-3 py-2.5 text-sm">
-                        {c.phone && <p>{c.phone}</p>}
-                        {c.email && <p className="break-all">{c.email}</p>}
-                        {!c.phone && !c.email && "—"}
-                      </td>
-                      <td className="px-3 py-2.5 text-right">{c.sites[0]?.count ?? 0}</td>
-                      <td className="px-3 py-2.5">
-                        <ActiveBadge active={c.is_active} />
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <DataTable
+              variant="boxed"
+              minWidth="min-w-[40rem]"
+              rows={clients}
+              rowKey={(c) => c.id}
+              columns={[
+                {
+                  header: "Cliente",
+                  cell: (c) => (
+                    <>
+                      <Link href={`/admin/clientes/${c.id}`} className="font-semibold hover:underline">
+                        {c.display_name}
+                      </Link>
+                      <p className="text-sm text-muted">
+                        {c.legal_name !== c.display_name ? `${c.legal_name} · ` : ""}
+                        {CLIENT_KIND_LABEL[c.kind]}
+                        {c.document ? ` · ${c.document}` : ""}
+                      </p>
+                    </>
+                  ),
+                },
+                {
+                  header: "Contato",
+                  className: "text-sm",
+                  cell: (c) => (
+                    <>
+                      {c.phone && <p>{c.phone}</p>}
+                      {c.email && <p className="break-all">{c.email}</p>}
+                      {!c.phone && !c.email && "—"}
+                    </>
+                  ),
+                },
+                { header: "Locais", align: "right", cell: (c) => c.sites[0]?.count ?? 0 },
+                { header: "Situação", cell: (c) => <ActiveBadge active={c.is_active} /> },
+              ]}
+            />
           )}
         </div>
 

@@ -11,6 +11,7 @@ import { cn } from "@/ui/cn";
 import { Notice } from "@/ui/page";
 import { AlertEdge, Badge } from "@/ui/status";
 import { StatusRuler } from "@/ui/status-ruler";
+import { List } from "@/ui/list";
 
 export const metadata: Metadata = { title: "Hoje" };
 
@@ -85,7 +86,7 @@ export default async function FieldTodayPage({ searchParams }: { searchParams: P
             Nenhum chamado programado para você hoje. Use “Registrar o que foi feito” para serviços sem chamado.
           </p>
         ) : (
-          <ul className="-mx-4 divide-y divide-linha border-y border-linha">
+          <List variant="bleed">
             {list.map((r) => {
               const overdue = isOverdue(r.due_date, r.status, today);
               const place = oneSite ? (r.area?.name ?? r.site?.name) : [r.site?.name, r.area?.name].filter(Boolean).join(", ");
@@ -108,14 +109,14 @@ export default async function FieldTodayPage({ searchParams }: { searchParams: P
                 </li>
               );
             })}
-          </ul>
+          </List>
         )}
       </section>
 
       {tasksToday > 0 && (
         <section className="mt-7">
           <h2 className="tipo-normal mb-2 text-[0.9375rem] font-[650]">Tarefas na agenda</h2>
-          <ul className="-mx-4 divide-y divide-linha border-y border-linha">
+          <List variant="bleed">
             {(occurrences.data ?? []).map((o) => (
               <li key={o.id}>
                 <Link href={`/campo/tarefas/${o.id}`} className="flex min-h-16 items-center justify-between gap-3 py-3 pl-5 pr-4 hover:bg-concreto/45">
@@ -130,7 +131,7 @@ export default async function FieldTodayPage({ searchParams }: { searchParams: P
                 </Link>
               </li>
             ))}
-          </ul>
+          </List>
         </section>
       )}
 

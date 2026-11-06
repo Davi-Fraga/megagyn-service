@@ -8,6 +8,7 @@ import { createSupabaseServer } from "@/server/supabase/server";
 import { buttonClass } from "@/ui/button";
 import { PageHeader, Panel } from "@/ui/page";
 import { GenerateReportButton } from "@/ui/report-button";
+import { List } from "@/ui/list";
 
 // Esta página pede PDFs; a geração roda após a resposta e precisa caber no tempo da função (Vercel Hobby: até 300 s).
 export const maxDuration = 300;
@@ -118,7 +119,7 @@ export default async function ReportsPage({
       </div>
 
       <h2 className="mb-2 mt-8 text-lg font-bold">Últimos PDFs gerados</h2>
-      <ul className="divide-y divide-linha overflow-hidden rounded-panel border border-linha bg-papel">
+      <List variant="boxed">
         {(recent ?? []).map((r) => (
           <li key={r.id} className="flex flex-wrap items-center justify-between gap-2 px-4 py-2.5">
             <span>{r.file_name}</span>
@@ -131,7 +132,7 @@ export default async function ReportsPage({
             )}
           </li>
         ))}
-      </ul>
+      </List>
     </>
   );
 }

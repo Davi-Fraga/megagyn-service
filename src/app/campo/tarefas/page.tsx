@@ -7,6 +7,7 @@ import { createSupabaseServer } from "@/server/supabase/server";
 import { OccurrenceBadge } from "@/ui/occurrence-status";
 import { EmptyState } from "@/ui/page";
 import { AlertTape } from "@/ui/status";
+import { List } from "@/ui/list";
 
 export const metadata: Metadata = { title: "Agenda" };
 
@@ -36,7 +37,7 @@ export default async function FieldAgendaPage() {
         <p className="flex items-center gap-1.5 text-sm font-semibold text-muted">
           <MapPin aria-hidden className="size-4" /> {site}
         </p>
-        <ul className="-mx-4 divide-y divide-linha border-y border-linha">
+        <List variant="bleed">
           {items.map((o) => (
             <li key={o.id}>
               <Link href={`/campo/tarefas/${o.id}`} className="flex min-h-16 items-center justify-between gap-3 px-4 py-3 hover:bg-concreto/45">
@@ -51,7 +52,7 @@ export default async function FieldAgendaPage() {
               </Link>
             </li>
           ))}
-        </ul>
+        </List>
       </div>
     ));
   };

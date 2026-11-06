@@ -10,6 +10,7 @@ import { buttonClass } from "@/ui/button";
 import { ActionForm, CheckboxField, SelectField, TextField } from "@/ui/form";
 import { EmptyState, Notice, PageHeader, Panel } from "@/ui/page";
 import { Badge } from "@/ui/status";
+import { List } from "@/ui/list";
 
 export const metadata: Metadata = { title: "Horas e diárias" };
 
@@ -176,7 +177,7 @@ export default async function HoursPage({ searchParams }: { searchParams: Promis
         {(rules.data ?? []).length === 0 ? (
           <EmptyState title="Nenhuma regra cadastrada." text="Contratos que não cobram por diária ou hora podem ficar sem regra." />
         ) : (
-          <ul className="divide-y divide-linha overflow-hidden rounded-panel border border-linha bg-papel">
+          <List variant="boxed">
             {(rules.data ?? []).map((r) => (
               <li key={r.id} className="space-y-2 px-4 py-3">
                 <div className="flex flex-wrap items-center justify-between gap-2">
@@ -203,7 +204,7 @@ export default async function HoursPage({ searchParams }: { searchParams: Promis
                 )}
               </li>
             ))}
-          </ul>
+          </List>
         )}
         <Panel title="Nova regra">
           <ActionForm action={createBillingRuleAction} submitLabel="Criar regra" resetOnSuccess>

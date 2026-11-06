@@ -9,6 +9,7 @@ import { cn } from "@/ui/cn";
 import { EmptyState } from "@/ui/page";
 import { AlertEdge } from "@/ui/status";
 import { StatusRuler } from "@/ui/status-ruler";
+import { List } from "@/ui/list";
 
 export const metadata: Metadata = { title: "Chamados" };
 
@@ -66,7 +67,7 @@ export default async function FieldRequestsPage({ searchParams }: { searchParams
       {rows.length === 0 ? (
         <EmptyState title="Nada por aqui." text="Quando a administração programar um chamado para você, ele aparece nesta lista." />
       ) : (
-        <ul className="-mx-4 divide-y divide-linha border-y border-linha">
+        <List variant="bleed">
           {rows.map((r) => {
             const overdue = isOverdue(r.due_date, r.status, today);
             return (
@@ -88,7 +89,7 @@ export default async function FieldRequestsPage({ searchParams }: { searchParams
               </li>
             );
           })}
-        </ul>
+        </List>
       )}
     </>
   );

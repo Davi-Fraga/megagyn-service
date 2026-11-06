@@ -6,6 +6,7 @@ import { ROLE_LABEL } from "@/server/auth";
 import { createSupabaseServer } from "@/server/supabase/server";
 import { ActionForm, SelectField, TextField } from "@/ui/form";
 import { EmptyState, PageHeader, Panel } from "@/ui/page";
+import { DataTable } from "@/ui/data-table";
 import { ActiveBadge } from "../clientes/_shared/fields";
 import { ROLE_OPTIONS } from "./_shared/role-options";
 
@@ -32,35 +33,28 @@ export default async function UsersPage() {
           {users.length === 0 ? (
             <EmptyState title="Nenhum usuário cadastrado." />
           ) : (
-            <div className="overflow-x-auto rounded-panel border border-linha bg-papel">
-              <table className="w-full min-w-[40rem] text-left text-[0.95rem]">
-                <thead className="border-b border-linha bg-concreto text-sm text-muted">
-                  <tr>
-                    <th className="px-3 py-2 font-semibold">Nome</th>
-                    <th className="px-3 py-2 font-semibold">E-mail</th>
-                    <th className="px-3 py-2 font-semibold">Papel</th>
-                    <th className="px-3 py-2 font-semibold">Situação</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-linha">
-                  {users.map((u) => (
-                    <tr key={u.id} className="align-top hover:bg-concreto/60">
-                      <td className="px-3 py-2.5">
-                        <Link href={`/admin/usuarios/${u.id}`} className="font-semibold hover:underline">
-                          {u.full_name}
-                        </Link>
-                        {u.phone && <p className="text-sm text-muted">{u.phone}</p>}
-                      </td>
-                      <td className="px-3 py-2.5 text-sm break-all">{u.email}</td>
-                      <td className="px-3 py-2.5 text-sm">{ROLE_LABEL[u.role]}</td>
-                      <td className="px-3 py-2.5">
-                        <ActiveBadge active={u.is_active} />
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <DataTable
+              variant="boxed"
+              minWidth="min-w-[40rem]"
+              rows={users}
+              rowKey={(u) => u.id}
+              columns={[
+                {
+                  header: "Nome",
+                  cell: (u) => (
+                    <>
+                      <Link href={`/admin/usuarios/${u.id}`} className="font-semibold hover:underline">
+                        {u.full_name}
+                      </Link>
+                      {u.phone && <p className="text-sm text-muted">{u.phone}</p>}
+                    </>
+                  ),
+                },
+                { header: "E-mail", className: "text-sm break-all", cell: (u) => u.email },
+                { header: "Papel", className: "text-sm", cell: (u) => ROLE_LABEL[u.role] },
+                { header: "Situação", cell: (u) => <ActiveBadge active={u.is_active} /> },
+              ]}
+            />
           )}
         </div>
 

@@ -14,6 +14,7 @@ import { buttonClass } from "@/ui/button";
 import { ActionForm } from "@/ui/form";
 import { EmptyState, PageHeader } from "@/ui/page";
 import { Badge } from "@/ui/status";
+import { List } from "@/ui/list";
 
 export const metadata: Metadata = { title: "Atividades" };
 
@@ -185,7 +186,7 @@ export default async function ActivitiesPage({
           submitLabel="Marcar selecionados como revisados"
           submitVariant="secondary"
         >
-          <ul className="divide-y divide-linha overflow-hidden rounded-panel border border-linha bg-papel">
+          <List variant="boxed">
             {rows.map((r) => (
               <li key={r.id} className="flex items-start gap-3 px-4 py-3">
                 {r.review_status === "enviado" ? (
@@ -227,7 +228,7 @@ export default async function ActivitiesPage({
                 </Badge>
               </li>
             ))}
-          </ul>
+          </List>
         </ActionForm>
       )}
     </>

@@ -9,6 +9,7 @@ import { effectiveQuoteStatus } from "@/domain/quote-rules";
 import { createSupabaseServer } from "@/server/supabase/server";
 import { ButtonLink, buttonClass } from "@/ui/button";
 import { EmptyState, PageHeader } from "@/ui/page";
+import { DataTable } from "@/ui/data-table";
 import { QuoteStatusBadge } from "./quote-status-badge";
 
 export const metadata: Metadata = { title: "Orçamentos" };
@@ -100,48 +101,44 @@ export default async function QuotesPage({ searchParams }: { searchParams: Promi
           action={<ButtonLink href="/admin/orcamentos/novo">Novo orçamento</ButtonLink>}
         />
       ) : (
-        <div className="overflow-x-auto rounded-panel border border-linha bg-papel">
-          <table className="w-full min-w-[52rem] text-left text-[0.95rem]">
-            <thead className="border-b border-linha bg-concreto text-sm text-muted">
-              <tr>
-                <th className="px-3 py-2 font-semibold">Número</th>
-                <th className="px-3 py-2 font-semibold">Cliente</th>
-                <th className="px-3 py-2 font-semibold">Título / local</th>
-                <th className="px-3 py-2 text-right font-semibold">Total</th>
-                <th className="px-3 py-2 font-semibold">Situação</th>
-                <th className="px-3 py-2 font-semibold">Emissão</th>
-                <th className="px-3 py-2 font-semibold">Validade</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-linha">
-              {rows.map((r) => {
+        <DataTable
+          variant="boxed"
+          minWidth="min-w-[52rem]"
+          rows={rows}
+          rowKey={(r) => r.id}
+          columns={[
+            {
+              header: "Número",
+              cell: (r) => (
+                <Link href={`/admin/orcamentos/${r.id}`} className="tipo-condensada whitespace-nowrap text-[1.0625rem] underline-offset-4 hover:underline">
+                  {r.number}
+                </Link>
+              ),
+            },
+            { header: "Cliente", cell: (r) => r.client?.display_name ?? "—" },
+            {
+              header: "Título / local",
+              cell: (r) => {
                 const place = r.site?.name ?? r.service_location_text;
                 return (
-                  <tr key={r.id} className="align-top hover:bg-concreto/60">
-                    <td className="px-3 py-2.5">
-                      <Link href={`/admin/orcamentos/${r.id}`} className="tipo-condensada whitespace-nowrap text-[1.0625rem] underline-offset-4 hover:underline">
-                        {r.number}
-                      </Link>
-                    </td>
-                    <td className="px-3 py-2.5">{r.client?.display_name ?? "—"}</td>
-                    <td className="px-3 py-2.5">
-                      <Link href={`/admin/orcamentos/${r.id}`} className="font-semibold hover:underline">
-                        {r.title || place || "Sem título"}
-                      </Link>
-                      {r.title && place && <p className="text-sm text-muted">{place}</p>}
-                    </td>
-                    <td className="whitespace-nowrap px-3 py-2.5 text-right tabular-nums">{formatBRL(r.total_cents)}</td>
-                    <td className="px-3 py-2.5">
-                      <QuoteStatusBadge status={effectiveQuoteStatus(r.status as QuoteStatus, r.valid_until, today)} />
-                    </td>
-                    <td className="px-3 py-2.5 text-sm">{formatDateBR(r.issued_at)}</td>
-                    <td className="px-3 py-2.5 text-sm">{formatDateBR(r.valid_until)}</td>
-                  </tr>
+                  <>
+                    <Link href={`/admin/orcamentos/${r.id}`} className="font-semibold hover:underline">
+                      {r.title || place || "Sem título"}
+                    </Link>
+                    {r.title && place && <p className="text-sm text-muted">{place}</p>}
+                  </>
                 );
-              })}
-            </tbody>
-          </table>
-        </div>
+              },
+            },
+            { header: "Total", align: "right", className: "whitespace-nowrap tabular-nums", cell: (r) => formatBRL(r.total_cents) },
+            {
+              header: "Situação",
+              cell: (r) => <QuoteStatusBadge status={effectiveQuoteStatus(r.status as QuoteStatus, r.valid_until, today)} />,
+            },
+            { header: "Emissão", className: "text-sm", cell: (r) => formatDateBR(r.issued_at) },
+            { header: "Validade", className: "text-sm", cell: (r) => formatDateBR(r.valid_until) },
+          ]}
+        />
       )}
     </>
   );

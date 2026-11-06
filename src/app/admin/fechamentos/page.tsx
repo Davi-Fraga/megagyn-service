@@ -6,6 +6,7 @@ import { createSupabaseServer } from "@/server/supabase/server";
 import { buttonClass } from "@/ui/button";
 import { EmptyState, PageHeader, Panel } from "@/ui/page";
 import { Badge } from "@/ui/status";
+import { List } from "@/ui/list";
 
 export const metadata: Metadata = { title: "Fechamento mensal" };
 
@@ -78,7 +79,7 @@ export default async function ClosingsPage() {
       {(closings.data ?? []).length === 0 ? (
         <EmptyState title="Nenhum fechamento emitido ainda." text="Apure um mês acima, confira a prévia e emita a primeira versão." />
       ) : (
-        <ul className="divide-y divide-linha overflow-hidden rounded-panel border border-linha bg-papel">
+        <List variant="boxed">
           {(closings.data ?? []).map((c) => (
             <li key={c.id}>
               <Link href={`/admin/fechamentos/${c.id}`} className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 hover:bg-concreto">
@@ -95,7 +96,7 @@ export default async function ClosingsPage() {
               </Link>
             </li>
           ))}
-        </ul>
+        </List>
       )}
     </>
   );

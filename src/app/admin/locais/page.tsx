@@ -5,6 +5,7 @@ import { SITE_STATUS_LABEL, SITE_TYPE_LABEL, sanitizeSearch, type SiteStatus } f
 import { createSupabaseServer } from "@/server/supabase/server";
 import { buttonClass } from "@/ui/button";
 import { EmptyState, PageHeader } from "@/ui/page";
+import { DataTable } from "@/ui/data-table";
 import { SiteStatusBadge } from "../clientes/_shared/fields";
 
 export const metadata: Metadata = { title: "Locais" };
@@ -92,41 +93,36 @@ export default async function SitesPage({ searchParams }: { searchParams: Promis
       {sites.length === 0 ? (
         <EmptyState title={filtered ? "Nenhum local com esses filtros." : "Nenhum local cadastrado."} />
       ) : (
-        <div className="overflow-x-auto rounded-panel border border-linha bg-papel">
-          <table className="w-full min-w-[44rem] text-left text-[0.95rem]">
-            <thead className="border-b border-linha bg-concreto text-sm text-muted">
-              <tr>
-                <th className="px-3 py-2 font-semibold">Código</th>
-                <th className="px-3 py-2 font-semibold">Local</th>
-                <th className="px-3 py-2 font-semibold">Tipo</th>
-                <th className="px-3 py-2 text-right font-semibold">Equipe</th>
-                <th className="px-3 py-2 font-semibold">Situação</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-linha">
-              {sites.map((s) => (
-                <tr key={s.id} className="align-top hover:bg-concreto/60">
-                  <td className="px-3 py-2.5">
-                    <Link href={`/admin/locais/${s.id}`} className="tipo-condensada text-[1.0625rem] underline-offset-4 hover:underline">
-                      {s.code}
-                    </Link>
-                  </td>
-                  <td className="px-3 py-2.5">
-                    <Link href={`/admin/locais/${s.id}`} className="font-semibold hover:underline">
-                      {s.name}
-                    </Link>
-                    <p className="text-sm text-muted">{s.client?.display_name}</p>
-                  </td>
-                  <td className="px-3 py-2.5 text-sm">{SITE_TYPE_LABEL[s.site_type]}</td>
-                  <td className="px-3 py-2.5 text-right">{teamSize.get(s.id) ?? 0}</td>
-                  <td className="px-3 py-2.5">
-                    <SiteStatusBadge status={s.status} />
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <DataTable
+          variant="boxed"
+          minWidth="min-w-[44rem]"
+          rows={sites}
+          rowKey={(s) => s.id}
+          columns={[
+            {
+              header: "Código",
+              cell: (s) => (
+                <Link href={`/admin/locais/${s.id}`} className="tipo-condensada text-[1.0625rem] underline-offset-4 hover:underline">
+                  {s.code}
+                </Link>
+              ),
+            },
+            {
+              header: "Local",
+              cell: (s) => (
+                <>
+                  <Link href={`/admin/locais/${s.id}`} className="font-semibold hover:underline">
+                    {s.name}
+                  </Link>
+                  <p className="text-sm text-muted">{s.client?.display_name}</p>
+                </>
+              ),
+            },
+            { header: "Tipo", className: "text-sm", cell: (s) => SITE_TYPE_LABEL[s.site_type] },
+            { header: "Equipe", align: "right", cell: (s) => teamSize.get(s.id) ?? 0 },
+            { header: "Situação", cell: (s) => <SiteStatusBadge status={s.status} /> },
+          ]}
+        />
       )}
     </>
   );

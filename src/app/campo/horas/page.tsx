@@ -7,6 +7,7 @@ import { createSupabaseServer } from "@/server/supabase/server";
 import { ActionForm, SelectField, TextField } from "@/ui/form";
 import { EmptyState, PageHeader, Panel } from "@/ui/page";
 import { Badge } from "@/ui/status";
+import { List } from "@/ui/list";
 
 export const metadata: Metadata = { title: "Minhas horas" };
 
@@ -45,7 +46,7 @@ export default async function MyHoursPage() {
       {(data ?? []).length === 0 ? (
         <EmptyState title="Nenhuma jornada informada." />
       ) : (
-        <ul className="-mx-4 divide-y divide-linha border-y border-linha">
+        <List variant="bleed">
           {(data ?? []).map((t) => (
             <li key={t.id} className="flex items-center justify-between gap-2 px-4 py-3">
               <span>
@@ -58,7 +59,7 @@ export default async function MyHoursPage() {
               </span>
             </li>
           ))}
-        </ul>
+        </List>
       )}
     </>
   );

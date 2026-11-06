@@ -18,6 +18,7 @@ import { cn } from "@/ui/cn";
 import { EmptyState, Notice, PageHeader } from "@/ui/page";
 import { GenerateReportButton } from "@/ui/report-button";
 import { Badge } from "@/ui/status";
+import { DataTable } from "@/ui/data-table";
 import { listExpenses } from "./expense-list";
 
 // Esta página pede PDFs; a geração roda após a resposta e precisa caber no tempo da função (Vercel Hobby: até 300 s).
@@ -246,63 +247,66 @@ export default async function AdminExpensesPage({ searchParams }: { searchParams
       {list.rows.length === 0 ? (
         <EmptyState title="Nenhuma compra com esses filtros." text="As compras registradas pelo encarregado aparecem aqui para conferência." />
       ) : (
-        <div className="overflow-x-auto rounded-panel border border-linha bg-papel">
-          <table className="w-full min-w-[60rem] text-left text-[0.95rem]">
-            <thead className="border-b border-linha bg-concreto text-sm text-muted">
-              <tr>
-                <th className="px-3 py-2 font-semibold">Data</th>
-                <th className="px-3 py-2 font-semibold">Compra</th>
-                <th className="px-3 py-2 font-semibold">Rateio</th>
-                <th className="px-3 py-2 font-semibold">Comprador</th>
-                <th className="px-3 py-2 text-right font-semibold">Total da compra</th>
-                {(filters.siteId || filters.clientId) && (
-                  <th className="px-3 py-2 text-right font-semibold">{filters.siteId ? "Atribuído à obra" : "Atribuído ao cliente"}</th>
-                )}
-                <th className="px-3 py-2 font-semibold">Situação</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-linha">
-              {list.rows.slice(0, SHOW_ROWS).map((e) => (
-                <tr key={e.id} className="align-top hover:bg-concreto/60">
-                  <td className="px-3 py-2.5 text-sm">{formatDateBR(e.expenseDate)}</td>
-                  <td className="px-3 py-2.5">
-                    <Link href={`/admin/despesas/${e.id}`} className="font-semibold hover:underline">
-                      {e.description}
-                    </Link>
-                    <p className="text-sm text-muted">
-                      {e.supplierName}
-                      {e.categoryName ? ` · ${e.categoryName}` : ""}
-                    </p>
-                  </td>
-                  <td className="px-3 py-2.5 text-sm">
-                    <ul>
-                      {e.allocations.map((a) => (
-                        <li key={a.siteId} className={cn((filters.siteId || filters.clientId) && inFilter(a) && "font-semibold")}>
-                          {a.siteName}: <span className="tabular-nums">{formatBRL(a.amountCents)}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </td>
-                  <td className="px-3 py-2.5 text-sm">{profiles.name(e.purchasedBy)}</td>
-                  <td className="px-3 py-2.5 text-right font-semibold tabular-nums">{formatBRL(e.totalCents)}</td>
-                  {(filters.siteId || filters.clientId) && (
-                    <td className="px-3 py-2.5 text-right font-semibold tabular-nums">
-                      {formatBRL(e.allocations.filter(inFilter).reduce((n, a) => n + a.amountCents, 0))}
-                    </td>
+        <DataTable
+          variant="boxed"
+          minWidth="min-w-[60rem]"
+          rows={list.rows.slice(0, SHOW_ROWS)}
+          rowKey={(e) => e.id}
+          columns={[
+            { header: "Data", className: "text-sm", cell: (e) => formatDateBR(e.expenseDate) },
+            {
+              header: "Compra",
+              cell: (e) => (
+                <>
+                  <Link href={`/admin/despesas/${e.id}`} className="font-semibold hover:underline">
+                    {e.description}
+                  </Link>
+                  <p className="text-sm text-muted">
+                    {e.supplierName}
+                    {e.categoryName ? ` · ${e.categoryName}` : ""}
+                  </p>
+                </>
+              ),
+            },
+            {
+              header: "Rateio",
+              className: "text-sm",
+              cell: (e) => (
+                <ul>
+                  {e.allocations.map((a) => (
+                    <li key={a.siteId} className={cn((filters.siteId || filters.clientId) && inFilter(a) && "font-semibold")}>
+                      {a.siteName}: <span className="tabular-nums">{formatBRL(a.amountCents)}</span>
+                    </li>
+                  ))}
+                </ul>
+              ),
+            },
+            { header: "Comprador", className: "text-sm", cell: (e) => profiles.name(e.purchasedBy) },
+            { header: "Total da compra", align: "right", className: "font-semibold tabular-nums", cell: (e) => formatBRL(e.totalCents) },
+            filters.siteId || filters.clientId
+              ? {
+                  header: filters.siteId ? "Atribuído à obra" : "Atribuído ao cliente",
+                  align: "right",
+                  className: "font-semibold tabular-nums",
+                  cell: (e) => formatBRL(e.allocations.filter(inFilter).reduce((n, a) => n + a.amountCents, 0)),
+                }
+              : null,
+            {
+              header: "Situação",
+              className: "space-y-1",
+              cell: (e) => (
+                <>
+                  <Badge tone={EXPENSE_STATUS_TONE[e.reviewStatus]}>{EXPENSE_STATUS_LABEL[e.reviewStatus]}</Badge>
+                  {e.reimbursement && (
+                    <div>
+                      <Badge tone={REIMBURSEMENT_STATUS_TONE[e.reimbursement.status]}>{REIMBURSEMENT_STATUS_LABEL[e.reimbursement.status]}</Badge>
+                    </div>
                   )}
-                  <td className="space-y-1 px-3 py-2.5">
-                    <Badge tone={EXPENSE_STATUS_TONE[e.reviewStatus]}>{EXPENSE_STATUS_LABEL[e.reviewStatus]}</Badge>
-                    {e.reimbursement && (
-                      <div>
-                        <Badge tone={REIMBURSEMENT_STATUS_TONE[e.reimbursement.status]}>{REIMBURSEMENT_STATUS_LABEL[e.reimbursement.status]}</Badge>
-                      </div>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+                </>
+              ),
+            },
+          ]}
+        />
       )}
     </>
   );
