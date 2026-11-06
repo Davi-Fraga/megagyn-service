@@ -87,6 +87,12 @@ export function formatDateTimeBR(value: string | Date | null | undefined, tz: st
   return `${two(p.day)}/${two(p.month)}/${p.year} ${two(p.hour)}:${two(p.minute)}`;
 }
 
+/** Instante → "14:02" no fuso da empresa. */
+export function formatTimeBR(value: string | Date | null | undefined, tz: string = APP_TIMEZONE): string {
+  const full = formatDateTimeBR(value, tz);
+  return full === "—" ? full : full.slice(11);
+}
+
 /** "25/10/2026" → "2026-10-25"; null se inválida. */
 export function parseDateBR(input: string): string | null {
   const m = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(input.trim());
@@ -112,6 +118,13 @@ export function monthName(month: number): string {
 /** "SETEMBRO / 2026" — título/cabeçalho do fechamento mensal. */
 export function monthTitle(year: number, month: number): string {
   return `${monthName(month).toLocaleUpperCase("pt-BR")} / ${year}`;
+}
+
+/** "2026-10-30" → "sexta-feira". */
+export function weekdayPt(iso: string): string {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
+  if (!m) throw new Error(`Data inválida: ${iso}`);
+  return WEEKDAYS[new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]))).getUTCDay()]!;
 }
 
 /** "2026-09-01" → "terça-feira, 1 de setembro de 2026". */
