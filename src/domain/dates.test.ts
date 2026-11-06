@@ -3,9 +3,11 @@ import {
   addDaysIso,
   formatDateBR,
   formatDateTimeBR,
+  formatTimeBR,
   isoDateInTz,
   longDatePt,
   monthCutoffUtc,
+  weekdayPt,
   monthName,
   monthRangeUtc,
   monthTitle,
@@ -69,5 +71,18 @@ describe("formatação pt-BR", () => {
   it("soma dias em datas ISO", () => {
     expect(addDaysIso("2026-09-30", 1)).toBe("2026-10-01");
     expect(addDaysIso("2026-10-01", -1)).toBe("2026-09-30");
+  });
+});
+
+describe("dia da semana e horário (histórico da O.S.)", () => {
+  it("dá o dia da semana de uma data ISO", () => {
+    expect(weekdayPt("2026-10-30")).toBe("sexta-feira");
+    expect(weekdayPt("2026-11-01")).toBe("domingo");
+  });
+
+  it("dá a hora e o minuto do instante no fuso da empresa", () => {
+    expect(formatTimeBR("2026-10-30T13:21:00Z")).toBe("10:21");
+    expect(formatTimeBR("2026-10-31T02:05:00Z")).toBe("23:05");
+    expect(formatTimeBR(null)).toBe("—");
   });
 });
