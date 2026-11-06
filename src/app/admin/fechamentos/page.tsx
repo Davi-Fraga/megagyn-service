@@ -5,8 +5,8 @@ import { loadSites } from "@/server/data";
 import { createSupabaseServer } from "@/server/supabase/server";
 import { buttonClass } from "@/ui/button";
 import { EmptyState, PageHeader, Panel } from "@/ui/page";
-import { Badge } from "@/ui/status";
-import { List } from "@/ui/list";
+import { cn } from "@/ui/cn";
+import { DataTable } from "@/ui/data-table";
 
 export const metadata: Metadata = { title: "Fechamento mensal" };
 
@@ -79,24 +79,39 @@ export default async function ClosingsPage() {
       {(closings.data ?? []).length === 0 ? (
         <EmptyState title="Nenhum fechamento emitido ainda." text="Apure um mês acima, confira a prévia e emita a primeira versão." />
       ) : (
-        <List variant="boxed">
-          {(closings.data ?? []).map((c) => (
-            <li key={c.id}>
-              <Link href={`/admin/fechamentos/${c.id}`} className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 hover:bg-concreto">
-                <span>
-                  <span className="tipo-placa block">{monthTitle(c.period_year, c.period_month)}</span>
-                  <span className="text-sm text-muted">
-                    {c.client?.display_name} — {c.site?.name ?? "todas as unidades"}
-                  </span>
-                </span>
-                <span className="flex items-center gap-2 text-sm">
-                  {c.current ? `Versão ${c.current.version_no} · ${formatDateTimeBR(c.current.generated_at)}` : "Sem versão"}
-                  <Badge tone={c.status === "fechado" ? "ok" : "neutral"}>{c.status === "fechado" ? "Emitido" : "Rascunho"}</Badge>
-                </span>
-              </Link>
-            </li>
-          ))}
-        </List>
+        <DataTable
+          variant="ruler"
+          minWidth="min-w-[44rem]"
+          rows={closings.data ?? []}
+          rowKey={(c) => c.id}
+          columns={[
+            {
+              header: "Mês",
+              headerClassName: "whitespace-nowrap",
+              cell: (c) => (
+                <Link href={`/admin/fechamentos/${c.id}`} className="tipo-placa whitespace-nowrap underline-offset-4 hover:underline">
+                  {monthTitle(c.period_year, c.period_month)}
+                </Link>
+              ),
+            },
+            {
+              header: "Cliente e unidade",
+              cell: (c) => (
+                <>
+                  <p className="font-semibold leading-snug">{c.client?.display_name}</p>
+                  <p className="mt-0.5 text-[0.9375rem] text-muted">{c.site?.name ?? "Todas as unidades"}</p>
+                </>
+              ),
+            },
+            { header: "Versão atual", className: "tipo-condensada text-[0.9375rem]", cell: (c) => (c.current ? `Versão ${c.current.version_no}` : "Sem versão") },
+            { header: "Emitida em", className: "tipo-condensada text-[0.9375rem]", cell: (c) => (c.current ? formatDateTimeBR(c.current.generated_at) : "—") },
+            {
+              header: "Situação",
+              className: (c) => cn("text-[0.9375rem] font-semibold", c.status === "fechado" ? "text-ok" : "text-muted"),
+              cell: (c) => (c.status === "fechado" ? "Emitido" : "Rascunho"),
+            },
+          ]}
+        />
       )}
     </>
   );

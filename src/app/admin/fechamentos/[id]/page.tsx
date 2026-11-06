@@ -14,7 +14,6 @@ import { ActionForm, CheckboxField, SelectField, TextAreaField } from "@/ui/form
 import { Notice, PageHeader, Panel } from "@/ui/page";
 import { ReasonAction } from "@/ui/reason-action";
 import { GenerateReportButton } from "@/ui/report-button";
-import { Badge } from "@/ui/status";
 import { rowOrNotFound } from "@/server/query";
 
 // Esta página pede PDFs; a geração roda após a resposta e precisa caber no tempo da função (Vercel Hobby: até 300 s).
@@ -62,7 +61,7 @@ export default async function ClosingDetailPage({
     <>
       <PageHeader
         back={{ href: "/admin/fechamentos", label: "Fechamento mensal" }}
-        eyebrow={`${closing.client?.display_name} — ${closing.site?.name ?? "todas as unidades"}`}
+        eyebrow={`${closing.client?.display_name}, ${closing.site?.name ?? "todas as unidades"}`}
         title={<span className="tipo-placa text-3xl">{monthTitle(closing.period_year, closing.period_month)}</span>}
         description={selected ? `Mostrando a versão ${selected.version_no}, emitida em ${formatDateTimeBR(selected.generated_at)} por ${profiles.name(selected.generated_by)}.` : "Nenhuma versão emitida."}
       />
@@ -72,10 +71,11 @@ export default async function ClosingDetailPage({
         </div>
       )}
 
-      <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_21rem]">
+      {/* grid-cols-1: sem ela, a coluna única do celular cresce até a largura mínima do demonstrativo. */}
+      <div className="grid grid-cols-1 gap-x-14 gap-y-10 lg:grid-cols-[minmax(0,1fr)_22rem]">
         <div>{payload ? <ClosingView payload={payload} /> : <Notice tone="info">Emita a primeira versão pela apuração.</Notice>}</div>
 
-        <aside className="space-y-4">
+        <aside className="space-y-10">
           {selected && (
             <Panel title="Exportar PDF">
               <div className="space-y-3">
@@ -93,7 +93,7 @@ export default async function ClosingDetailPage({
                               {a.file_name}
                             </a>{" "}
                             <span className="text-muted">
-                              ({a.page_count ?? "?"} págs. · {formatDateTimeBR(a.finished_at)})
+                              ({a.page_count ?? "?"} páginas, {formatDateTimeBR(a.finished_at)})
                             </span>
                           </li>
                         ))}
@@ -105,17 +105,17 @@ export default async function ClosingDetailPage({
           )}
 
           <Panel title="Versões">
-            <ul className="space-y-2">
+            <ul className="divide-y divide-linha border-y border-linha">
               {list.map((v) => (
                 <li key={v.id}>
                   <Link
                     href={`/admin/fechamentos/${id}?versao=${v.id}`}
                     aria-current={v.id === selectedId ? "page" : undefined}
-                    className={cn("block rounded-ctl border px-3 py-2", v.id === selectedId ? "border-grafite bg-concreto" : "border-linha hover:bg-concreto")}
+                    className={cn("block border-l-2 py-2.5 pl-3", v.id === selectedId ? "border-acento bg-concreto/45" : "border-transparent hover:bg-concreto/45")}
                   >
-                    <span className="flex items-center justify-between font-semibold">
+                    <span className="flex items-baseline justify-between gap-3 font-semibold">
                       Versão {v.version_no}
-                      {v.id === closing.current_version_id && <Badge tone="ok">Atual</Badge>}
+                      {v.id === closing.current_version_id && <span className="pr-1 text-sm text-acento">Atual</span>}
                     </span>
                     <span className="block text-sm text-muted">{formatDateTimeBR(v.generated_at)}</span>
                     {v.reason && <span className="block text-sm">Motivo: {v.reason}</span>}
@@ -148,9 +148,9 @@ export default async function ClosingDetailPage({
               {(deliveries ?? []).length > 0 && (
                 <ul className="mt-4 space-y-2 text-sm">
                   {(deliveries ?? []).map((d) => (
-                    <li key={d.id} className="rounded-ctl border border-linha p-2">
+                    <li key={d.id} className="border-t border-linha pt-2 first:border-t-0 first:pt-0">
                       <p className={cn("font-semibold", d.revoked_at && "line-through")}>
-                        {d.delivery_channel} · {formatDateTimeBR(d.published_at)} · {profiles.name(d.published_by)}
+                        {`${d.delivery_channel}, ${formatDateTimeBR(d.published_at)}, por ${profiles.name(d.published_by)}`}
                       </p>
                       {d.delivery_note && <p>{d.delivery_note}</p>}
                       {d.revoked_at ? (

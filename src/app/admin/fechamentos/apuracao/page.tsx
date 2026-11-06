@@ -48,14 +48,14 @@ export default async function ClosingPreviewPage({
     <>
       <PageHeader
         back={{ href: "/admin/fechamentos", label: "Fechamento mensal" }}
-        eyebrow={`${payload.client.displayName} — ${siteId ? payload.sites[0]?.name : "todas as unidades"}`}
+        eyebrow={`${payload.client.displayName}, ${siteId ? payload.sites[0]?.name : "todas as unidades"}`}
         title={<span className="tipo-placa text-3xl">{payload.period.title}</span>}
         description="Prévia calculada agora. Ao emitir, o conteúdo fica congelado nesta versão."
       />
 
-      <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_20rem]">
+      <div className="grid grid-cols-1 gap-x-14 gap-y-10 lg:grid-cols-[minmax(0,1fr)_22rem]">
         <ClosingView payload={payload} />
-        <aside className="space-y-4 lg:sticky lg:top-6 lg:self-start">
+        <aside className="space-y-10 lg:sticky lg:top-6 lg:self-start">
           <Panel title="Demonstrativo">
             {(rules ?? []).length === 0 ? (
               <p className="text-sm text-muted">Este cliente não tem regra de valor de diária/hora. Cadastre em Horas e diárias para incluir o demonstrativo.</p>

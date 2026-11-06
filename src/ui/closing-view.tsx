@@ -1,5 +1,5 @@
 import { formatUnits } from "@/domain/billing";
-import { formatDateBR, formatDateTimeBR } from "@/domain/dates";
+import { formatDateBR, formatDateTimeBR, weekdayPt } from "@/domain/dates";
 import { formatBRL } from "@/domain/money";
 import type { ClosingPayload, ClosingRequestItem } from "@/server/closings";
 import { Panel } from "./page";
@@ -15,15 +15,16 @@ function RequestTable({ title, note, items, detail }: { title: string; note?: st
       {items.length === 0 ? (
         <p className="text-sm text-muted">Nenhum.</p>
       ) : (
-        <ul className="divide-y divide-linha rounded-ctl border border-linha">
+        <ul className="divide-y divide-linha border-y border-linha">
           {items.map((i) => (
-            <li key={i.id} className="space-y-0.5 px-3 py-2">
+            <li key={i.id} className="space-y-0.5 py-2.5">
               <p>
                 <span className="tipo-condensada mr-2">{i.number}</span>
                 <span className="font-semibold">{i.title}</span>
               </p>
-              <p className="text-sm text-muted">
-                {[i.siteName, i.areaName].filter(Boolean).join(" · ")} · situação no fim do mês: {i.statusLabel}
+              <p className="flex flex-wrap gap-x-4 text-sm text-muted">
+                <span>{[i.siteName, i.areaName].filter(Boolean).join(", ")}</span>
+                <span>Situação no fim do mês: {i.statusLabel}</span>
               </p>
               <div className="text-sm">{detail(i)}</div>
             </li>
@@ -37,9 +38,13 @@ function RequestTable({ title, note, items, detail }: { title: string; note?: st
 function pending(i: ClosingRequestItem) {
   if (i.pending) {
     return (
-      <span>
-        Motivo: {i.pending.reason ?? "—"} · {i.pending.explanation} · Providência: {i.pending.nextAction} ({i.pending.ownerName}) · Previsão:{" "}
-        {formatDateBR(i.pending.expectedReturnDate)}
+      <span className="flex flex-wrap gap-x-4">
+        <span>Motivo: {i.pending.reason ?? "—"}</span>
+        <span>{i.pending.explanation}</span>
+        <span>
+          Providência: {i.pending.nextAction} ({i.pending.ownerName})
+        </span>
+        <span>Previsão: {formatDateBR(i.pending.expectedReturnDate)}</span>
       </span>
     );
   }
@@ -47,7 +52,7 @@ function pending(i: ClosingRequestItem) {
     return (
       <span>
         Programado para {formatDateBR(i.schedule.scheduledDate)}
-        {i.schedule.assigneeNames.length ? ` · ${i.schedule.assigneeNames.join(", ")}` : ""}
+        {i.schedule.assigneeNames.length ? `, com ${i.schedule.assigneeNames.join(", ")}` : ""}
       </span>
     );
   }
@@ -71,11 +76,11 @@ export function ClosingView({ payload }: { payload: ClosingPayload }) {
   const open = [...r.emAberto.pendente, ...r.emAberto.em_execucao, ...r.emAberto.programada, ...r.emAberto.aberta];
 
   return (
-    <div className="space-y-5">
-      <Panel title={`Resumo — ${payload.period.title}`}>
-        <dl className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+    <div className="space-y-10">
+      <Panel title="Resumo do mês">
+        <dl className="grid grid-cols-2 gap-x-6 gap-y-5 sm:grid-cols-4">
           {tiles.map(([n, label]) => (
-            <div key={label} className="rounded-ctl border border-linha px-3 py-2">
+            <div key={label} className="border-t border-linha pt-2">
               <dt className="text-sm text-muted">{label}</dt>
               <dd className="tipo-placa text-2xl">{n}</dd>
             </div>
@@ -97,9 +102,10 @@ export function ClosingView({ payload }: { payload: ClosingPayload }) {
             items={r.concluidos}
             detail={(i) => (
               <div className="space-y-2">
-                <p>
-                  Concluído em {i.validatedAt ? formatDateTimeBR(i.validatedAt) : "—"}
-                  {i.openedBeforePeriod ? " · aberto em mês anterior" : ""} · Solução: {i.solution ?? "—"}
+                <p className="flex flex-wrap gap-x-4">
+                  <span>Concluído em {i.validatedAt ? formatDateTimeBR(i.validatedAt) : "—"}</span>
+                  {i.openedBeforePeriod && <span>Aberto em mês anterior</span>}
+                  <span>Solução: {i.solution ?? "—"}</span>
                 </p>
                 {i.resultPhotos.length > 0 && <PhotoGrid photos={i.resultPhotos.map((p) => ({ ...p, role: "resultado" }))} />}
               </div>
@@ -113,18 +119,21 @@ export function ClosingView({ payload }: { payload: ClosingPayload }) {
       </Panel>
 
       {payload.sites.map((site) => (
-        <Panel key={site.id} title={`Diário de serviços — ${site.name}`}>
+        <Panel key={site.id} title={`Diário de serviços: ${site.name}`}>
           {site.days.length === 0 ? (
             <p className="text-muted">Nenhum serviço registrado no período.</p>
           ) : (
             <ol className="space-y-5">
               {site.days.map((d, idx) => (
                 <li key={d.date} className="space-y-2">
-                  <p className="rounded-ctl bg-grafite px-3 py-2 font-bold text-white">
-                    {idx + 1}. Data: {formatDateBR(d.date)}
+                  <p className="flex flex-wrap items-baseline justify-between gap-x-4 border-b border-grafite pb-1.5">
+                    <span className="tipo-condensada text-[1.0625rem]">
+                      {idx + 1}. {formatDateBR(d.date)}
+                      <span className="ml-2 text-[0.9375rem] font-medium text-muted">{weekdayPt(d.date.slice(0, 10))}</span>
+                    </span>
                     {d.hoursByPerson.length > 0 && (
-                      <span className="float-right font-semibold">
-                        {d.hoursByPerson.map((h) => `${h.name.split(" ")[0]} ${String(h.hours).replace(".", ",")} h`).join(" · ")}
+                      <span className="text-sm font-semibold">
+                        {d.hoursByPerson.map((h) => `${h.name.split(" ")[0]} ${String(h.hours).replace(".", ",")} h`).join(", ")}
                       </span>
                     )}
                   </p>
@@ -133,11 +142,10 @@ export function ClosingView({ payload }: { payload: ClosingPayload }) {
                       <li key={a.id}>
                         {a.text}
                         {a.areaName && <span className="text-muted"> ({a.areaName})</span>}
-                        {a.requestNumber && <span className="text-muted"> — chamado {a.requestNumber}</span>}
+                        {a.requestNumber && <span className="text-muted">, chamado {a.requestNumber}</span>}
                         {a.outcome !== "executado" && (
                           <span className="text-alerta">
-                            {" "}
-                            — {a.outcome === "parcial" ? "feito em parte" : "não realizado"}
+                            , {a.outcome === "parcial" ? "feito em parte" : "não realizado"}
                             {a.blockerReason ? `: ${a.blockerReason}` : ""}
                           </span>
                         )}
