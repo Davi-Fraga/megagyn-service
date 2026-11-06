@@ -111,13 +111,13 @@ test("compra rateada 600/400, conferência, alteração após aprovação e reem
   // 4. Administração registra o reembolso (independe da conferência): parcial e depois quitado.
   await page.goto("/admin/reembolsos");
   let row = page.locator(`li[data-reimbursement="${expenseId}"]`);
-  await expect(row).toContainText("saldo R$ 1.100,00");
+  await expect(row).toContainText("Saldo R$ 1.100,00");
   await row.getByLabel("Valor pago (R$)").fill("500,00");
   await row.getByRole("button", { name: "Registrar pagamento" }).click();
   await page.waitForURL(/feito=pago/, { timeout: 120_000 });
   await expect(page.getByText("Pagamento registrado. Ainda há saldo a reembolsar.")).toBeVisible();
   row = page.locator(`li[data-reimbursement="${expenseId}"]`);
-  await expect(row).toContainText("saldo R$ 600,00");
+  await expect(row).toContainText("Saldo R$ 600,00");
   await expect(row).toContainText("Reembolso parcial");
   await row.getByRole("button", { name: "Registrar pagamento" }).click();
   await page.waitForURL(/feito=quitado/, { timeout: 120_000 });

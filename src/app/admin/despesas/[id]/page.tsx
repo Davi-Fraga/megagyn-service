@@ -46,7 +46,7 @@ export default async function AdminExpensePage({
     <>
       <PageHeader
         back={{ href: "/admin/despesas", label: "Compras e despesas" }}
-        eyebrow={`${formatDateBR(e.expenseDate)} · ${e.supplierName} · ${profiles.name(e.purchasedBy)}`}
+        eyebrow={`${formatDateBR(e.expenseDate)}, ${e.supplierName}, por ${profiles.name(e.purchasedBy)}`}
         title={e.description}
         description={<ExpenseBadges detail={detail} />}
       />
@@ -56,8 +56,9 @@ export default async function AdminExpensePage({
         </div>
       )}
 
-      <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_22rem]">
-        <div className="space-y-5">
+      {/* grid-cols-1: sem ela, a coluna única do celular cresce além da tela. */}
+      <div className="grid grid-cols-1 gap-x-14 gap-y-10 lg:grid-cols-[minmax(0,1fr)_22rem]">
+        <div className="space-y-10">
           <Panel title="Compra">
             <ExpenseFacts detail={detail} name={profiles.name} requestHref={(rid) => `/admin/chamados/${rid}`} />
           </Panel>
@@ -75,7 +76,7 @@ export default async function AdminExpensePage({
           </Panel>
         </div>
 
-        <div className="space-y-5">
+        <aside className="space-y-10">
           <Panel title="Conferência">
             {e.reviewStatus === "rascunho" && <p className="text-sm text-muted">Rascunho: ainda não foi enviada para conferência.</p>}
             {e.reviewStatus === "devolvido_para_correcao" && (
@@ -120,7 +121,7 @@ export default async function AdminExpensePage({
               </div>
             )}
           </Panel>
-        </div>
+        </aside>
       </div>
     </>
   );

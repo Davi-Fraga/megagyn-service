@@ -8,9 +8,8 @@ import { loadProfiles, loadSites } from "@/server/data";
 import { createSupabaseServer } from "@/server/supabase/server";
 import { buttonClass } from "@/ui/button";
 import { ActionForm, CheckboxField, SelectField, TextField } from "@/ui/form";
-import { EmptyState, Notice, PageHeader, Panel } from "@/ui/page";
+import { EmptyState, Notice, PageHeader, Panel, RowList } from "@/ui/page";
 import { Badge } from "@/ui/status";
-import { List } from "@/ui/list";
 
 export const metadata: Metadata = { title: "Horas e diárias" };
 
@@ -89,35 +88,38 @@ export default async function HoursPage({ searchParams }: { searchParams: Promis
       </form>
 
       {site && (
-        <div className="mb-8 grid gap-5 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
-          <Panel title={`Jornadas — ${site.name}`} actions={<span className="text-sm text-muted">{String(Math.round(totalHours * 100) / 100).replace(".", ",")} h no mês</span>}>
+        // grid-cols-1: sem ela, a coluna única do celular cresce até a largura mínima da tabela de jornadas.
+        <div className="mb-12 grid grid-cols-1 gap-x-14 gap-y-10 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
+          <Panel title={`Jornadas: ${site.name}`} actions={<span className="tipo-condensada text-[0.9375rem] text-muted">{String(Math.round(totalHours * 100) / 100).replace(".", ",")} h no mês</span>}>
             {(entries ?? []).length === 0 ? (
               <p className="text-muted">Nenhuma jornada no mês.</p>
             ) : (
               <ActionForm action={approveTimeEntriesAction} submitLabel="Marcar selecionadas como conferidas" submitVariant="secondary">
                 <div className="overflow-x-auto">
                   <table className="w-full min-w-[34rem] text-left text-[0.95rem]">
-                    <thead className="border-b border-linha text-sm text-muted">
-                      <tr>
-                        <th className="py-1" />
-                        <th className="py-1">Dia</th>
-                        <th className="py-1">Pessoa</th>
-                        <th className="py-1 text-right">Horas</th>
-                        <th className="py-1 text-right">Diárias</th>
-                        <th className="py-1">Situação</th>
+                    <thead>
+                      <tr className="tipo-condensada text-[0.8125rem] text-muted">
+                        <th scope="col" className="w-8 border-b border-grafite pb-2">
+                          <span className="sr-only">Selecionar</span>
+                        </th>
+                        <th scope="col" className="border-b border-grafite pb-2 pr-4 font-semibold">Dia</th>
+                        <th scope="col" className="border-b border-grafite pb-2 pr-4 font-semibold">Pessoa</th>
+                        <th scope="col" className="border-b border-grafite pb-2 pr-4 text-right font-semibold">Horas</th>
+                        <th scope="col" className="border-b border-grafite pb-2 pr-4 text-right font-semibold">Diárias</th>
+                        <th scope="col" className="border-b border-grafite pb-2 font-semibold">Situação</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-linha">
                       {(entries ?? []).map((t) => (
                         <tr key={t.id}>
-                          <td className="py-1.5">
+                          <td className="py-2">
                             {!t.approved_at && <input type="checkbox" name="time_entry_ids" value={t.id} className="size-5 accent-acento" aria-label="Selecionar jornada" />}
                           </td>
-                          <td className="py-1.5">{formatDateBR(t.work_date)}</td>
-                          <td className="py-1.5">{profiles.name(t.profile_id)}</td>
-                          <td className="py-1.5 text-right">{t.hours === null ? "—" : String(t.hours).replace(".", ",")}</td>
-                          <td className="py-1.5 text-right">{t.billable ? String(t.billing_units).replace(".", ",") : "não faturável"}</td>
-                          <td className="py-1.5">{t.approved_at ? <Badge tone="ok">Conferida</Badge> : <Badge>A conferir</Badge>}</td>
+                          <td className="tipo-condensada py-2 pr-4 tabular-nums">{formatDateBR(t.work_date)}</td>
+                          <td className="py-2 pr-4">{profiles.name(t.profile_id)}</td>
+                          <td className="py-2 pr-4 text-right tabular-nums">{t.hours === null ? "—" : String(t.hours).replace(".", ",")}</td>
+                          <td className="py-2 pr-4 text-right tabular-nums">{t.billable ? String(t.billing_units).replace(".", ",") : "não faturável"}</td>
+                          <td className="py-2">{t.approved_at ? <Badge tone="ok">Conferida</Badge> : <Badge>A conferir</Badge>}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -152,17 +154,17 @@ export default async function HoursPage({ searchParams }: { searchParams: Promis
               <Notice tone="alerta">Este cliente não tem regra de valor. Cadastre abaixo para calcular o demonstrativo.</Notice>
             ) : (
               <>
-                <dl className="grid grid-cols-2 gap-3">
-                  <div>
-                    <dt className="text-sm text-muted">{statement.unitType === "diaria" ? "Diárias faturáveis" : "Horas faturáveis"}</dt>
+                <dl className="grid grid-cols-2 gap-x-8 gap-y-5">
+                  <div className="border-t border-linha pt-2">
+                    <dt className="text-[0.8125rem] text-muted">{statement.unitType === "diaria" ? "Diárias faturáveis" : "Horas faturáveis"}</dt>
                     <dd className="tipo-placa text-2xl">{formatUnits(statement.unitsTotalCenti)}</dd>
                   </div>
-                  <div>
-                    <dt className="text-sm text-muted">Valor de serviço</dt>
+                  <div className="border-t border-linha pt-2">
+                    <dt className="text-[0.8125rem] text-muted">Valor de serviço</dt>
                     <dd className="tipo-placa text-2xl">{formatBRL(statement.totalCents)}</dd>
                   </div>
                 </dl>
-                <p className="mt-2 text-sm text-muted">Valor faturável ao cliente. Não inclui nem se soma a despesas internas.</p>
+                <p className="mt-3 text-sm text-muted">Valor faturável ao cliente. Não inclui nem se soma a despesas internas.</p>
                 {statement.missingRuleDates.length > 0 && (
                   <p className="mt-2 text-sm text-alerta">Dias sem regra vigente: {statement.missingRuleDates.map(formatDateBR).join(", ")}.</p>
                 )}
@@ -172,25 +174,24 @@ export default async function HoursPage({ searchParams }: { searchParams: Promis
         </div>
       )}
 
-      <h2 className="mb-2 text-lg font-bold">Regras de valor por contrato</h2>
-      <div className="grid gap-5 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
+      <h2 className="mb-3 text-lg font-bold">Regras de valor por contrato</h2>
+      <div className="grid grid-cols-1 gap-x-14 gap-y-10 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
         {(rules.data ?? []).length === 0 ? (
           <EmptyState title="Nenhuma regra cadastrada." text="Contratos que não cobram por diária ou hora podem ficar sem regra." />
         ) : (
-          <List variant="boxed">
+          <RowList>
             {(rules.data ?? []).map((r) => (
-              <li key={r.id} className="space-y-2 px-4 py-3">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <span>
-                    <span className="block font-semibold">
-                      {r.client?.display_name} — {r.site?.name ?? "todas as unidades"}
-                    </span>
-                    <span className="text-sm text-muted">
-                      {formatBRL(r.unit_price_cents)} por {r.unit_type === "diaria" ? "diária" : "hora"} · de {formatDateBR(r.valid_from)} {r.valid_to ? `até ${formatDateBR(r.valid_to)}` : "sem data final"}
-                      {r.show_in_client_report ? " · aparece no relatório" : ""}
-                    </span>
+              <li key={r.id} className="space-y-2 py-3">
+                <p className="font-semibold leading-snug">
+                  {r.client?.display_name}, {r.site?.name ?? "todas as unidades"}
+                </p>
+                <p className="flex flex-wrap gap-x-5 gap-y-0.5 text-sm text-muted">
+                  <span className="tabular-nums">
+                    {formatBRL(r.unit_price_cents)} por {r.unit_type === "diaria" ? "diária" : "hora"}
                   </span>
-                </div>
+                  <span>{r.valid_to ? `De ${formatDateBR(r.valid_from)} até ${formatDateBR(r.valid_to)}` : `A partir de ${formatDateBR(r.valid_from)}, sem data final`}</span>
+                  {r.show_in_client_report && <span>Aparece no relatório</span>}
+                </p>
                 {!r.valid_to && (
                   <details>
                     <summary className="cursor-pointer text-sm font-semibold text-info">Encerrar vigência</summary>
@@ -204,12 +205,12 @@ export default async function HoursPage({ searchParams }: { searchParams: Promis
                 )}
               </li>
             ))}
-          </List>
+          </RowList>
         )}
         <Panel title="Nova regra">
           <ActionForm action={createBillingRuleAction} submitLabel="Criar regra" resetOnSuccess>
             <SelectField label="Cliente" name="client_id" required options={(clients.data ?? []).map((c) => ({ value: c.id, label: c.display_name }))} />
-            <SelectField label="Unidade (opcional)" name="site_id" options={sites.map((s) => ({ value: s.id, label: `${s.clientName} — ${s.name}` }))} placeholder="Todas as unidades do cliente" />
+            <SelectField label="Unidade" name="site_id" options={sites.map((s) => ({ value: s.id, label: `${s.clientName} — ${s.name}` }))} placeholder="Todas as unidades do cliente" />
             <SelectField
               label="Cobrança por"
               name="unit_type"

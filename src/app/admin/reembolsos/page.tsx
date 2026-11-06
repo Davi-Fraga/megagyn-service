@@ -58,15 +58,13 @@ export default async function ReimbursementsPage({ searchParams }: { searchParam
           <Notice tone="ok">{DONE[feito]}</Notice>
         </div>
       )}
-      <div className="mb-5 grid gap-3 sm:grid-cols-3">
-        <div className="rounded-panel border border-linha bg-papel px-4 py-3">
-          <p className="text-sm font-semibold text-muted">Saldo a reembolsar</p>
-          <p className="text-2xl font-bold tabular-nums">{formatBRL(openBalance)}</p>
-          <p className="text-sm text-muted">{open.length} reembolso(s) em aberto</p>
-        </div>
+      <div className="mb-10 max-w-xs border-t-2 border-grafite pt-2">
+        <p className="text-[0.8125rem] text-muted">Saldo a reembolsar</p>
+        <p className="tipo-placa text-2xl tabular-nums">{formatBRL(openBalance)}</p>
+        <p className="text-sm text-muted">{open.length} reembolso(s) em aberto</p>
       </div>
 
-      <div className="space-y-5">
+      <div className="space-y-10">
         {SECTIONS.map((section) => {
           const items = list.filter((r) => r.status === section.status);
           return (
@@ -74,22 +72,30 @@ export default async function ReimbursementsPage({ searchParams }: { searchParam
               {items.length === 0 ? (
                 <EmptyState title={section.empty} />
               ) : (
-                <ul className="divide-y divide-linha">
+                <ul className="divide-y divide-linha border-y border-linha">
                   {items.map((r) => {
                     const balance = r.amount_due_cents - r.amount_paid_cents;
                     const e = r.expense;
                     return (
-                      <li key={r.id} data-reimbursement={r.expense_id} className="grid gap-3 py-3 lg:grid-cols-[minmax(0,1fr)_20rem]">
-                        <div className="min-w-0 space-y-1">
-                          <p className="text-sm text-muted">
-                            {formatDateBR(e?.expense_date)} · {e?.supplier?.name ?? e?.supplier_name_free ?? "—"}
+                      <li key={r.id} data-reimbursement={r.expense_id} className="grid grid-cols-1 gap-x-10 gap-y-4 py-4 lg:grid-cols-[minmax(0,1fr)_20rem]">
+                        <div className="min-w-0 space-y-1.5">
+                          <p className="tipo-condensada text-[0.9375rem] text-muted">
+                            {[formatDateBR(e?.expense_date), e?.supplier?.name ?? e?.supplier_name_free].filter(Boolean).join(", ")}
                           </p>
-                          <Link href={`/admin/despesas/${r.expense_id}`} className="font-semibold hover:underline">
+                          <Link href={`/admin/despesas/${r.expense_id}`} className="block text-[1.0625rem] font-semibold leading-snug hover:underline">
                             {e?.description ?? "Compra"}
                           </Link>
-                          <p className="text-[0.95rem]">
-                            Para <b>{profiles.name(r.payee_profile_id)}</b> · devido {formatBRL(r.amount_due_cents)} · pago{" "}
-                            {formatBRL(r.amount_paid_cents)} · <b>saldo {formatBRL(balance)}</b>
+                          <p className="flex flex-wrap gap-x-5 gap-y-1 text-[0.95rem]">
+                            <span>
+                              <span className="text-muted">Para</span> <b>{profiles.name(r.payee_profile_id)}</b>
+                            </span>
+                            <span className="tabular-nums">
+                              <span className="text-muted">Devido</span> {formatBRL(r.amount_due_cents)}
+                            </span>
+                            <span className="tabular-nums">
+                              <span className="text-muted">Pago</span> {formatBRL(r.amount_paid_cents)}
+                            </span>
+                            <span className="font-semibold tabular-nums">Saldo {formatBRL(balance)}</span>
                           </p>
                           <div className="flex flex-wrap gap-1.5">
                             <Badge tone={REIMBURSEMENT_STATUS_TONE[r.status]}>{REIMBURSEMENT_STATUS_LABEL[r.status]}</Badge>
