@@ -36,9 +36,19 @@ const must = <R extends { data: unknown; error: unknown }>(r: R, label: string):
   return r.data as NonNullable<R["data"]>;
 };
 
+/** Procura o usuário em todas as páginas: a base local acumula usuários criados pelos testes (passou de 1000 em 06/11/2026). */
+async function findUserByEmail(email: string) {
+  const perPage = 1000;
+  for (let page = 1; ; page++) {
+    const list = await svc.auth.admin.listUsers({ page, perPage });
+    if (list.error) throw new Error(`listar usuários: ${list.error.message}`);
+    const user = list.data.users.find((u) => u.email === email);
+    if (user || list.data.users.length < perPage) return user;
+  }
+}
+
 async function ensureUser(email: string, fullName: string, role: Database["public"]["Enums"]["user_role"]) {
-  const list = await svc.auth.admin.listUsers({ perPage: 1000 });
-  let user = list.data.users.find((u) => u.email === email);
+  let user = await findUserByEmail(email);
   if (!user) {
     const created = await svc.auth.admin.createUser({ email, password: DEMO_PASSWORD, email_confirm: true });
     if (created.error || !created.data.user) throw new Error(`usuário ${email}: ${created.error?.message}`);

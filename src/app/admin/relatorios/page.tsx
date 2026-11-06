@@ -74,7 +74,7 @@ export default async function ReportsPage({
         </button>
       </form>
 
-      <div className="grid gap-5 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-x-14 gap-y-10 lg:grid-cols-2">
         <Panel title="Diário por local">
           {siteId ? (
             <div className="flex flex-wrap gap-2">
