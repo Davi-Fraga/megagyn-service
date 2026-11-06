@@ -125,3 +125,14 @@ As pendências por motivo e por responsável passam a aparecer da maior para a m
 4. Tempo medido com a mesma base local da seção 5.1.
 5. `db:reset` e seed do Davi, depois a verificação completa com o `painel.spec`.
 6. Em produção, o banco vem antes do app (`03` §9): a migração é aplicada com o OK do Davi antes do merge.
+
+### 5.5 Achado: a regra de acesso rodava linha a linha
+
+Com a função, o painel caiu para 4,2 s, e a meta é menos de 2 s. O resto vinha da RLS. A leitura de chamados e de atividades chamava `has_site_access(site_id)` em cada linha, a cerca de 100 µs por chamada. Um `count(*)` de 30 mil chamados como admin levava 2,5 s.
+
+Decisão do Davi em 06/11/2026: a migração `20261106000200_select_admin_once.sql` troca as duas políticas para `(select public.is_admin()) or public.has_site_access(site_id)`.
+- A regra é a mesma para todos os papéis, porque `has_site_access` já aceita o admin.
+- O "é admin?" passa a ser decidido uma vez por consulta, e a mesma contagem cai para 12 ms.
+- Com 33 mil chamados na base local, o painel ficou em 0,8 s; na `main`, eram 88 s.
+
+As outras políticas com teste por linha ficam como estão, porque o painel não depende delas. Eventos, anexos e ocorrências também crescem com o uso, e o mesmo atalho pode entrar nelas se alguma lista ficar lenta.
