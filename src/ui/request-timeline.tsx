@@ -1,46 +1,11 @@
-import {
-  Ban,
-  CalendarClock,
-  CircleCheck,
-  CircleDot,
-  ClipboardCheck,
-  Hammer,
-  ImagePlus,
-  Lock,
-  MessageSquare,
-  Pencil,
-  RotateCcw,
-  TriangleAlert,
-  Undo2,
-  Users,
-  type LucideIcon,
-} from "lucide-react";
-import { formatDateBR, formatDateTimeBR } from "@/domain/dates";
+import { Lock } from "lucide-react";
+import { Fragment, type ReactNode } from "react";
+import { formatDateBR, formatTimeBR, isoDateInTz, weekdayPt } from "@/domain/dates";
 import { EVENT_LABEL } from "@/domain/request-events";
 import { STATUS_LABEL, type RequestStatus } from "@/domain/request-status";
 import type { RequestDetail } from "@/server/data";
+import { cn } from "./cn";
 import { PhotoGrid } from "./photo-grid";
-
-const ICON: Record<string, LucideIcon> = {
-  abertura: CircleDot,
-  classificacao: CalendarClock,
-  atribuicao: Users,
-  reprogramacao: CalendarClock,
-  prorrogacao: CalendarClock,
-  inicio: Hammer,
-  atividade: Hammer,
-  pendencia: TriangleAlert,
-  retomada: RotateCcw,
-  execucao_informada: ClipboardCheck,
-  devolucao: Undo2,
-  validacao: CircleCheck,
-  cancelamento: Ban,
-  reabertura: RotateCcw,
-  comentario: MessageSquare,
-  anexo_adicionado: ImagePlus,
-  anexo_revogado: Ban,
-  edicao: Pencil,
-};
 
 const FIELD_LABEL: Record<string, string> = {
   title: "Título",
@@ -52,134 +17,126 @@ const FIELD_LABEL: Record<string, string> = {
   is_internal: "Demanda interna",
 };
 
+type TimelineEvent = RequestDetail["events"][number];
+type Fact = [label: string, value: ReactNode];
+
+/** Dados do evento como pares rótulo e valor, na ordem em que aparecem. */
+function eventFacts(ev: TimelineEvent, payload: Record<string, unknown>): Fact[] {
+  const facts: Fact[] = [];
+  if (ev.to_status && ev.from_status !== ev.to_status) {
+    const to = STATUS_LABEL[ev.to_status as RequestStatus];
+    facts.push(["Situação", ev.from_status ? `${STATUS_LABEL[ev.from_status as RequestStatus]} → ${to}` : to]);
+  }
+  if (ev.event_type === "abertura" && typeof payload.requester_name === "string") {
+    facts.push(["Solicitado por", typeof payload.channel === "string" ? `${payload.requester_name} (${payload.channel})` : payload.requester_name]);
+  }
+  if (ev.event_type === "classificacao" || ev.event_type === "reprogramacao") {
+    facts.push(["Data programada", formatDateBR(String(payload.scheduled_date ?? ""))]);
+    if (Array.isArray(payload.assignee_names)) facts.push(["Responsáveis", (payload.assignee_names as string[]).join(", ")]);
+  }
+  if (ev.event_type === "pendencia") {
+    facts.push(
+      ["Motivo", String(payload.pending_reason ?? "—")],
+      ["Previsão de retorno", formatDateBR(String(payload.expected_return_date ?? ""))],
+      ["O que aconteceu", String(payload.explanation ?? "—")],
+      ["Providência", String(payload.next_action ?? "—")],
+      ["Responsável pela providência", String(payload.next_action_owner_name ?? "—")],
+    );
+  } else if (ev.reason) {
+    facts.push(["Motivo", ev.reason]);
+  }
+  const changes = payload.changes as Record<string, { de: unknown; para: unknown }> | undefined;
+  for (const [field, c] of Object.entries(changes ?? {})) {
+    facts.push([FIELD_LABEL[field] ?? field, field === "due_date" ? `${formatDateBR(String(c.de ?? ""))} → ${formatDateBR(String(c.para ?? ""))}` : "alterado"]);
+  }
+  return facts;
+}
+
+function Facts({ items }: { items: Fact[] }) {
+  if (items.length === 0) return null;
+  return (
+    // No celular o rótulo fica em cima do valor: rótulo longo ao lado espremia o valor.
+    <dl className="mt-2.5 grid gap-x-4 text-[0.9375rem] sm:grid-cols-[auto_minmax(0,1fr)] sm:gap-y-0.5">
+      {items.map(([label, value], i) => (
+        <Fragment key={i}>
+          <dt className="text-muted">{label}</dt>
+          <dd className="mb-1.5 font-medium sm:mb-0">{value}</dd>
+        </Fragment>
+      ))}
+    </dl>
+  );
+}
+
 type Props = {
   detail: RequestDetail;
   name: (id: string | null | undefined) => string;
   showInternal: boolean;
 };
 
-/** Linha do tempo imutável do chamado/OS: eventos, comentários e atividades (com fotos). */
+/**
+ * Linha do tempo imutável do chamado/OS na régua de obra: data e dia da semana à esquerda;
+ * à direita, numa linha fina com marcador quadrado, o que aconteceu, quem fez e os dados do evento.
+ * O marcador do evento mais recente fica na cor de acento; o de pendência, na de alerta.
+ */
 export function RequestTimeline({ detail, name, showInternal }: Props) {
   const comments = new Map(detail.comments.map((c) => [c.id, c]));
   const entries = new Map(detail.entries.map((e) => [e.id, e]));
+  const visible = detail.events.filter((e) => showInternal || !e.is_internal);
 
   return (
-    <ol className="relative space-y-5 border-l-2 border-linha pl-5">
-      {detail.events
-        .filter((e) => showInternal || !e.is_internal)
-        .map((ev) => {
-          const meta = { label: EVENT_LABEL[ev.event_type] ?? ev.event_type, icon: ICON[ev.event_type] ?? CircleDot, alert: ev.event_type === "pendencia" };
-          const payload = (ev.payload ?? {}) as Record<string, unknown>;
-          const comment = typeof payload.comment_id === "string" ? comments.get(payload.comment_id) : undefined;
-          const entry = ev.work_entry_id ? entries.get(ev.work_entry_id) : undefined;
-          const changes = payload.changes as Record<string, { de: unknown; para: unknown }> | undefined;
-          return (
-            <li key={ev.id} className="relative">
-              <span
-                aria-hidden
-                className={`absolute -left-[1.95rem] top-0.5 flex size-6 items-center justify-center rounded-full border-2 bg-papel ${meta.alert ? "border-alerta text-alerta" : "border-linha text-grafite"}`}
-              >
-                <meta.icon className="size-3.5" />
-              </span>
-              <div className="flex flex-wrap items-baseline gap-x-2">
-                <p className="font-semibold">{meta.label}</p>
+    <ol>
+      {visible.map((ev, index) => {
+        const last = index === visible.length - 1;
+        const pending = ev.event_type === "pendencia";
+        const day = isoDateInTz(new Date(ev.occurred_at));
+        const payload = (ev.payload ?? {}) as Record<string, unknown>;
+        const comment = typeof payload.comment_id === "string" ? comments.get(payload.comment_id) : undefined;
+        const entry = ev.work_entry_id ? entries.get(ev.work_entry_id) : undefined;
+        return (
+          <li key={ev.id} className="grid gap-1 sm:grid-cols-[7rem_minmax(0,1fr)] sm:gap-5">
+            <p className="tipo-condensada text-[1.0625rem] tabular-nums sm:pt-px">
+              {formatDateBR(day)}
+              <span className="ml-2 text-[0.9375rem] font-medium text-muted sm:ml-0 sm:block">{weekdayPt(day)}</span>
+            </p>
+            <div className={cn("relative ml-1 border-l border-linha pl-4 sm:ml-0 sm:pl-6", !last && "pb-7")}>
+              <span aria-hidden className={cn("absolute -left-1 top-2 size-[7px]", pending ? "bg-alerta" : last ? "bg-acento" : "bg-grafite")} />
+              <p className="text-[1.0625rem] font-semibold leading-snug">
+                {EVENT_LABEL[ev.event_type] ?? ev.event_type}
                 {ev.is_internal && (
-                  <span className="inline-flex items-center gap-1 text-sm font-semibold text-alerta">
+                  <span className="ml-2 inline-flex items-center gap-1 text-sm font-semibold text-alerta">
                     <Lock aria-hidden className="size-3.5" /> Nota interna
                   </span>
                 )}
-              </div>
-              <p className="text-sm text-muted">
-                {formatDateTimeBR(ev.occurred_at)} — {name(ev.actor_id)}
-                {ev.to_status && ev.from_status !== ev.to_status && (
-                  <>
-                    {" "}
-                    · {ev.from_status ? `${STATUS_LABEL[ev.from_status as RequestStatus]} → ` : ""}
-                    {STATUS_LABEL[ev.to_status as RequestStatus]}
-                  </>
-                )}
+              </p>
+              <p className="mt-0.5 text-[0.9375rem]">
+                <span className="font-semibold">{name(ev.actor_id)}</span>
+                <span className="ml-2 text-muted">{`às ${formatTimeBR(ev.occurred_at)}`}</span>
               </p>
 
-              {ev.reason && ev.event_type !== "pendencia" && <p className="mt-1">Motivo: {ev.reason}</p>}
+              <Facts items={eventFacts(ev, payload)} />
 
-              {ev.event_type === "pendencia" && (
-                <dl className="mt-1 grid gap-x-4 gap-y-1 text-[0.95rem] sm:grid-cols-2">
-                  <div>
-                    <dt className="inline text-muted">Motivo: </dt>
-                    <dd className="inline">{String(payload.pending_reason ?? "—")}</dd>
-                  </div>
-                  <div>
-                    <dt className="inline text-muted">Previsão de retorno: </dt>
-                    <dd className="inline">{formatDateBR(String(payload.expected_return_date ?? ""))}</dd>
-                  </div>
-                  <div className="sm:col-span-2">
-                    <dt className="inline text-muted">O que aconteceu: </dt>
-                    <dd className="inline">{String(payload.explanation ?? "—")}</dd>
-                  </div>
-                  <div className="sm:col-span-2">
-                    <dt className="inline text-muted">Providência: </dt>
-                    <dd className="inline">
-                      {String(payload.next_action ?? "—")} — responsável: {String(payload.next_action_owner_name ?? "—")}
-                    </dd>
-                  </div>
-                </dl>
-              )}
-
-              {(ev.event_type === "classificacao" || ev.event_type === "reprogramacao") && (
-                <p className="mt-1 text-[0.95rem]">
-                  Data programada: {formatDateBR(String(payload.scheduled_date ?? ""))}
-                  {Array.isArray(payload.assignee_names) && ` · Responsáveis: ${(payload.assignee_names as string[]).join(", ")}`}
-                </p>
-              )}
-
-              {ev.event_type === "abertura" && typeof payload.requester_name === "string" && (
-                <p className="mt-1 text-[0.95rem]">
-                  Solicitado por {payload.requester_name}
-                  {typeof payload.channel === "string" && ` (${payload.channel})`}
-                </p>
-              )}
-
-              {changes && (
-                <ul className="mt-1 list-disc pl-5 text-[0.95rem]">
-                  {Object.entries(changes).map(([field, c]) => (
-                    <li key={field}>
-                      {FIELD_LABEL[field] ?? field}
-                      {field === "due_date" && `: ${formatDateBR(String(c.de ?? ""))} → ${formatDateBR(String(c.para ?? ""))}`}
-                    </li>
-                  ))}
-                </ul>
-              )}
-
-              {comment && <p className="mt-1 whitespace-pre-line rounded-ctl bg-concreto px-3 py-2">{comment.body}</p>}
+              {comment && <p className="mt-2 max-w-[60ch] whitespace-pre-line text-[1.0625rem] leading-normal">{comment.body}</p>}
 
               {entry && (
-                <div className="mt-2 space-y-2 rounded-ctl border border-linha bg-papel p-3">
-                  <p className="text-sm text-muted">Data do serviço: {formatDateBR(entry.activity_date)}</p>
-                  <p className="whitespace-pre-line">{entry.description}</p>
-                  {entry.solution && entry.solution !== entry.description && (
-                    <p>
-                      <span className="text-muted">Solução: </span>
-                      {entry.solution}
-                    </p>
-                  )}
-                  {entry.materials && (
-                    <p>
-                      <span className="text-muted">Materiais: </span>
-                      {entry.materials}
-                    </p>
-                  )}
-                  {entry.hours_worked !== null && (
-                    <p>
-                      <span className="text-muted">Horas: </span>
-                      {String(entry.hours_worked).replace(".", ",")}
-                    </p>
-                  )}
-                  <PhotoGrid photos={detail.entryPhotos.get(entry.id) ?? []} emptyText="Sem fotos neste registro." />
+                <div className="mt-2">
+                  <p className="max-w-[60ch] whitespace-pre-line text-[1.0625rem] leading-normal">{entry.description}</p>
+                  <Facts
+                    items={[
+                      ["Data do serviço", formatDateBR(entry.activity_date)],
+                      ...(entry.solution && entry.solution !== entry.description ? ([["Solução", entry.solution]] as Fact[]) : []),
+                      ...(entry.materials ? ([["Materiais", entry.materials]] as Fact[]) : []),
+                      ...(entry.hours_worked !== null ? ([["Horas", String(entry.hours_worked).replace(".", ",")]] as Fact[]) : []),
+                    ]}
+                  />
+                  <div className="mt-3">
+                    <PhotoGrid photos={detail.entryPhotos.get(entry.id) ?? []} emptyText="Sem fotos neste registro." />
+                  </div>
                 </div>
               )}
-            </li>
-          );
-        })}
+            </div>
+          </li>
+        );
+      })}
     </ol>
   );
 }
