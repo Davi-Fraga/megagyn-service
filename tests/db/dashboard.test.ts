@@ -1,4 +1,4 @@
-import { beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { addDaysIso, todayIso, zonedMidnightUtc } from "@/domain/dates";
 import { REQUEST_STATUSES, type RequestStatus } from "@/domain/request-status";
 import { loadDashboardRows, type DashboardFilters } from "@/server/dashboard";
@@ -123,6 +123,24 @@ beforeAll(async () => {
   const { error: qErr } = await svc.from("quotes").insert([quote(1, addDaysIso(today, 10), 150_000), quote(2, null, 50_000), quote(3, addDaysIso(today, -1), 999_999)]);
   if (qErr) throw qErr;
 }, 180_000);
+
+// Apaga os chamados, as atividades e os orçamentos criados aqui: sem isso, cada rodada deixava
+// mais 1060 chamados na base local, e o painel e as listas ficavam lentos para os outros testes.
+afterAll(async () => {
+  const svc = serviceClient();
+  const clients = [clientId, mixedClientId].filter(Boolean);
+  const sites = [mixedSiteId, otherSiteId].filter(Boolean);
+  const steps = [
+    () => svc.from("work_entries").delete().in("site_id", sites),
+    () => svc.from("quotes").delete().in("client_id", clients),
+    () => svc.from("request_assignments").delete().in("service_request_id", Object.values(ids)),
+    () => svc.from("service_requests").delete().in("client_id", clients),
+  ];
+  for (const step of steps) {
+    const { error } = await step();
+    if (error) throw error;
+  }
+}, 120_000);
 
 const filters = (over: Partial<DashboardFilters> = {}): DashboardFilters => ({ clientId: null, siteId: null, personId: null, from: today, to: today, today, ...over });
 const listFilters = (over: Partial<RequestFilters> = {}): RequestFilters => ({
