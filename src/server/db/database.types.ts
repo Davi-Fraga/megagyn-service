@@ -565,6 +565,38 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"reimbursement_payments": {
+                  Row: {
+                    "amount_cents": number,"client_request_id": string,"created_at": string,"created_by": string | null,"id": string,"kind": string,"notes": string | null,"paid_on": string,"payment_method_id": string | null,"reimbursement_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "amount_cents": number,"client_request_id"?: string,"created_at"?: string,"created_by"?: string | null,"id"?: string,"kind"?: string,"notes"?: string | null,"paid_on": string,"payment_method_id"?: string | null,"reimbursement_id": string
+                  }
+                  Update: {
+                    "amount_cents"?: number,"client_request_id"?: string,"created_at"?: string,"created_by"?: string | null,"id"?: string,"kind"?: string,"notes"?: string | null,"paid_on"?: string,"payment_method_id"?: string | null,"reimbursement_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "reimbursement_payments_created_by_fkey"
+      columns: ["created_by"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "reimbursement_payments_payment_method_id_fkey"
+      columns: ["payment_method_id"]
+isOneToOne: false
+      referencedRelation: "payment_methods"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "reimbursement_payments_reimbursement_id_fkey"
+      columns: ["reimbursement_id"]
+isOneToOne: false
+      referencedRelation: "reimbursements"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"reimbursements": {
                   Row: {
                     "amount_due_cents": number,"amount_paid_cents": number,"created_at": string,"expense_id": string,"id": string,"payee_profile_id": string,"settled_at": string | null,"settled_by": string | null,"settlement_notes": string | null,"status": Database["public"]['Enums']["reimbursement_status"],"updated_at": string
@@ -1448,7 +1480,7 @@ isOneToOne: false
 { Args: { "p_attachment_id": string,"p_quote_id": string }; Returns: undefined
                            },
 "reimbursement_register_payment":
-{ Args: { "p_amount_cents": number,"p_expense_id": string,"p_notes"?: string }; Returns: {
+{ Args: { "p_amount_cents": number,"p_client_request_id"?: string,"p_expense_id": string,"p_notes"?: string,"p_paid_on"?: string,"p_payment_method_id"?: string }; Returns: {
               "amount_due_cents": number,
 "amount_paid_cents": number,
 "created_at": string,

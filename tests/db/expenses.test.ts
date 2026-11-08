@@ -1,5 +1,5 @@
 import { beforeAll, describe, expect, it } from "vitest";
-import { addMembership, createClientWithSite, createUser, fakePhoto, serviceClient, today, uid, type TestUser } from "./helpers";
+import { addMembership, createClientWithSite, createUser, fakePhoto, serviceClient, sql, today, uid, type TestUser } from "./helpers";
 
 let admin: TestUser;
 let foreman: TestUser;
@@ -195,5 +195,66 @@ describe("acesso financeiro interno", () => {
     expect((await worker.db.from("expenses").select("id")).data).toEqual([]);
     expect((await otherForeman.db.from("expenses").select("id").eq("id", data!.id)).data).toEqual([]);
     expect((await otherForeman.db.from("expense_allocations").select("id").eq("expense_id", data!.id)).data).toEqual([]);
+  });
+});
+
+describe("B-09 — pagamento de reembolso lançado uma vez, em linha própria", () => {
+  async function reimbursable() {
+    const { data, error } = await newExpense(foreman, split(), { p_paid_by_kind: "colaborador" });
+    if (error) throw error;
+    const { data: reimb } = await admin.db.from("reimbursements").select("id").eq("expense_id", data!.id).single();
+    return { expenseId: data!.id as string, reimbursementId: reimb!.id as string };
+  }
+  const pay = (expenseId: string, cents: number, key: string) =>
+    admin.db.rpc("reimbursement_register_payment", { p_expense_id: expenseId, p_amount_cents: cents, p_client_request_id: key });
+
+  it("pagamento repetido com a mesma chave não duplica, nem em sequência nem ao mesmo tempo", async () => {
+    const { expenseId, reimbursementId } = await reimbursable();
+    const key = uid();
+    expect((await pay(expenseId, 25000, key)).error).toBeNull();
+    const again = await pay(expenseId, 25000, key);
+    expect(again.error).toBeNull();
+    expect(again.data!.amount_paid_cents).toBe(25000);
+
+    const twin = uid();
+    const both = await Promise.all([pay(expenseId, 10000, twin), pay(expenseId, 10000, twin)]);
+    for (const r of both) expect(r.error).toBeNull();
+
+    const { data: reimb } = await admin.db.from("reimbursements").select("amount_paid_cents, status").eq("id", reimbursementId).single();
+    expect(reimb).toEqual({ amount_paid_cents: 35000, status: "parcial" });
+    const { data: rows } = await admin.db.from("reimbursement_payments").select("amount_cents").eq("reimbursement_id", reimbursementId).order("amount_cents");
+    expect(rows!.map((r) => r.amount_cents)).toEqual([10000, 25000]);
+  });
+
+  it("o total pago de cada reembolso é a soma das linhas de pagamento", () => {
+    const diverging = sql(
+      "select count(*) from public.reimbursements r left join (select reimbursement_id, sum(amount_cents) as total from public.reimbursement_payments group by 1) s on s.reimbursement_id = r.id where coalesce(s.total, 0) <> r.amount_paid_cents",
+    );
+    expect(diverging).toBe("0");
+  });
+
+  it("pagamento registrado é imutável, nem pela chave de serviço", async () => {
+    const { expenseId, reimbursementId } = await reimbursable();
+    expect((await pay(expenseId, 5000, uid())).error).toBeNull();
+    const svc = serviceClient();
+    const upd = await svc.from("reimbursement_payments").update({ amount_cents: 1 }).eq("reimbursement_id", reimbursementId);
+    expect(upd.error).not.toBeNull();
+    const del = await svc.from("reimbursement_payments").delete().eq("reimbursement_id", reimbursementId);
+    expect(del.error).not.toBeNull();
+    const { data: reimb } = await admin.db.from("reimbursements").select("amount_paid_cents").eq("id", reimbursementId).single();
+    expect(reimb!.amount_paid_cents).toBe(5000);
+  });
+
+  it("a pessoa reembolsada vê os próprios pagamentos; outro encarregado não", async () => {
+    const { expenseId, reimbursementId } = await reimbursable();
+    expect((await pay(expenseId, 7000, uid())).error).toBeNull();
+    const mine = await foreman.db.from("reimbursement_payments").select("amount_cents").eq("reimbursement_id", reimbursementId);
+    expect(mine.data).toEqual([{ amount_cents: 7000 }]);
+    const other = await otherForeman.db.from("reimbursement_payments").select("amount_cents").eq("reimbursement_id", reimbursementId);
+    expect(other.data).toEqual([]);
+  });
+
+  it("a assinatura antiga da função não fica como sobrecarga", () => {
+    expect(sql("select count(*) from pg_proc where proname = 'reimbursement_register_payment'")).toBe("1");
   });
 });
