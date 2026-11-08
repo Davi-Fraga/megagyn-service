@@ -87,7 +87,8 @@ test("painel: cada cartão abre a lista com o mesmo número e os mesmos filtros"
     const ids: string[] = [];
     for (const n of [1, 2]) {
       await page.goto("/admin/chamados/novo");
-      await page.getByLabel("Cliente e local").selectOption({ label: "Torre A" });
+      await page.locator('select[name="client_id"]').selectOption({ label: "Condomínio Jardim Exemplo" });
+      await page.locator('select[name="site_id"]').selectOption({ label: "Torre A" });
       await page.getByLabel("Nome do solicitante").fill("Síndica Demo (fictícia)");
       await page.getByLabel("Título").fill(`Pendência ${tag} ${n}`);
       await page.getByLabel("Descrição do problema").fill("Teste do painel (fictício).");

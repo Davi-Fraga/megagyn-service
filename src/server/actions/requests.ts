@@ -49,9 +49,20 @@ export async function openRequestAction(_: ActionState, fd: FormData): Promise<A
   const channel = fdStr(fd, "channel") as Enums["request_channel"] | null;
   if (!ORIGINS.includes(origin)) return { ok: false, message: "Origem inválida.", fieldErrors: { origin: "Origem inválida." } };
 
+  // B-23: o local tem de ser do cliente escolhido; um local de outro cliente enviado à mão é recusado.
+  const clientId = fdUuid(fd, "client_id");
+  const siteId = fdUuid(fd, "site_id");
+  if (clientId && siteId) {
+    const { data: site } = await db.from("sites").select("client_id").eq("id", siteId).maybeSingle();
+    if (site?.client_id !== clientId) {
+      const message = "Escolha uma obra ou unidade deste cliente.";
+      return { ok: false, message, fieldErrors: { site_id: message } };
+    }
+  }
+
   const { data, error } = await db.rpc("request_open", {
     p_client_request_id: key(fd),
-    p_site_id: nul(fdUuid(fd, "site_id")),
+    p_site_id: nul(siteId),
     p_title: fdStr(fd, "title") ?? "",
     p_description: fdStr(fd, "description") ?? "",
     p_origin: origin,

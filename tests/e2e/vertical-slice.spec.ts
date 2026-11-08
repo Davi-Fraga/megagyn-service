@@ -11,7 +11,8 @@ test("chamado de ponta a ponta com evidências e validação", async ({ page, br
   // 1. Administração abre o chamado em nome do cliente, com foto, e já programa.
   await login(page, USERS.admin);
   await page.goto("/admin/chamados/novo");
-  await page.getByLabel("Cliente e local").selectOption({ label: "Torre A" });
+  await page.locator('select[name="client_id"]').selectOption({ label: "Condomínio Jardim Exemplo" });
+  await page.locator('select[name="site_id"]').selectOption({ label: "Torre A" });
   await page.getByLabel("Nome do solicitante").fill("Síndica Demo (fictícia)");
   await page.getByLabel("Título").fill(title);
   await page.getByLabel("Descrição do problema").fill("Cano pingando próximo ao hidrômetro (teste automatizado).");

@@ -23,31 +23,40 @@ export function NewRequestForm({
   priorities: Option[];
   categories: Option[];
 }) {
+  const [clientId, setClientId] = useState("");
   const [siteId, setSiteId] = useState("");
   const [origin, setOrigin] = useState("cliente_externo");
   const [scheduleNow, setScheduleNow] = useState(false);
   const site = sites.find((s) => s.id === siteId);
-  const byClient = new Map<string, Site[]>();
-  for (const s of sites) byClient.set(s.clientName, [...(byClient.get(s.clientName) ?? []), s]);
+  const clients = [...new Map(sites.map((s) => [s.clientId, s.clientName])).entries()]
+    .map(([value, label]) => ({ value, label }))
+    .sort((a, b) => a.label.localeCompare(b.label, "pt-BR"));
 
   return (
     <ActionForm action={openRequestAction} submitLabel="Abrir chamado" pendingLabel="Abrindo…" stickySubmit>
-      <div className="space-y-1.5">
-        <label htmlFor="site_id" className="block text-[0.95rem] font-semibold">
-          Cliente e local <span className="text-erro">*</span>
-        </label>
-        <select id="site_id" name="site_id" required value={siteId} onChange={(e) => setSiteId(e.target.value)} className="campo-input">
-          <option value="">Selecione a obra ou unidade…</option>
-          {[...byClient.entries()].map(([client, list]) => (
-            <optgroup key={client} label={client}>
-              {list.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.name}
-                </option>
-              ))}
-            </optgroup>
-          ))}
-        </select>
+      {/* B-23: o cliente vem primeiro, e a lista de locais mostra só os dele. */}
+      <div className="grid gap-4 sm:grid-cols-2">
+        <SelectField
+          label="Cliente"
+          name="client_id"
+          required
+          options={clients}
+          value={clientId}
+          onChange={(e) => {
+            setClientId(e.target.value);
+            setSiteId("");
+          }}
+        />
+        <SelectField
+          label="Obra ou unidade"
+          name="site_id"
+          required
+          disabled={!clientId}
+          placeholder={clientId ? "Selecione…" : "Escolha o cliente primeiro"}
+          options={sites.filter((s) => s.clientId === clientId).map((s) => ({ value: s.id, label: s.name }))}
+          value={siteId}
+          onChange={(e) => setSiteId(e.target.value)}
+        />
       </div>
 
       {site && (areasBySite[site.id]?.length ?? 0) > 0 && (

@@ -16,7 +16,8 @@ test("foto com falha bloqueia o envio até reenviar ou retirar", async ({ page }
   await login(page, USERS.admin);
   await page.goto("/admin/chamados/novo");
   // O campo de fotos aparece depois de escolher o local.
-  await page.getByLabel("Cliente e local").selectOption({ label: "Torre A" });
+  await page.locator('select[name="client_id"]').selectOption({ label: "Condomínio Jardim Exemplo" });
+  await page.locator('select[name="site_id"]').selectOption({ label: "Torre A" });
   const submit = page.getByRole("button", { name: "Abrir chamado" });
   const warning = page.getByText("Uma foto não foi enviada.", { exact: false });
   const fileInput = page.locator('input[type="file"][multiple]').first();
