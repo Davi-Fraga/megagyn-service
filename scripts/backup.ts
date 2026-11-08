@@ -4,8 +4,8 @@
  * Banco: pg_dump formato custom (todas as tabelas, inclusive auth e metadados do storage).
  *   Exceto os DADOS de vault.secrets: a aplicação não usa o cofre do Supabase, os segredos são
  *   cifrados com chave da própria instância (inúteis em outra base) e não devem ir para o backup.
- *   - Se DATABASE_URL estiver definida e houver pg_dump no PATH, usa-o (produção/homologação).
- *   - Senão, usa o container local do Supabase (docker exec … pg_dump).
+ *   - Com DATABASE_URL: copia esse banco, com o pg_dump do PATH ou, sem ele, com o do container local.
+ *   - Sem DATABASE_URL: só para o Supabase local; com projeto remoto, para com erro (scripts/backup-dump.ts).
  * Arquivos: baixa todos os objetos dos buckets privados com a chave service_role. Com
  *   BACKUP_SKIP_LIST (arquivo com uma linha `<bucket>/<chave>` por objeto), baixa só o que não
  *   está na lista; os demais ficam no manifesto sem hash.
@@ -16,9 +16,8 @@ import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { createClient } from "@supabase/supabase-js";
+import { dumpPlan } from "./backup-dump";
 import { backupBucket, readSkipList, type BackupFile } from "./backup-files";
-
-const DUMP_ARGS = ["--format=custom", "--no-owner", "--no-privileges", "--exclude-table-data=vault.secrets"];
 
 for (const file of [".env.local", ".env"]) {
   if (!existsSync(file)) continue;
@@ -33,24 +32,17 @@ const LOCAL_DB_CONTAINER = process.env.SUPABASE_DB_CONTAINER ?? "supabase_db_meg
 
 const stamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
 const outDir = path.resolve(process.env.BACKUP_DIR ?? "backups", stamp);
-mkdirSync(path.join(outDir, "storage"), { recursive: true });
 
 function hasPgDump(): boolean {
   return spawnSync("pg_dump", ["--version"], { stdio: "ignore" }).status === 0;
 }
 
-async function dumpDatabase(): Promise<{ method: string; bytes: number; sha256: string }> {
-  const target = path.join(outDir, "db.dump");
-  if (process.env.DATABASE_URL && hasPgDump()) {
-    execFileSync("pg_dump", [...DUMP_ARGS, "--file", target, process.env.DATABASE_URL], { stdio: "inherit" });
-    const buf = readFileSync(target);
-    return { method: "pg_dump DATABASE_URL", bytes: buf.length, sha256: createHash("sha256").update(buf).digest("hex") };
-  }
-  const buf = execFileSync("docker", ["exec", LOCAL_DB_CONTAINER, "pg_dump", "-U", "postgres", ...DUMP_ARGS, "postgres"], {
-    maxBuffer: 1024 * 1024 * 1024,
-  });
-  writeFileSync(target, buf);
-  return { method: `docker exec ${LOCAL_DB_CONTAINER} pg_dump`, bytes: buf.length, sha256: createHash("sha256").update(buf).digest("hex") };
+async function dumpDatabase(supabaseUrl: string): Promise<{ method: string; bytes: number; sha256: string }> {
+  const plan = dumpPlan({ supabaseUrl, databaseUrl: process.env.DATABASE_URL, hostPgDump: hasPgDump(), container: LOCAL_DB_CONTAINER });
+  mkdirSync(path.join(outDir, "storage"), { recursive: true });
+  const buf = execFileSync(plan.command, plan.args, { maxBuffer: 1024 * 1024 * 1024, stdio: ["ignore", "pipe", "inherit"] });
+  writeFileSync(path.join(outDir, "db.dump"), buf);
+  return { method: plan.method, bytes: buf.length, sha256: createHash("sha256").update(buf).digest("hex") };
 }
 
 async function main() {
@@ -60,7 +52,7 @@ async function main() {
   const db = createClient(url, key, { auth: { persistSession: false } });
 
   console.log(`Backup em ${outDir}`);
-  const database = await dumpDatabase();
+  const database = await dumpDatabase(url);
   console.log(`Banco: ${database.bytes} bytes (${database.method}).`);
 
   const skip = readSkipList(process.env.BACKUP_SKIP_LIST);

@@ -65,7 +65,7 @@ Referência de volume: o relatório real de setembro/2026 tinha 24 dias e cerca 
 | Arquivos (fotos, comprovantes, PDFs, logotipo) | `npm run backup` → download dos objetos dos buckets privados, com hash SHA-256 no `manifest.json`; com `BACKUP_SKIP_LIST`, só os que ainda não estão guardados | diária, incremental | cópia única: nada é apagado |
 | Backups automáticos do Supabase | dependem do plano contratado | — | **pendente (externo):** confirmar no plano |
 
-`npm run backup` grava em `backups/<data-hora>/`. Em produção, defina `DATABASE_URL` (conexão direta do Postgres) e tenha `pg_dump` instalado; agende o comando (cron/agendador) e copie a pasta para um armazenamento externo (outro provedor ou bucket S3 compatível). A pasta `backups/` está no `.gitignore`.
+`npm run backup` grava em `backups/<data-hora>/`. Em produção, defina `DATABASE_URL` (conexão do Postgres; use a do Session pooler, que funciona em IPv4, como no workflow de backup). Sem `pg_dump` instalado, o script usa o do contêiner local do Supabase, que precisa estar no ar. Sem `DATABASE_URL`, o backup de um projeto remoto para com erro: o banco e os arquivos vêm sempre do mesmo projeto. Agende o comando (cron/agendador) e copie a pasta para um armazenamento externo (outro provedor ou bucket S3 compatível). A pasta `backups/` está no `.gitignore`.
 
 ### Backup automático gratuito (GitHub Actions + Google Drive)
 
