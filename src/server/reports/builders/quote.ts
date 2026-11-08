@@ -59,8 +59,8 @@ async function buildQuote(admin: ServerDb, job: ReportJob): Promise<BuiltReport>
   const status = effectiveQuoteStatus(q.status, q.valid_until, todayIso());
   const notice =
     STATUS_NOTICE[status] ?? (status === "expirado" && q.valid_until ? `VALIDADE VENCIDA EM ${formatDateBR(q.valid_until)}.` : null);
-  // Dados da empresa congelados na versão; logo e assinatura vêm das Configurações atuais.
-  const header = { ...(await loadReportHeader(admin)), ...snapshot.company };
+  // Dados da empresa, logo e assinatura congelados na versão (versões antigas: logo e assinatura atuais).
+  const header = { ...(await loadReportHeader(admin, snapshot.branding)), ...snapshot.company };
   const doc = { ...snapshot, photos };
 
   return {

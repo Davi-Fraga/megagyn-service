@@ -110,11 +110,11 @@ beforeAll(async () => {
     .insert([entry(mixedSiteId, today, person.id), entry(mixedSiteId, today, admin.id), entry(otherSiteId, today, person.id), entry(mixedSiteId, addDaysIso(today, -40), person.id)]);
   if (wErr) throw wErr;
 
-  // Orçamentos enviados: um válido, um sem validade e um vencido (não conta).
+  // Orçamentos enviados: um válido, um sem validade e um vencido (não conta). Nascem em rascunho
+  // e passam a "enviado" como numa transição: a situação não muda por gravação direta (B-04).
   const quote = (i: number, validUntil: string | null, total: number) => ({
     number: `ORC-P4-${tag}-${i}`,
     client_id: mixedClientId,
-    status: "enviado",
     issued_at: addDaysIso(today, -30),
     valid_until: validUntil,
     total_cents: total,
@@ -122,6 +122,7 @@ beforeAll(async () => {
   });
   const { error: qErr } = await svc.from("quotes").insert([quote(1, addDaysIso(today, 10), 150_000), quote(2, null, 50_000), quote(3, addDaysIso(today, -1), 999_999)]);
   if (qErr) throw qErr;
+  sql(`select set_config('app.in_transition', 'on', true); update public.quotes set status = 'enviado' where client_id = '${mixedClientId}'`);
 }, 180_000);
 
 // Apaga os chamados, as atividades e os orçamentos criados aqui: sem isso, cada rodada deixava

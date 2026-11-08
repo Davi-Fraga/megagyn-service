@@ -7,7 +7,7 @@ import { centsToWords } from "./amount-in-words";
 import { sumCents } from "./money";
 import type { QuoteStatus } from "./quote";
 
-/** Dados textuais da empresa (logo/assinatura continuam vindo das Configurações). */
+/** Dados textuais da empresa. Logo e assinatura ficam em `branding`, gravado pelo banco no envio. */
 export type QuoteCompany = {
   tradeName: string;
   legalName: string;
@@ -98,7 +98,21 @@ export type QuoteSnapshot = {
   total_in_words: string;
   photos: { local: QuoteSnapshotPhoto[]; referencia: QuoteSnapshotPhoto[] };
   company: QuoteCompany;
+  /** Logo e assinatura vigentes no envio (gravados pelo banco, B-04). Versões antigas não têm. */
+  branding?: QuoteBranding;
+  /** Só na versão de aprovação: a versão enviada que o cliente aprovou (B-04). */
+  approved_from_version_no?: number;
 };
+
+export type QuoteBranding = { logo_attachment_id: string | null; signature_attachment_id: string | null };
+
+/**
+ * Logo e assinatura do PDF: os congelados na versão; numa versão antiga, sem eles, os das
+ * Configurações atuais.
+ */
+export function quoteBrandingIds(snapshot: Pick<QuoteSnapshot, "branding">, settings: QuoteBranding | null): QuoteBranding {
+  return snapshot.branding ?? { logo_attachment_id: settings?.logo_attachment_id ?? null, signature_attachment_id: settings?.signature_attachment_id ?? null };
+}
 
 export type QuoteSnapshotInput = {
   quote: Pick<

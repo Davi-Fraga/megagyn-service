@@ -240,8 +240,8 @@ describe("R-64 — situação e versões", () => {
   it("vencido: não aprova sem renovar; renovar volta a enviado com nova versão", async () => {
     const q = await newQuote({ issued_at: addDays(today(), -40), valid_until: addDays(today(), -10) });
     await admin.db.from("quote_items").insert(globalItem(q.id));
-    // Envio direto pelo serviço simula proposta enviada antes de vencer.
-    await serviceClient().from("quotes").update({ status: "enviado", current_version_no: 1 }).eq("id", q.id);
+    // Envio direto no banco simula proposta enviada antes de vencer (a situação só muda em transição, B-04).
+    sql(`select set_config('app.in_transition', 'on', true); update public.quotes set status = 'enviado', current_version_no = 1 where id = '${q.id}'`);
 
     const approve = await admin.db.rpc("quote_transition", {
       p_quote_id: q.id,
@@ -281,6 +281,69 @@ describe("R-64 — situação e versões", () => {
     expect(resent.data).toMatchObject({ status: "enviado", current_version_no: 2, status_reason: null });
     const { data: v2 } = await admin.db.from("quote_versions").select("reason").eq("quote_id", q.id).eq("version_no", 2).single();
     expect(v2!.reason).toBe("Nova versão enviada (revisão: Ajustar prazo)");
+  });
+});
+
+describe("B-04 — aprovação da revisão enviada e situação só pela transição", () => {
+  async function sentQuote(address: string) {
+    const q = await newQuote();
+    await admin.db.from("quote_items").insert(globalItem(q.id));
+    const sent = await admin.db.rpc("quote_transition", {
+      p_quote_id: q.id,
+      p_action: "enviar",
+      p_snapshot: { ...snapshotFor(q, 1, 760000), client: { address_text: address } },
+    });
+    if (sent.error) throw sent.error;
+    return q;
+  }
+
+  it("aprovação aponta a versão enviada mesmo após alterar o cliente", async () => {
+    const q = await sentQuote("Rua A, 100 (fictícia)");
+    // O app antigo ainda manda um snapshot novo, montado com os dados atuais do cliente: o banco ignora.
+    const ok = await admin.db.rpc("quote_transition", {
+      p_quote_id: q.id,
+      p_action: "aprovar",
+      p_reason: "Síndica (fictícia) por e-mail",
+      p_snapshot: { ...snapshotFor(q, 1, 760000), client: { address_text: "Rua B, 200 (fictícia)" } },
+    });
+    expect(ok.error).toBeNull();
+    expect(ok.data).toMatchObject({ status: "aprovado", current_version_no: 2, approved_version_no: 1 });
+
+    const { data: v2 } = await admin.db.from("quote_versions").select("reason, snapshot").eq("quote_id", q.id).eq("version_no", 2).single();
+    expect(v2!.reason).toBe("Aprovação do cliente registrada");
+    expect(v2!.snapshot).toMatchObject({
+      client: { address_text: "Rua A, 100 (fictícia)" },
+      approved_from_version_no: 1,
+      version_no: 2,
+      status: "aprovado",
+      accepted_note: "Síndica (fictícia) por e-mail",
+    });
+  });
+
+  it("situação, versão e aceite não mudam por atualização direta, nem pela chave de serviço", async () => {
+    const q = await sentQuote("Rua C, 300 (fictícia)");
+    const byAdmin = await admin.db.from("quotes").update({ status: "rascunho" }).eq("id", q.id);
+    expect(byAdmin.error?.code).toBe("42501");
+    const byService = await serviceClient().from("quotes").update({ status: "aprovado", accepted_note: "forjado" }).eq("id", q.id);
+    expect(byService.error?.code).toBe("42501");
+    const version = await serviceClient().from("quotes").update({ current_version_no: 5 }).eq("id", q.id);
+    expect(version.error?.code).toBe("42501");
+    const born = await admin.db
+      .from("quotes")
+      .insert({ number: "", client_id: clientId, title: "Nasce aprovado (teste)", created_by: admin.id, status: "aprovado" })
+      .select()
+      .single();
+    expect(born.error?.code).toBe("42501");
+
+    const { data } = await admin.db.from("quotes").select("status, current_version_no, accepted_note").eq("id", q.id).single();
+    expect(data).toEqual({ status: "enviado", current_version_no: 1, accepted_note: null });
+  });
+
+  it("a versão enviada guarda o logo e a assinatura das Configurações", async () => {
+    const { data: s } = await serviceClient().from("company_settings").select("logo_attachment_id, signature_attachment_id").eq("id", 1).single();
+    const q = await sentQuote("Rua D, 400 (fictícia)");
+    const { data: v1 } = await admin.db.from("quote_versions").select("snapshot").eq("quote_id", q.id).eq("version_no", 1).single();
+    expect(v1!.snapshot).toMatchObject({ branding: { logo_attachment_id: s!.logo_attachment_id, signature_attachment_id: s!.signature_attachment_id } });
   });
 });
 

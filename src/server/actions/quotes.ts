@@ -179,7 +179,8 @@ export async function unlinkQuotePhotoAction(_: ActionState, fd: FormData): Prom
 // ---------------------------------------------------------------------------
 
 type Transition = "enviar" | "aprovar" | "recusar" | "cancelar" | "renovar" | "revisar";
-const FREEZES: Transition[] = ["enviar", "aprovar", "renovar"];
+// Aprovar não monta snapshot: o banco copia a versão enviada, que é o que o cliente aprovou (B-04).
+const FREEZES: Transition[] = ["enviar", "renovar"];
 const DONE: Record<Transition, string> = {
   enviar: "enviado",
   aprovar: "aprovado",
