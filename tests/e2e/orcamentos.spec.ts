@@ -48,6 +48,20 @@ test("orçamento com valor global e detalhado, foto, envio, aprovação e PDF", 
   expect(number).toMatch(/^ORC-\d{4}-\d{4}$/);
   const quoteUrl = page.url().split("?")[0]!;
 
+  // Duas edições seguidas na mesma tela (B-08): a segunda só passa se a versão escondida do
+  // formulário (updated_at) tiver sido atualizada depois da primeira.
+  for (const title of ["Reforma da cobertura (revisada)", "Reforma da cobertura e calhas"]) {
+    await page.locator('input[name="title"]').fill(title);
+    const saved = page.waitForResponse((r) => r.request().method() === "POST" && r.url().startsWith(quoteUrl), { timeout: 120_000 });
+    await page.getByRole("button", { name: "Salvar orçamento" }).click();
+    await saved;
+    await expect(page.getByText("Orçamento salvo.")).toBeVisible({ timeout: 120_000 });
+    await expect(page.getByText("alterado depois que você abriu")).toHaveCount(0);
+  }
+  await page.goto(quoteUrl);
+  await expect(page.locator('input[name="title"]')).toHaveValue("Reforma da cobertura e calhas");
+  await expect(page.getByTestId("quote-total")).toHaveText("R$ 8.100,00");
+
   // Foto do local (bucket próprio de orçamentos, vínculo pela RPC).
   const localPhotos = page.locator("#fotos-local");
   await uploadPhotos(page, [PHOTO_A], localPhotos);

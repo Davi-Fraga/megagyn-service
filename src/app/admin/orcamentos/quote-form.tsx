@@ -34,8 +34,11 @@ export function QuoteForm({
   values,
   items,
   submitLabel,
+  updatedAt,
 }: {
   quoteId?: string;
+  /** updated_at do orçamento quando a página abriu, como veio da API: o banco recusa salvar por cima de uma alteração posterior. */
+  updatedAt?: string;
   clients: Option[];
   contactsByClient: Record<string, Option[]>;
   sitesByClient: Record<string, Option[]>;
@@ -51,6 +54,7 @@ export function QuoteForm({
   return (
     <ActionForm action={saveQuoteAction} submitLabel={submitLabel} pendingLabel="Salvando…" stickySubmit>
       {quoteId && <input type="hidden" name="quote_id" value={quoteId} />}
+      {quoteId && updatedAt && <input type="hidden" name="expected_updated_at" value={updatedAt} />}
 
       <Panel title="Cliente e local">
         <div className="space-y-4">
