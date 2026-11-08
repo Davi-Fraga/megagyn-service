@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/server/db/database.types";
 import type { ReportHeader } from "@/reports/layout";
+import { quoteBrandingIds, type QuoteBranding } from "@/domain/quote-snapshot";
 
 type Admin = SupabaseClient<Database>;
 
@@ -39,8 +40,10 @@ export async function attachmentDataUri(admin: Admin, attachmentId: string | nul
   return `data:image/jpeg;base64,${Buffer.from(await blob.arrayBuffer()).toString("base64")}`;
 }
 
-export async function loadReportHeader(admin: Admin): Promise<ReportHeader> {
+/** Cabeçalho dos relatórios. Com `branding` (versão de orçamento), logo e assinatura vêm dela. */
+export async function loadReportHeader(admin: Admin, branding?: QuoteBranding): Promise<ReportHeader> {
   const { data: s } = await admin.from("company_settings").select("*").eq("id", 1).single();
+  const ids = quoteBrandingIds({ branding }, s ?? null);
   return {
     tradeName: s?.trade_name || "Megagyn",
     legalName: s?.legal_name ?? "",
@@ -54,7 +57,7 @@ export async function loadReportHeader(admin: Admin): Promise<ReportHeader> {
     crea: s?.crea ?? null,
     footerText: s?.report_footer_text ?? null,
     city: s?.report_city ?? null,
-    logoDataUri: await attachmentDataUri(admin, s?.logo_attachment_id ?? null),
-    signatureDataUri: await attachmentDataUri(admin, s?.signature_attachment_id ?? null),
+    logoDataUri: await attachmentDataUri(admin, ids.logo_attachment_id),
+    signatureDataUri: await attachmentDataUri(admin, ids.signature_attachment_id),
   };
 }

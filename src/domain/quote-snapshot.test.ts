@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildQuoteSnapshot, companyFromSettings, quoteAddressee, type QuoteSnapshotInput } from "./quote-snapshot";
+import { buildQuoteSnapshot, companyFromSettings, quoteAddressee, quoteBrandingIds, type QuoteSnapshotInput } from "./quote-snapshot";
 
 const input = (over: Partial<QuoteSnapshotInput> = {}): QuoteSnapshotInput => ({
   quote: {
@@ -73,5 +73,19 @@ describe("destinatário (Para/Att./End./Tel.)", () => {
   it("sem obra: local livre e endereço do cliente", () => {
     const s = buildQuoteSnapshot(input({ site: null, contact: null, quote: { ...input().quote, service_location_text: "Galpão 2, Rua B" } }));
     expect(quoteAddressee(s)).toEqual({ to: "Cliente Fictício", attention: null, address: "Galpão 2, Rua B", phone: "(00) 1111-1111", location: "Galpão 2, Rua B" });
+  });
+});
+
+describe("logo e assinatura do PDF do orçamento (B-04)", () => {
+  const settings = { logo_attachment_id: "logo-atual", signature_attachment_id: "assinatura-atual" };
+
+  it("versão com logo congelado usa os ids dela, mesmo com outro logo nas Configurações", () => {
+    const branding = { logo_attachment_id: "logo-do-envio", signature_attachment_id: null };
+    expect(quoteBrandingIds({ branding }, settings)).toEqual(branding);
+  });
+
+  it("versão antiga, sem logo congelado, usa as Configurações atuais", () => {
+    expect(quoteBrandingIds({}, settings)).toEqual(settings);
+    expect(quoteBrandingIds({}, null)).toEqual({ logo_attachment_id: null, signature_attachment_id: null });
   });
 });
