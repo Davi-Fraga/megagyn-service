@@ -13,6 +13,7 @@ import { createHash } from "node:crypto";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { createClient } from "@supabase/supabase-js";
+import { assertLocalSupabase } from "./backup-dump";
 
 for (const file of [".env.local", ".env"]) {
   if (!existsSync(file)) continue;
@@ -39,6 +40,7 @@ function psql(db: string, sql: string): string {
 }
 
 async function main() {
+  assertLocalSupabase(process.env.NEXT_PUBLIC_SUPABASE_URL);
   const root = path.resolve(process.env.BACKUP_DIR ?? "backups");
   const arg = process.argv.slice(2).find((a) => !a.startsWith("--"));
   const dir = arg ? path.resolve(arg) : path.join(root, readdirSync(root).sort().at(-1) ?? "");

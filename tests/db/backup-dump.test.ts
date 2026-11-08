@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { dumpPlan } from "../../scripts/backup-dump";
+import { assertLocalSupabase, dumpPlan } from "../../scripts/backup-dump";
 
 /**
  * B-02: o banco e os arquivos do backup vêm sempre do mesmo lugar. Antes, com DATABASE_URL
@@ -41,5 +41,16 @@ describe("plano do pg_dump do backup", () => {
         method: `docker exec ${CONTAINER} pg_dump`,
       });
     }
+  });
+});
+
+describe("teste de restauração só no Supabase local", () => {
+  it("recusa projeto remoto: subiria os arquivos para um bucket desse projeto", () => {
+    expect(() => assertLocalSupabase(REMOTE)).toThrow(/local/);
+  });
+
+  it("aceita o Supabase local", () => {
+    expect(() => assertLocalSupabase(LOCAL)).not.toThrow();
+    expect(() => assertLocalSupabase("http://localhost:54321")).not.toThrow();
   });
 });
