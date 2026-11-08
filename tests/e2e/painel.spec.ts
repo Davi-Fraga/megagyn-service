@@ -1,9 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import { PHOTO_A, USERS, login, mobilePage, uploadPhotos } from "./helpers";
 
-// O painel lê todos os chamados (paginado); na base local, com milhares de chamados de testes, cada abertura leva cerca de 1 minuto.
-test.setTimeout(1_200_000);
-
 type Reader = (page: Page) => Promise<string>;
 
 const clean = (s: string) => s.replace(/\s+/g, " ").trim();
@@ -38,17 +35,10 @@ const CARDS: ReadonlyArray<readonly [string, Reader]> = [
   ["Orçamentos em aberto (valor comercial)", countIn(/(\d+) orçamento\(s\)/)],
 ];
 
-/**
- * Abre uma tela da administração. A base local é compartilhada com outros testes e uma
- * consulta pode estourar o tempo do banco: nesse caso a tela de erro aparece e o teste
- * faz o mesmo que a pessoa faria, abrir de novo (uma vez).
- */
+/** Abre uma tela da administração; a tela de erro não tem #conteudo e reprova o teste. */
 async function openAdmin(page: Page, href: string) {
-  for (let attempt = 0; attempt < 2; attempt++) {
-    await page.goto(href);
-    if ((await page.locator("#conteudo").count()) > 0) return;
-  }
-  throw new Error(`a tela ${href} não abriu`);
+  await page.goto(href);
+  await expect(page.locator("#conteudo"), `a tela ${href} abriu`).toBeVisible();
 }
 
 /**
