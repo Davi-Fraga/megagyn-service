@@ -147,10 +147,12 @@ export async function registerReimbursementAction(_: ActionState, fd: FormData):
   if (!id) return { ok: false, message: "Compra não encontrada." };
   const amount = fdMoney(fd, "amount");
   if (amount === null || amount <= 0) return fieldError("amount", "Informe o valor pago (maior que zero). Ex.: 250,00");
+  // Com a chave, o toque repetido depois de uma resposta perdida não lança o pagamento de novo (B-09).
   const { data, error } = await db.rpc("reimbursement_register_payment", {
     p_expense_id: id,
     p_amount_cents: amount,
     p_notes: fdStr(fd, "notes") ?? undefined,
+    p_client_request_id: key(fd),
   });
   if (error || !data) return fail(error, "reimbursement.pay_fail");
   refresh();
