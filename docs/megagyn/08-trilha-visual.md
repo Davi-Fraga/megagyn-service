@@ -90,3 +90,49 @@ As tabelas compactas dentro de painéis ficam como estão: rateio de despesas, i
 3. Troca nas 11 listas.
 4. Comparação do HTML das 17 telas, antes e depois, com o build de produção. O script fica fora do git (`.superpowers/sdd/trilha-visual/`).
 5. Lint, typecheck, unitários, build e E2E completo.
+
+## 5. Etapa 4 em detalhe
+
+### 5.1 O que acontece hoje
+
+O painel (`src/server/dashboard.ts`) baixa todos os chamados do filtro, de mil em mil, só para contá-los no servidor do Next. Em 06/11/2026 a base local tinha 27,6 mil chamados, e o painel levou 88 s por carga (mediana de 7 cargas no `next start`). Os chamados vêm de `tests/db/dashboard.test.ts`, que insere 1050 a cada rodada.
+
+### 5.2 Função
+
+`public.dashboard_summary(p_today, p_from, p_to, p_client_id, p_site_id, p_person_id, p_attention_size)` devolve um `jsonb`.
+
+- Só leitura e `security invoker`: vale a RLS de quem chama, a mesma das listas que os cartões abrem (B-11).
+- Indicador novo, como os do B-28, entra como chave nova no `jsonb`, com a mesma assinatura.
+- Chaves:
+  - `requests`: por situação, em aberto, prazo vencido, novos hoje e pendências por motivo e por responsável;
+  - `attention`: total e as linhas de "O que precisa de você", já com número e título;
+  - `work_entries`: total e contagem por local;
+  - `active_sites`;
+  - `open_quotes`: quantidade e valor.
+- Os filtros repetem os da lista de chamados (`src/server/request-list.ts`), da lista de atividades e da lista de locais.
+
+Ficam fora da função as despesas e as tarefas de hoje. Elas já usam a mesma função das listas que abrem (`listExpenses` e `listOccurrences`), e a janela delas é curta. Repetir a regra no banco criaria um segundo cálculo, que poderia divergir da lista.
+
+### 5.3 Diferença aceita na tela
+
+As pendências por motivo e por responsável passam a aparecer da maior para a menor. Antes, a ordem seguia o id dos chamados.
+
+### 5.4 Ordem
+
+1. Testes em `tests/db/dashboard.test.ts`, falhando. Cada contagem tem de ser igual ao total de `listRequests` com o mesmo filtro, também acima de 1000 chamados. Há casos para pessoa desligada do chamado, para a ordem da fila e para funcionário sem acesso ao local.
+2. Migração `20261106000100_dashboard_summary.sql` aplicada no banco local, depois `npm run db:types`.
+3. Painel lendo a função.
+4. Tempo medido com a mesma base local da seção 5.1.
+5. `db:reset` e seed do Davi, depois a verificação completa com o `painel.spec`.
+6. Em produção, o banco vem antes do app (`03` §9): a migração é aplicada com o OK do Davi antes do merge.
+
+### 5.5 Achado: a regra de acesso rodava linha a linha
+
+Com a função, o painel caiu para 4,2 s, e a meta é menos de 2 s. O resto vinha da RLS. A leitura de chamados e de atividades chamava `has_site_access(site_id)` em cada linha, a cerca de 100 µs por chamada. Um `count(*)` de 30 mil chamados como admin levava 2,5 s.
+
+Decisão do Davi em 06/11/2026: a migração `20261106000200_select_admin_once.sql` troca as duas políticas para `(select public.is_admin()) or public.has_site_access(site_id)`.
+- A regra é a mesma para todos os papéis, porque `has_site_access` já aceita o admin.
+- O "é admin?" passa a ser decidido uma vez por consulta, e a mesma contagem cai para 12 ms.
+- Com 33 mil chamados na base local, o painel ficou em 0,8 s; na `main`, eram 88 s.
+
+As outras políticas com teste por linha ficam como estão, porque o painel não depende delas. Eventos, anexos e ocorrências também crescem com o uso, e o mesmo atalho pode entrar nelas se alguma lista ficar lenta.

@@ -1,8 +1,8 @@
 import { listExpenses } from "@/app/admin/despesas/expense-list";
 import type { ExpenseFilters } from "@/domain/expense-filters";
+import type { RequestStatus } from "@/domain/request-status";
 import { listOccurrences } from "./agenda";
 import type { ServerDb } from "./data";
-import { fetchAll } from "./paginate";
 
 export type DashboardFilters = { clientId: string | null; siteId: string | null; personId: string | null; from: string; to: string; today: string };
 
@@ -11,52 +11,62 @@ export function dashboardExpenseFilters(f: DashboardFilters): ExpenseFilters {
   return { from: f.from, to: f.to, siteId: f.siteId, clientId: f.clientId, purchaserId: f.personId, supplierId: null, categoryId: null, status: null, q: null };
 }
 
+type LabelCount = { label: string | null; count: number };
+
+/** Linha de "O que precisa de você", já com número e título. */
+export type AttentionRow = {
+  id: string;
+  number: string;
+  title: string;
+  status: RequestStatus;
+  due_date: string | null;
+  site_id: string;
+  overdue: boolean;
+  pending_reason: string | null;
+  assignee_ids: string[];
+};
+
+/** Resultado de `public.dashboard_summary` (migração 20261106000100). */
+export type DashboardSummary = {
+  requests: {
+    by_status: Partial<Record<RequestStatus, number>>;
+    not_closed: number;
+    overdue: number;
+    new_today: number;
+    pending_by_reason: LabelCount[];
+    pending_by_owner: LabelCount[];
+  };
+  attention: { total: number; rows: AttentionRow[] };
+  work_entries: { total: number; by_site: Array<{ site_id: string; count: number }> };
+  active_sites: number;
+  open_quotes: { count: number; total_cents: number };
+};
+
+/** Tamanho da fila "O que precisa de você" no painel. */
+export const ATTENTION_SIZE = 8;
+
 /**
- * Linhas que alimentam os cartões do painel. Tudo paginado: a API devolve no máximo
- * 1000 linhas por consulta (max_rows), e um cartão nunca pode contar menos em silêncio
- * nem divergir da lista que ele abre. Tarefas e despesas usam a mesma função da lista.
+ * Dados dos cartões do painel. Os chamados, as atividades, os locais e os orçamentos são
+ * contados no banco (`dashboard_summary`), com a RLS de quem chama: nada de baixar as linhas
+ * só para contar. Tarefas e despesas usam a mesma função da lista que o cartão abre (B-11).
  */
 export async function loadDashboardRows(db: ServerDb, f: DashboardFilters) {
-  const [requests, occurrences, workEntries, expenses, activeSites, quotes] = await Promise.all([
-    fetchAll((a, b) => {
-      let q = db
-        .from("service_requests")
-        .select("id, status, due_date, opened_at, current_pending, client_id, site_id, assignees:request_assignments(profile_id, unassigned_at)")
-        .order("id")
-        .range(a, b);
-      if (f.clientId) q = q.eq("client_id", f.clientId);
-      if (f.siteId) q = q.eq("site_id", f.siteId);
-      return q;
-    }),
-    listOccurrences(db, { from: f.today, to: f.today, siteId: f.siteId, clientId: f.clientId, personId: f.personId }),
-    fetchAll((a, b) => {
-      // Com cliente: o embed "inner" filtra pelos locais dele (mesmo critério da lista de atividades).
-      let q = db
-        .from("work_entries")
-        .select(`id, site_id, author_id, ${f.clientId ? "site:sites!inner(client_id)" : "site:sites(client_id)"}`)
-        .gte("activity_date", f.from)
-        .lte("activity_date", f.to)
-        .order("id")
-        .range(a, b);
-      if (f.clientId) q = q.eq("site.client_id", f.clientId);
-      if (f.siteId) q = q.eq("site_id", f.siteId);
-      if (f.personId) q = q.eq("author_id", f.personId);
-      return q;
-    }),
-    listExpenses(db, dashboardExpenseFilters(f)),
+  const [summary, occurrences, expenses] = await Promise.all([
     (async () => {
-      // Mesmo critério da lista de locais (situação Ativa e cliente).
-      let q = db.from("sites").select("id", { count: "exact", head: true }).eq("status", "ativa");
-      if (f.clientId) q = q.eq("client_id", f.clientId);
-      const { count, error } = await q;
+      const { data, error } = await db.rpc("dashboard_summary", {
+        p_today: f.today,
+        p_from: f.from,
+        p_to: f.to,
+        p_client_id: f.clientId ?? undefined,
+        p_site_id: f.siteId ?? undefined,
+        p_person_id: f.personId ?? undefined,
+        p_attention_size: ATTENTION_SIZE,
+      });
       if (error) throw error;
-      return count ?? 0;
+      return data as unknown as DashboardSummary;
     })(),
-    fetchAll((a, b) => {
-      let q = db.from("quotes").select("id, total_cents, status, valid_until").eq("status", "enviado").order("id").range(a, b);
-      if (f.clientId) q = q.eq("client_id", f.clientId);
-      return q;
-    }),
+    listOccurrences(db, { from: f.today, to: f.today, siteId: f.siteId, clientId: f.clientId, personId: f.personId }),
+    listExpenses(db, dashboardExpenseFilters(f)),
   ]);
-  return { requests, occurrences, workEntries, expenses, activeSites, quotes };
+  return { summary, occurrences, expenses };
 }

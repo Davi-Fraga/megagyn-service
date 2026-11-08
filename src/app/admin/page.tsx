@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { addDaysIso, formatDateBR, isValidIsoDate, longDatePt, todayIso, zonedMidnightUtc } from "@/domain/dates";
+import { addDaysIso, formatDateBR, isValidIsoDate, longDatePt, todayIso } from "@/domain/dates";
 import { expenseFiltersToQuery } from "@/domain/expense-filters";
 import { headlineTotals } from "@/domain/expense-totals";
 import { UUID_RE } from "@/domain/ids";
 import { formatBRL } from "@/domain/money";
-import { REQUEST_STATUSES, STATUS_LABEL, isOverdue } from "@/domain/request-status";
+import { REQUEST_STATUSES, STATUS_LABEL } from "@/domain/request-status";
 import { dashboardExpenseFilters, loadDashboardRows } from "@/server/dashboard";
 import { loadProfiles, loadSites } from "@/server/data";
 import { createSupabaseServer } from "@/server/supabase/server";
@@ -60,13 +60,7 @@ function Card({
   );
 }
 
-const dayStart = (iso: string) => {
-  const [y, m, d] = iso.split("-").map(Number) as [number, number, number];
-  return zonedMidnightUtc(y, m, d).toISOString();
-};
-
-/** Ordem da fila "O que precisa de você" depois dos vencidos: validar, destravar, triar. */
-const QUEUE_RANK: Record<string, number> = { executada: 1, pendente: 2, aberta: 3 };
+/** Ação de cada linha de "O que precisa de você"; a ordem da fila vem do banco (dashboard_summary). */
 const QUEUE_ACTION: Record<string, string> = {
   aberta: "Fazer triagem",
   programada: "Reprogramar",
@@ -74,7 +68,6 @@ const QUEUE_ACTION: Record<string, string> = {
   pendente: "Ver pendência",
   executada: "Validar serviço",
 };
-const QUEUE_SIZE = 8;
 const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
 
 export default async function AdminDashboard({
@@ -99,37 +92,25 @@ export default async function AdminDashboard({
     db.from("clients").select("id, display_name").order("display_name"),
   ]);
 
-  let requests = rows.requests;
-  if (personId) requests = requests.filter((r) => (r.assignees ?? []).some((a) => a.profile_id === personId && a.unassigned_at === null));
-  const byStatus = Object.fromEntries(REQUEST_STATUSES.map((s) => [s, requests.filter((r) => r.status === s).length]));
-  const newToday = requests.filter((r) => r.opened_at >= dayStart(today)).length;
-  const overdue = requests.filter((r) => isOverdue(r.due_date, r.status, today)).length;
-  const notClosed = requests.filter((r) => r.status !== "concluida" && r.status !== "cancelada").length;
-  const pending = requests.filter((r) => r.status === "pendente");
-  const byReason = new Map<string, { id: string; count: number }>();
-  const byOwner = new Map<string, number>();
-  for (const r of pending) {
-    const p = (r.current_pending ?? {}) as Record<string, string>;
-    const key = p.pending_reason ?? "Sem motivo";
-    byReason.set(key, { id: p.pending_reason_id ?? "", count: (byReason.get(key)?.count ?? 0) + 1 });
-    const owner = p.next_action_owner_name ?? "—";
-    byOwner.set(owner, (byOwner.get(owner) ?? 0) + 1);
-  }
+  // Contagens feitas no banco, com os mesmos filtros das listas que os cartões abrem.
+  const { summary } = rows;
+  const byStatus = Object.fromEntries(REQUEST_STATUSES.map((s) => [s, summary.requests.by_status[s] ?? 0]));
+  const { new_today: newToday, overdue, not_closed: notClosed } = summary.requests;
+  const pendingCount = byStatus.pendente ?? 0;
+  const byReason = summary.requests.pending_by_reason.map((p) => ({ label: p.label ?? "Sem motivo", count: p.count }));
+  const byOwner = summary.requests.pending_by_owner.map((p) => ({ label: p.label ?? "—", count: p.count }));
 
   // Mesma consulta e mesmo critério da agenda (local, cliente e profissional).
   const occurrences = rows.occurrences;
   const occBy = (s: string) => occurrences.filter((o) => o.status === s).length;
 
   const siteName = new Map(sites.map((s) => [s.id, `${s.name} (${s.clientName})`]));
-  const entriesBySite = new Map<string, number>();
-  for (const e of rows.workEntries) entriesBySite.set(e.site_id, (entriesBySite.get(e.site_id) ?? 0) + 1);
 
   // Custo interno: a mesma lista e a mesma soma da tela de despesas (com obra ou cliente,
   // soma das parcelas atribuídas; sem filtro, total das compras).
   const expenseFilters = dashboardExpenseFilters(filters);
   const expenses = headlineTotals(rows.expenses.totals, siteId, clientId).values;
   const expLink = (status: "aprovado" | "enviado_para_conferencia") => `/admin/despesas?${expenseFiltersToQuery({ ...expenseFilters, status })}`;
-  const openQuotes = rows.quotes.filter((q) => !q.valid_until || q.valid_until >= today);
 
   const filterQs = new URLSearchParams();
   if (clientId) filterQs.set("cliente", clientId);
@@ -150,21 +131,8 @@ export default async function AdminDashboard({
   const agendaToday = listLink("/admin/agenda", { data: today, visao: "dia", cliente: clientId, local: siteId, pessoa: personId });
 
   // Fila do dia: os mesmos chamados dos indicadores; vencidos primeiro, depois validar, destravar e triar.
-  const needsYou = requests
-    .map((r) => ({ ...r, overdue: isOverdue(r.due_date, r.status, today) }))
-    .filter((r) => r.overdue || QUEUE_RANK[r.status])
-    .sort(
-      (a, b) =>
-        Number(b.overdue) - Number(a.overdue) ||
-        (a.overdue ? (a.due_date ?? "").localeCompare(b.due_date ?? "") : 0) ||
-        (QUEUE_RANK[a.status] ?? 0) - (QUEUE_RANK[b.status] ?? 0) ||
-        a.opened_at.localeCompare(b.opened_at),
-    );
-  const queue = needsYou.slice(0, QUEUE_SIZE);
-  // Número e título só das linhas mostradas (no máximo 8, pela chave): não muda a consulta dos indicadores.
-  const queueInfo = queue.length
-    ? new Map(((await db.from("service_requests").select("id, number, title").in("id", queue.map((r) => r.id))).data ?? []).map((q) => [q.id, q]))
-    : new Map<string, { id: string; number: string; title: string }>();
+  const queue = summary.attention.rows;
+  const queueTotal = summary.attention.total;
   const siteById = new Map(sites.map((s) => [s.id, s]));
 
   return (
@@ -246,10 +214,9 @@ export default async function AdminDashboard({
             minWidth="min-w-[60rem]"
             rows={queue.map((r) => ({
               r,
-              info: queueInfo.get(r.id),
               site: siteById.get(r.site_id),
-              people: (r.assignees ?? []).filter((a) => a.unassigned_at === null).map((a) => profiles.name(a.profile_id)),
-              reason: r.status === "pendente" ? ((r.current_pending ?? {}) as Record<string, string>).pending_reason : null,
+              people: r.assignee_ids.map((id) => profiles.name(id)),
+              reason: r.pending_reason,
               href: `/admin/chamados/${r.id}`,
             }))}
             rowKey={(q) => q.r.id}
@@ -257,20 +224,20 @@ export default async function AdminDashboard({
               {
                 header: "O.S.",
                 className: "relative",
-                cell: ({ r, info, href }) => (
+                cell: ({ r, href }) => (
                   <>
                     {r.overdue && <AlertEdge />}
                     <Link href={href} className="tipo-condensada whitespace-nowrap text-[1.0625rem] underline-offset-4 hover:underline">
-                      {info?.number ?? "Abrir"}
+                      {r.number}
                     </Link>
                   </>
                 ),
               },
               {
                 header: "Serviço e local",
-                cell: ({ info, site }) => (
+                cell: ({ r, site }) => (
                   <>
-                    <p className="text-[1.0625rem] font-semibold leading-snug">{info?.title}</p>
+                    <p className="text-[1.0625rem] font-semibold leading-snug">{r.title}</p>
                     <p className="mt-0.5 text-[0.9375rem] text-muted">{site ? `${site.clientName}, ${site.name}` : "—"}</p>
                   </>
                 ),
@@ -299,22 +266,22 @@ export default async function AdminDashboard({
                 header: <span className="sr-only">Ação</span>,
                 padY: "py-2",
                 className: "text-right",
-                cell: ({ r, info, href }) => (
+                cell: ({ r, href }) => (
                   <Link
                     href={href}
                     className="inline-flex min-h-11 items-center whitespace-nowrap px-0.5 font-semibold text-acento underline decoration-1 underline-offset-4 hover:decoration-2"
                   >
                     {QUEUE_ACTION[r.status] ?? "Abrir a ordem"}
-                    <span className="sr-only"> {info?.number}</span>
+                    <span className="sr-only"> {r.number}</span>
                   </Link>
                 ),
               },
             ]}
           />
         )}
-        {needsYou.length > queue.length && (
+        {queueTotal > queue.length && (
           <p className="mt-4 text-[0.9375rem] text-muted">
-            {plural(needsYou.length - queue.length, "outra ordem também precisa", "outras ordens também precisam")} de você.{" "}
+            {plural(queueTotal - queue.length, "outra ordem também precisa", "outras ordens também precisam")} de você.{" "}
             <Link href={reqLink({ status: "abertos" })} className="font-semibold text-acento underline decoration-1 underline-offset-[3px] hover:decoration-2">
               Ver as ordens em aberto
             </Link>
@@ -341,21 +308,21 @@ export default async function AdminDashboard({
               ))}
             </ul>
           </Card>
-          <Card title="Pendências por motivo" value={pending.length} window="agora" rule="situação Pendente, pelo motivo informado." href={reqLink({ status: "pendente" })}>
+          <Card title="Pendências por motivo" value={pendingCount} window="agora" rule="situação Pendente, pelo motivo informado." href={reqLink({ status: "pendente" })}>
             <ul className="tipo-condensada mt-2 space-y-0.5 text-[0.9375rem]">
-              {[...byReason.entries()].map(([reason, v]) => (
-                <li key={reason} className="flex justify-between gap-2">
-                  <span className="font-medium">{reason}</span>
-                  <span>{v.count}</span>
+              {byReason.map(({ label, count }) => (
+                <li key={label} className="flex justify-between gap-2">
+                  <span className="font-medium">{label}</span>
+                  <span>{count}</span>
                 </li>
               ))}
             </ul>
           </Card>
-          <Card title="Pendências por responsável" value={pending.length} window="agora" rule="situação Pendente, por quem faz a próxima ação." href={reqLink({ status: "pendente" })}>
+          <Card title="Pendências por responsável" value={pendingCount} window="agora" rule="situação Pendente, por quem faz a próxima ação." href={reqLink({ status: "pendente" })}>
             <ul className="tipo-condensada mt-2 space-y-0.5 text-[0.9375rem]">
-              {[...byOwner.entries()].map(([owner, count]) => (
-                <li key={owner} className="flex justify-between gap-2">
-                  <span className="font-medium">{owner}</span>
+              {byOwner.map(({ label, count }) => (
+                <li key={label} className="flex justify-between gap-2">
+                  <span className="font-medium">{label}</span>
                   <span>{count}</span>
                 </li>
               ))}
@@ -374,26 +341,23 @@ export default async function AdminDashboard({
           Obras e atividades
         </h2>
         <div className="grid gap-x-8 gap-y-10 sm:grid-cols-2 lg:grid-cols-4">
-          <Card title="Obras e unidades ativas" value={rows.activeSites} window="agora" rule="locais com situação Ativa." href={listLink("/admin/locais", { situacao: "ativa", cliente: clientId })} />
+          <Card title="Obras e unidades ativas" value={summary.active_sites} window="agora" rule="locais com situação Ativa." href={listLink("/admin/locais", { situacao: "ativa", cliente: clientId })} />
           <Card
             title="Atividades registradas"
-            value={[...entriesBySite.values()].reduce((n, v) => n + v, 0)}
+            value={summary.work_entries.total}
             window={periodLabel}
             rule="lançamentos pela data do serviço; cada lançamento conta uma vez."
             href={listLink("/admin/atividades", { de: from, ate: to, cliente: clientId, local: siteId, pessoa: personId })}
           >
             <ul className="mt-2 space-y-0.5 text-[0.9375rem]">
-              {[...entriesBySite.entries()]
-                .sort((a, b) => b[1] - a[1])
-                .slice(0, 5)
-                .map(([id, n]) => (
-                  <li key={id} className="flex justify-between gap-2">
-                    <Link href={`/admin/diario?local=${id}&de=${from}&ate=${to}`} className="relative z-10 truncate text-acento underline decoration-1 underline-offset-[3px] hover:decoration-2">
-                      {siteName.get(id) ?? "—"}
-                    </Link>
-                    <span className="tipo-condensada">{n}</span>
-                  </li>
-                ))}
+              {summary.work_entries.by_site.slice(0, 5).map(({ site_id: id, count: n }) => (
+                <li key={id} className="flex justify-between gap-2">
+                  <Link href={`/admin/diario?local=${id}&de=${from}&ate=${to}`} className="relative z-10 truncate text-acento underline decoration-1 underline-offset-[3px] hover:decoration-2">
+                    {siteName.get(id) ?? "—"}
+                  </Link>
+                  <span className="tipo-condensada">{n}</span>
+                </li>
+              ))}
             </ul>
           </Card>
         </div>
@@ -421,12 +385,12 @@ export default async function AdminDashboard({
           />
           <Card
             title="Orçamentos em aberto (valor comercial)"
-            value={openQuotes.length}
+            value={summary.open_quotes.count}
             window="agora"
             rule="propostas enviadas e dentro da validade; valor proposto não é receita."
             href={listLink("/admin/orcamentos", { status: "enviado", cliente: clientId })}
           >
-            <p className="mt-1 text-[0.9375rem]">{formatBRL(openQuotes.reduce((n, q) => n + q.total_cents, 0))} propostos</p>
+            <p className="mt-1 text-[0.9375rem]">{formatBRL(summary.open_quotes.total_cents)} propostos</p>
           </Card>
         </div>
       </section>
