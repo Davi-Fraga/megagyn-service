@@ -5,6 +5,7 @@ import { loadCatalogs, loadProfiles, loadSites } from "@/server/data";
 import { createSupabaseServer } from "@/server/supabase/server";
 import { ActionForm, CheckboxGroup, SelectField, TextAreaField, TextField } from "@/ui/form";
 import { PageHeader } from "@/ui/page";
+import { TaskSitePicker } from "./site-picker";
 
 export const metadata: Metadata = { title: "Nova tarefa" };
 
@@ -36,12 +37,7 @@ export default async function NewTaskPage({ searchParams }: { searchParams: Prom
           <TextField label="Dia" name="scheduled_date" type="date" required defaultValue={sp.data && isValidIsoDate(sp.data) ? sp.data : todayIso()} />
           <TextField label="Prazo" name="due_date" type="date" />
         </div>
-        <CheckboxGroup
-          label="Locais"
-          name="site_ids"
-          required
-          options={sites.map((s) => ({ value: s.id, label: `${s.clientName} — ${s.name}` }))}
-        />
+        <TaskSitePicker sites={sites.map((s) => ({ id: s.id, name: s.name, clientId: s.client_id, clientName: s.clientName }))} />
         <SelectField
           label="Setor"
           name="site_area"

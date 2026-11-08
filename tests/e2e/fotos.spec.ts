@@ -8,7 +8,8 @@ test("administração remove foto do chamado com motivo", async ({ page, browser
   const title = `Foto errada E2E ${Date.now()}`;
   await login(page, USERS.admin);
   await page.goto("/admin/chamados/novo");
-  await page.getByLabel("Cliente e local").selectOption({ label: "Torre A" });
+  await page.locator('select[name="client_id"]').selectOption({ label: "Condomínio Jardim Exemplo" });
+  await page.locator('select[name="site_id"]').selectOption({ label: "Torre A" });
   await page.getByLabel("Nome do solicitante").fill("Síndica Demo (fictícia)");
   await page.getByLabel("Título").fill(title);
   await page.getByLabel("Descrição do problema").fill("Teste automatizado de remoção de foto.");

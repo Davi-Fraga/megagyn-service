@@ -291,6 +291,7 @@ export function CheckboxGroup({
   defaultValues = [],
   required,
   hint,
+  isHidden,
 }: {
   label: string;
   name: string;
@@ -298,6 +299,8 @@ export function CheckboxGroup({
   defaultValues?: string[];
   required?: boolean;
   hint?: string;
+  /** Filtro de exibição: a opção escondida continua à vista se estiver marcada (nada é enviado sem ser visto). */
+  isHidden?: (value: string) => boolean;
 }) {
   const error = useFieldError(name);
   const id = useId();
@@ -311,7 +314,10 @@ export function CheckboxGroup({
       {options.length === 0 && <p className="text-sm text-muted">Nenhuma opção disponível.</p>}
       <div className="grid gap-2 sm:grid-cols-2">
         {options.map((o) => (
-          <label key={o.value} className="flex min-h-11 items-center gap-3 rounded-ctl border border-linha bg-papel px-3">
+          <label
+            key={o.value}
+            className={cn(isHidden?.(o.value) ? "hidden has-[:checked]:flex" : "flex", "min-h-11 items-center gap-3 rounded-ctl border border-linha bg-papel px-3")}
+          >
             <input
               type="checkbox"
               name={name}
