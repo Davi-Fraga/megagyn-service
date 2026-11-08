@@ -383,3 +383,113 @@ describe("B-12 — uma obra por orçamento", () => {
     expect(data).toHaveLength(1);
   });
 });
+
+describe("B-08 — orçamento salvo uma vez, sem itens duplicados", () => {
+  const header = (extra: Record<string, unknown> = {}) => ({
+    client_id: clientId,
+    site_id: siteId,
+    issued_at: today(),
+    valid_until: addDays(today(), 30),
+    title: "Reforma (teste B-08)",
+    ...extra,
+  });
+  const item = (subtotal: number, label = "Cobertura") => ({
+    location_label: label,
+    title: null,
+    pricing_mode: "global",
+    quantity: null,
+    unit: null,
+    unit_price_cents: null,
+    subtotal_cents: subtotal,
+    lines: ["Serviço fictício"],
+    notes: null,
+    sort_order: 0,
+  });
+  const save = (key: string, items: ReturnType<typeof item>[], extra: { p_quote_id?: string; p_expected_updated_at?: string; header?: Record<string, unknown> } = {}) =>
+    admin.db.rpc("quote_save", {
+      p_client_request_id: key,
+      p_header: header(extra.header),
+      p_items: items,
+      p_quote_id: extra.p_quote_id,
+      p_expected_updated_at: extra.p_expected_updated_at,
+    });
+  async function itemsOf(quoteId: string) {
+    const { data } = await admin.db.from("quote_items").select("subtotal_cents").eq("quote_id", quoteId).order("subtotal_cents");
+    return (data ?? []).map((i) => i.subtotal_cents);
+  }
+
+  it("reenvio com a mesma chave não cria outro orçamento, nem em sequência nem ao mesmo tempo", async () => {
+    const key = randomUUID();
+    const first = await save(key, [item(100000)]);
+    expect(first.error).toBeNull();
+    const again = await save(key, [item(999999)]);
+    expect(again.data).toMatchObject({ id: first.data!.id, number: first.data!.number, total_cents: 100000 });
+
+    const twin = randomUUID();
+    const [a, b] = await Promise.all([save(twin, [item(50000)]), save(twin, [item(50000)])]);
+    expect(a.error).toBeNull();
+    expect(b.error).toBeNull();
+    expect(a.data!.id).toBe(b.data!.id);
+    const { count } = await admin.db.from("quotes").select("id", { count: "exact", head: true }).eq("client_request_id", twin);
+    expect(count).toBe(1);
+  });
+
+  it("dois salvamentos simultâneos do mesmo rascunho deixam só os itens de um deles", async () => {
+    const created = await save(randomUUID(), [item(10000)]);
+    const id = created.data!.id;
+    await Promise.all([
+      save(randomUUID(), [item(100000, "A1"), item(200000, "A2")], { p_quote_id: id }),
+      save(randomUUID(), [item(300000, "B1"), item(400000, "B2")], { p_quote_id: id }),
+    ]);
+    const items = await itemsOf(id);
+    expect([[100000, 200000], [300000, 400000]]).toContainEqual(items);
+    expect(await totalOf(id)).toBe(items[0]! + items[1]!);
+  });
+
+  it("edição com versão antiga é recusada e nada muda", async () => {
+    const created = await save(randomUUID(), [item(10000)]);
+    const opened = created.data!.updated_at;
+    const first = await save(randomUUID(), [item(20000)], { p_quote_id: created.data!.id, p_expected_updated_at: opened });
+    expect(first.error).toBeNull();
+    const stale = await save(randomUUID(), [item(30000)], { p_quote_id: created.data!.id, p_expected_updated_at: opened });
+    expect(stale.error?.hint).toBe("expectedUpdatedAt");
+    expect(await itemsOf(created.data!.id)).toEqual([20000]);
+  });
+
+  it("reenvio da mesma edição devolve o orçamento sem erro de versão", async () => {
+    const created = await save(randomUUID(), [item(10000)]);
+    const key = randomUUID();
+    const edit = { p_quote_id: created.data!.id, p_expected_updated_at: created.data!.updated_at };
+    const first = await save(key, [item(20000)], edit);
+    expect(first.error).toBeNull();
+    const resent = await save(key, [item(20000)], edit);
+    expect(resent.error).toBeNull();
+    expect(resent.data).toMatchObject({ id: created.data!.id, total_cents: 20000 });
+    expect(await itemsOf(created.data!.id)).toEqual([20000]);
+  });
+
+  it("fora de rascunho, salvar é recusado", async () => {
+    const created = await save(randomUUID(), [item(760000)]);
+    const q = created.data!;
+    const sent = await admin.db.rpc("quote_transition", { p_quote_id: q.id, p_action: "enviar", p_snapshot: snapshotFor(q, 1, 760000) });
+    expect(sent.error).toBeNull();
+    const edit = await save(randomUUID(), [item(1)], { p_quote_id: q.id });
+    expect(edit.error?.message).toContain("rascunho");
+    expect(await itemsOf(q.id)).toEqual([760000]);
+  });
+
+  it("contato ou obra de outro cliente é recusado", async () => {
+    const other = await createClientWithSite("Outro B-08");
+    const wrongSite = await save(randomUUID(), [item(10000)], { header: { site_id: other.site.id } });
+    expect(wrongSite.error?.hint).toBe("siteId");
+    const noClient = await save(randomUUID(), [item(10000)], { header: { client_id: null } });
+    expect(noClient.error?.hint).toBe("clientId");
+  });
+
+  it("funcionário e encarregado não chamam quote_save", async () => {
+    for (const user of [worker, foreman]) {
+      const { error } = await user.db.rpc("quote_save", { p_client_request_id: randomUUID(), p_header: header(), p_items: [item(10000)] });
+      expect(error?.code).toBe("42501");
+    }
+  });
+});

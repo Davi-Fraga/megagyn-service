@@ -529,14 +529,14 @@ isOneToOne: false
                   ]
                 },"quotes": {
                   Row: {
-                    "accepted_at": string | null,"accepted_note": string | null,"approved_version_no": number | null,"client_contact_id": string | null,"client_id": string,"created_at": string,"created_by": string,"current_version_no": number,"declaration_text": string | null,"execution_deadline_text": string | null,"id": string,"inclusions_text": string | null,"intro_text": string | null,"issued_at": string,"number": string,"observations": string | null,"payment_terms": string | null,"service_location_text": string | null,"site_id": string | null,"status": string,"status_reason": string | null,"technical_notes": string | null,"title": string | null,"total_cents": number,"updated_at": string,"valid_until": string | null,"warranty_text": string | null
+                    "accepted_at": string | null,"accepted_note": string | null,"approved_version_no": number | null,"client_contact_id": string | null,"client_id": string,"client_request_id": string | null,"created_at": string,"created_by": string,"current_version_no": number,"declaration_text": string | null,"execution_deadline_text": string | null,"id": string,"inclusions_text": string | null,"intro_text": string | null,"issued_at": string,"last_save_request_id": string | null,"number": string,"observations": string | null,"payment_terms": string | null,"service_location_text": string | null,"site_id": string | null,"status": string,"status_reason": string | null,"technical_notes": string | null,"title": string | null,"total_cents": number,"updated_at": string,"valid_until": string | null,"warranty_text": string | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "accepted_at"?: string | null,"accepted_note"?: string | null,"approved_version_no"?: number | null,"client_contact_id"?: string | null,"client_id": string,"created_at"?: string,"created_by": string,"current_version_no"?: number,"declaration_text"?: string | null,"execution_deadline_text"?: string | null,"id"?: string,"inclusions_text"?: string | null,"intro_text"?: string | null,"issued_at"?: string,"number": string,"observations"?: string | null,"payment_terms"?: string | null,"service_location_text"?: string | null,"site_id"?: string | null,"status"?: string,"status_reason"?: string | null,"technical_notes"?: string | null,"title"?: string | null,"total_cents"?: number,"updated_at"?: string,"valid_until"?: string | null,"warranty_text"?: string | null
+                    "accepted_at"?: string | null,"accepted_note"?: string | null,"approved_version_no"?: number | null,"client_contact_id"?: string | null,"client_id": string,"client_request_id"?: string | null,"created_at"?: string,"created_by": string,"current_version_no"?: number,"declaration_text"?: string | null,"execution_deadline_text"?: string | null,"id"?: string,"inclusions_text"?: string | null,"intro_text"?: string | null,"issued_at"?: string,"last_save_request_id"?: string | null,"number": string,"observations"?: string | null,"payment_terms"?: string | null,"service_location_text"?: string | null,"site_id"?: string | null,"status"?: string,"status_reason"?: string | null,"technical_notes"?: string | null,"title"?: string | null,"total_cents"?: number,"updated_at"?: string,"valid_until"?: string | null,"warranty_text"?: string | null
                   }
                   Update: {
-                    "accepted_at"?: string | null,"accepted_note"?: string | null,"approved_version_no"?: number | null,"client_contact_id"?: string | null,"client_id"?: string,"created_at"?: string,"created_by"?: string,"current_version_no"?: number,"declaration_text"?: string | null,"execution_deadline_text"?: string | null,"id"?: string,"inclusions_text"?: string | null,"intro_text"?: string | null,"issued_at"?: string,"number"?: string,"observations"?: string | null,"payment_terms"?: string | null,"service_location_text"?: string | null,"site_id"?: string | null,"status"?: string,"status_reason"?: string | null,"technical_notes"?: string | null,"title"?: string | null,"total_cents"?: number,"updated_at"?: string,"valid_until"?: string | null,"warranty_text"?: string | null
+                    "accepted_at"?: string | null,"accepted_note"?: string | null,"approved_version_no"?: number | null,"client_contact_id"?: string | null,"client_id"?: string,"client_request_id"?: string | null,"created_at"?: string,"created_by"?: string,"current_version_no"?: number,"declaration_text"?: string | null,"execution_deadline_text"?: string | null,"id"?: string,"inclusions_text"?: string | null,"intro_text"?: string | null,"issued_at"?: string,"last_save_request_id"?: string | null,"number"?: string,"observations"?: string | null,"payment_terms"?: string | null,"service_location_text"?: string | null,"site_id"?: string | null,"status"?: string,"status_reason"?: string | null,"technical_notes"?: string | null,"title"?: string | null,"total_cents"?: number,"updated_at"?: string,"valid_until"?: string | null,"warranty_text"?: string | null
                   }
                   Relationships: [
                     {
@@ -1334,6 +1334,7 @@ isOneToOne: false
 "approved_version_no": number | null,
 "client_contact_id": string | null,
 "client_id": string,
+"client_request_id": string | null,
 "created_at": string,
 "created_by": string,
 "current_version_no": number,
@@ -1343,6 +1344,7 @@ isOneToOne: false
 "inclusions_text": string | null,
 "intro_text": string | null,
 "issued_at": string,
+"last_save_request_id": string | null,
 "number": string,
 "observations": string | null,
 "payment_terms": string | null,
@@ -1366,13 +1368,14 @@ isOneToOne: false
 "quote_link_photos":
 { Args: { "p_photo_ids": (string)[],"p_quote_id": string,"p_role": Database["public"]['Enums']["evidence_role"] }; Returns: number
                            },
-"quote_transition":
-{ Args: { "p_accepted_on"?: string,"p_action": string,"p_quote_id": string,"p_reason"?: string,"p_snapshot"?: Json,"p_valid_until"?: string }; Returns: {
+"quote_save":
+{ Args: { "p_client_request_id": string,"p_expected_updated_at"?: string,"p_header": Json,"p_items": Json,"p_quote_id"?: string }; Returns: {
               "accepted_at": string | null,
 "accepted_note": string | null,
 "approved_version_no": number | null,
 "client_contact_id": string | null,
 "client_id": string,
+"client_request_id": string | null,
 "created_at": string,
 "created_by": string,
 "current_version_no": number,
@@ -1382,6 +1385,45 @@ isOneToOne: false
 "inclusions_text": string | null,
 "intro_text": string | null,
 "issued_at": string,
+"last_save_request_id": string | null,
+"number": string,
+"observations": string | null,
+"payment_terms": string | null,
+"service_location_text": string | null,
+"site_id": string | null,
+"status": string,
+"status_reason": string | null,
+"technical_notes": string | null,
+"title": string | null,
+"total_cents": number,
+"updated_at": string,
+"valid_until": string | null,
+"warranty_text": string | null
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "quotes"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
+"quote_transition":
+{ Args: { "p_accepted_on"?: string,"p_action": string,"p_quote_id": string,"p_reason"?: string,"p_snapshot"?: Json,"p_valid_until"?: string }; Returns: {
+              "accepted_at": string | null,
+"accepted_note": string | null,
+"approved_version_no": number | null,
+"client_contact_id": string | null,
+"client_id": string,
+"client_request_id": string | null,
+"created_at": string,
+"created_by": string,
+"current_version_no": number,
+"declaration_text": string | null,
+"execution_deadline_text": string | null,
+"id": string,
+"inclusions_text": string | null,
+"intro_text": string | null,
+"issued_at": string,
+"last_save_request_id": string | null,
 "number": string,
 "observations": string | null,
 "payment_terms": string | null,

@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { toActionError, type ActionState } from "@/domain/action-errors";
 import { fdCaptions, fdDate, fdStr, fdUuid, fdUuids } from "@/domain/form-data";
+import { newId } from "@/domain/ids";
 import { readItemDrafts, validateQuoteItems } from "@/domain/quote-form";
 import { requireProfile } from "@/server/auth";
 import type { Database, Json } from "@/server/db/database.types";
@@ -13,8 +14,8 @@ import { createSupabaseServer } from "@/server/supabase/server";
 
 /**
  * Orçamentos (somente administração). Valor comercial: nunca vira despesa nem receita.
- * Itens e cabeçalho são gravados com RLS de admin; mudanças de situação, versões e
- * vínculo de fotos passam pelas funções do banco (migração 20261025001300).
+ * Cabeçalho e itens são gravados por quote_save (migração 20261108000200); mudanças de
+ * situação, versões e vínculo de fotos passam pelas funções do banco (20261025001300).
  */
 
 type SiteType = Database["public"]["Enums"]["site_type"];
@@ -56,7 +57,7 @@ const TEXT_FIELDS = {
 // ---------------------------------------------------------------------------
 
 export async function saveQuoteAction(_: ActionState, fd: FormData): Promise<ActionState> {
-  const profile = await requireProfile(["admin"]);
+  await requireProfile(["admin"]);
   const db = await createSupabaseServer();
   const quoteId = fdUuid(fd, "quote_id");
   const errors: Record<string, string> = {};
@@ -100,44 +101,19 @@ export async function saveQuoteAction(_: ActionState, fd: FormData): Promise<Act
     ...texts,
   };
 
-  if (!quoteId) {
-    // number vazio: o trigger quotes_number atribui ORC-AAAA-NNNN.
-    const { data, error } = await db.from("quotes").insert({ ...header, number: "", created_by: profile.id }).select("id").single();
-    if (error || !data) return fail(error, "quote.create_fail");
-    if (items.rows.length > 0) {
-      const ins = await db.from("quote_items").insert(items.rows.map((r) => ({ ...r, quote_id: data.id })));
-      if (ins.error) {
-        log.error("quote.items_fail", errorInfo(ins.error));
-        refresh();
-        redirect(`/admin/orcamentos/${data.id}?aviso=${encodeURIComponent("Orçamento criado, mas os itens não foram salvos. Inclua-os novamente.")}`);
-      }
-    }
-    refresh();
-    redirect(`/admin/orcamentos/${data.id}?feito=criado`);
-  }
-
-  const { data: current } = await db.from("quotes").select("id, status").eq("id", quoteId).maybeSingle();
-  if (!current) return { ok: false, message: "Orçamento não encontrado." };
-  if (current.status !== "rascunho") return { ok: false, message: "Só rascunhos podem ser editados. Use “Revisar proposta”." };
-
-  const { data: oldItems } = await db.from("quote_items").select("id").eq("quote_id", quoteId);
-  const upd = await db.from("quotes").update(header).eq("id", quoteId);
-  if (upd.error) return fail(upd.error, "quote.update_fail");
-  // Troca dos itens: insere os novos antes de apagar os antigos — uma falha no meio nunca perde itens.
-  if (items.rows.length > 0) {
-    const ins = await db.from("quote_items").insert(items.rows.map((r) => ({ ...r, quote_id: quoteId })));
-    if (ins.error) return fail(ins.error, "quote.items_fail");
-  }
-  const oldIds = (oldItems ?? []).map((i) => i.id);
-  if (oldIds.length > 0) {
-    const del = await db.from("quote_items").delete().in("id", oldIds);
-    if (del.error) {
-      log.error("quote.items_delete_fail", errorInfo(del.error));
-      refresh();
-      return { ok: false, message: "Os itens novos foram salvos, mas os antigos não saíram. Salve de novo para corrigir." };
-    }
-  }
+  // Cabeçalho e itens numa transação só, com chave de idempotência (B-08): o reenvio depois de um
+  // timeout não cria outro orçamento, e dois salvamentos ao mesmo tempo não duplicam itens. A
+  // conferência de rascunho e de "alterado por outra pessoa" é do banco.
+  const { data, error } = await db.rpc("quote_save", {
+    p_client_request_id: fdUuid(fd, "client_request_id") ?? newId(),
+    p_header: header,
+    p_items: items.rows,
+    p_quote_id: quoteId ?? undefined,
+    p_expected_updated_at: fdStr(fd, "expected_updated_at") ?? undefined,
+  });
+  if (error || !data) return fail(error, quoteId ? "quote.update_fail" : "quote.create_fail");
   refresh();
+  if (!quoteId) redirect(`/admin/orcamentos/${data.id}?feito=criado`);
   return { ok: true, message: "Orçamento salvo." };
 }
 

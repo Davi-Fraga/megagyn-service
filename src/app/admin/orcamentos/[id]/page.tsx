@@ -133,6 +133,7 @@ export default async function QuotePage({
           {can("editar") && options ? (
             <QuoteForm
               quoteId={q.id}
+              updatedAt={q.updated_at}
               clients={options.clients}
               contactsByClient={options.contactsByClient}
               sitesByClient={options.sitesByClient}
