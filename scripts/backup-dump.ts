@@ -11,6 +11,13 @@ export type DumpPlan = { command: string; args: string[]; method: string };
 
 const isLocal = (supabaseUrl: string) => /^https?:\/\/(127\.0\.0\.1|localhost)(:\d+)?(\/|$)/.test(supabaseUrl);
 
+/** O teste de restauração cria um bucket e sobe arquivos: só pode rodar contra o Supabase local. */
+export function assertLocalSupabase(supabaseUrl: string | undefined) {
+  if (!supabaseUrl || !isLocal(supabaseUrl)) {
+    throw new Error("O teste de restauração só roda no Supabase local. Abra um terminal sem as variáveis de produção e rode de novo.");
+  }
+}
+
 export function dumpPlan(opts: { supabaseUrl: string; databaseUrl: string | undefined; hostPgDump: boolean; container: string }): DumpPlan {
   const { supabaseUrl, databaseUrl, hostPgDump, container } = opts;
   if (databaseUrl) {
