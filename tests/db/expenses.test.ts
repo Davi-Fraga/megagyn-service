@@ -258,3 +258,54 @@ describe("B-09 — pagamento de reembolso lançado uma vez, em linha própria", 
     expect(sql("select count(*) from pg_proc where proname = 'reimbursement_register_payment'")).toBe("1");
   });
 });
+
+describe("B-14 — compra só se liga a O.S. de obra do rateio, com acesso", () => {
+  /** O.S. fictícia aberta direto no banco (o teste é da regra da compra, não da abertura). */
+  async function requestAt(siteId: string) {
+    const svc = serviceClient();
+    const { data: site } = await svc.from("sites").select("client_id").eq("id", siteId).single();
+    const { data, error } = await svc
+      .from("service_requests")
+      .insert({
+        number: `2026-7${Date.now().toString().slice(-7)}${Math.floor(Math.random() * 100)}`,
+        client_id: site!.client_id,
+        site_id: siteId,
+        origin: "cliente_externo",
+        requester_name: "Fictício",
+        title: "Chamado B-14 (teste)",
+        description: "x",
+        status: "aberta",
+        client_request_id: uid(),
+        created_by: admin.id,
+      })
+      .select("id")
+      .single();
+    if (error) throw error;
+    return data.id as string;
+  }
+  const onlyA = () => [{ site_id: obraA.id, amount_cents: 100000, purpose: "Cozinha do salão" }];
+
+  it("encarregado não liga compra a O.S. de local sem acesso", async () => {
+    const obraC = (await createClientWithSite("CompraC")).site;
+    const reqC = await requestAt(obraC.id);
+    const { error } = await newExpense(foreman, split(), { p_service_request_id: reqC });
+    expect(error?.code).toBe("P0002");
+    expect(error?.hint).toBe("serviceRequestId");
+  });
+
+  it("O.S. de obra fora do rateio é recusada, também para a administração", async () => {
+    const reqB = await requestAt(obraB.id);
+    for (const user of [foreman, admin]) {
+      const { error } = await newExpense(user, onlyA(), { p_service_request_id: reqB });
+      expect(error?.hint, user.name).toBe("serviceRequestId");
+      expect(error?.message).toContain("rateio");
+    }
+  });
+
+  it("O.S. de obra do rateio é aceita", async () => {
+    const reqA = await requestAt(obraA.id);
+    const { data, error } = await newExpense(foreman, split(), { p_service_request_id: reqA });
+    expect(error).toBeNull();
+    expect(data!.service_request_id).toBe(reqA);
+  });
+});
