@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   CATALOGS,
+  CLIENT_DOCUMENT_UNIQUE,
   catalogBySlug,
   formatDocument,
   friendlyUniqueViolation,
@@ -289,6 +290,15 @@ describe("mensagens de duplicidade", () => {
   it("traduz a violação de unicidade conhecida para o campo", () => {
     const state = friendlyUniqueViolation({ code: "23505", message: 'duplicate key value violates unique constraint "sites_code_key"' }, rules);
     expect(state).toEqual({ ok: false, message: "Já existe um local com este código.", fieldErrors: { code: "Já existe um local com este código." } });
+  });
+
+  it("CPF/CNPJ repetido vira erro no campo do documento (B-17)", () => {
+    const pg = { code: "23505", message: 'duplicate key value violates unique constraint "clients_document_digits_uidx"' };
+    expect(friendlyUniqueViolation(pg, [CLIENT_DOCUMENT_UNIQUE])).toEqual({
+      ok: false,
+      message: "CPF/CNPJ já cadastrado.",
+      fieldErrors: { document: "CPF/CNPJ já cadastrado." },
+    });
   });
 
   it("ignora outros erros", () => {

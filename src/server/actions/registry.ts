@@ -7,6 +7,7 @@ import { formatDateBR, todayIso } from "@/domain/dates";
 import { fdBool, fdStr, fdUuid, fdUuids } from "@/domain/form-data";
 import {
   CATALOGS,
+  CLIENT_DOCUMENT_UNIQUE,
   catalogBySlug,
   friendlyUniqueViolation,
   guardSelfChange,
@@ -36,6 +37,7 @@ import { createSupabaseServer, type ServerDb } from "@/server/supabase/server";
  */
 
 const UNIQUE_RULES: UniqueRule[] = [
+  CLIENT_DOCUMENT_UNIQUE,
   { constraint: "sites_code_key", field: "code", message: "Já existe um local com este código. Escolha outro." },
   { constraint: "site_areas_site_id_name_key", field: "name", message: "Já existe um setor ou ambiente com este nome neste local." },
   { constraint: "site_memberships_open_uidx", field: "profile_id", message: "Esta pessoa já tem acesso a este local." },
