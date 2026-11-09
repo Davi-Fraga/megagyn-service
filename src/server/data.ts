@@ -13,13 +13,19 @@ export type EventRow = Tables["request_events"]["Row"];
 export type WorkEntryRow = Tables["work_entries"]["Row"];
 export type AttachmentEntity = Database["public"]["Enums"]["attachment_entity"];
 
-/** Pessoas da equipe (lista pequena): resolve nomes sem joins ambíguos. */
+/**
+ * Pessoas da equipe: resolve nomes sem joins ambíguos. Lê em páginas, porque a API devolve no
+ * máximo 1000 linhas por consulta; o id desempata a ordem para nenhuma página repetir ou pular gente.
+ */
 export async function loadProfiles(db: ServerDb) {
-  const { data } = await db
-    .from("profiles")
-    .select("id, full_name, role, is_active")
-    .order("full_name");
-  const list = data ?? [];
+  const list = await fetchAll((from, to) =>
+    db
+      .from("profiles")
+      .select("id, full_name, role, is_active")
+      .order("full_name")
+      .order("id")
+      .range(from, to),
+  );
   const names = new Map(list.map((p) => [p.id, p.full_name]));
   return {
     list,

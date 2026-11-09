@@ -1,4 +1,5 @@
 import { beforeAll, describe, expect, it } from "vitest";
+import { loadProfiles } from "@/server/data";
 import { addMembership, createClientWithSite, createUser, serviceClient, sql, type TestUser } from "./helpers";
 
 /**
@@ -69,6 +70,23 @@ describe("B-16 — privacidade de colaboradores e campos internos", () => {
     const site = await admin.db.from("site_internal").select("notes_internal").eq("id", siteId).single();
     expect(site.data).toEqual({ notes_internal: "Nota interna do local (fictícia)" });
   });
+
+  it("os seletores de pessoas trazem a equipe toda, mesmo acima de 1000 pessoas", async () => {
+    // A API devolve no máximo 1000 linhas por consulta (max_rows). Completa a base local até passar disso.
+    // Tokens, senha e datas vão preenchidos como o Auth grava: com nulos, o Auth falha ao listar usuários
+    // ("Database error finding users") e o seed do E2E para.
+    const missing = Math.max(0, 1001 - Number(sql("select count(*) from public.profiles")));
+    if (missing > 0) {
+      sql(
+        `with u as (insert into auth.users (id, instance_id, aud, role, email, encrypted_password, raw_app_meta_data, raw_user_meta_data, created_at, updated_at, confirmation_token, recovery_token, email_change_token_new, email_change_token_current, email_change, phone_change, phone_change_token, reauthentication_token) select gen_random_uuid(), '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'volume-' || g || '-${Date.now()}@teste.local', '', '{}', '{}', now(), now(), '', '', '', '', '', '', '', '' from generate_series(1, ${missing}) g returning id, email) insert into public.profiles (id, full_name, email, role) select id, 'Pessoa de volume (fictícia)', email, 'worker' from u`,
+      );
+    }
+    const total = Number(sql("select count(*) from public.profiles"));
+    expect(total).toBeGreaterThan(1000);
+    const { list, name } = await loadProfiles(admin.db);
+    expect(list.length).toBe(total);
+    expect(name(colleague.id)).toBe("Colega Privacidade");
+  }, 60_000);
 
   it("toda coluna de perfis, clientes e locais está classificada como pública ou privada", () => {
     // Coluna nova nessas tabelas precisa entrar numa das listas e, se pública, ser liberada na migração dela
