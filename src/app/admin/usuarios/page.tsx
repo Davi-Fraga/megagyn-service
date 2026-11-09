@@ -14,12 +14,13 @@ export const metadata: Metadata = { title: "Usuários" };
 
 export default async function UsersPage() {
   const db = await createSupabaseServer();
-  const { data } = await db
-    .from("profiles")
-    .select("id, full_name, email, phone, role, is_active")
-    .order("is_active", { ascending: false })
-    .order("full_name");
-  const users = data ?? [];
+  // E-mail e telefone só pela view profile_contacts (B-16): a tabela não os entrega pela API.
+  const [{ data }, { data: contacts }] = await Promise.all([
+    db.from("profiles").select("id, full_name, role, is_active").order("is_active", { ascending: false }).order("full_name"),
+    db.from("profile_contacts").select("id, email, phone"),
+  ]);
+  const contactOf = new Map((contacts ?? []).map((c) => [c.id, c]));
+  const users = (data ?? []).map((u) => ({ ...u, email: contactOf.get(u.id)?.email ?? "", phone: contactOf.get(u.id)?.phone ?? null }));
 
   return (
     <>

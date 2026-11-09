@@ -17,7 +17,7 @@ export type AttachmentEntity = Database["public"]["Enums"]["attachment_entity"];
 export async function loadProfiles(db: ServerDb) {
   const { data } = await db
     .from("profiles")
-    .select("id, full_name, role, is_active, email, phone")
+    .select("id, full_name, role, is_active")
     .order("full_name");
   const list = data ?? [];
   const names = new Map(list.map((p) => [p.id, p.full_name]));

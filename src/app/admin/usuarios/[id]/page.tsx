@@ -41,7 +41,12 @@ export default async function UserPage({
   if (!UUID_RE.test(id)) notFound();
   const me = await requireProfile(["admin"]);
   const db = await createSupabaseServer();
-  const user = rowOrNotFound(await db.from("profiles").select("*").eq("id", id).maybeSingle());
+  // E-mail e telefone só pela view profile_contacts (B-16): a tabela não os entrega pela API.
+  const [profile, { data: contact }] = await Promise.all([
+    db.from("profiles").select("id, full_name, role, is_active, deactivated_at, created_at, updated_at").eq("id", id).maybeSingle(),
+    db.from("profile_contacts").select("email, phone").eq("id", id).maybeSingle(),
+  ]);
+  const user = { ...rowOrNotFound(profile), email: contact?.email ?? "", phone: contact?.phone ?? null };
   // Último login vem do serviço de autenticação (página só da administração, consulta no servidor).
   const { data: authUser } = await createSupabaseAdmin().auth.admin.getUserById(id);
   const neverSignedIn = !!authUser.user && !authUser.user.last_sign_in_at;

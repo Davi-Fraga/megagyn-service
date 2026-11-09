@@ -27,6 +27,12 @@ isOneToOne: false
       foreignKeyName: "attachment_links_linked_by_fkey"
       columns: ["linked_by"]
 isOneToOne: false
+      referencedRelation: "profile_contacts"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "attachment_links_linked_by_fkey"
+      columns: ["linked_by"]
+isOneToOne: false
       referencedRelation: "profiles"
       referencedColumns: ["id"]
     }
@@ -47,13 +53,31 @@ isOneToOne: false
       foreignKeyName: "attachments_revoked_by_fkey"
       columns: ["revoked_by"]
 isOneToOne: false
+      referencedRelation: "profile_contacts"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "attachments_revoked_by_fkey"
+      columns: ["revoked_by"]
+isOneToOne: false
       referencedRelation: "profiles"
       referencedColumns: ["id"]
     },{
       foreignKeyName: "attachments_site_id_fkey"
       columns: ["site_id"]
 isOneToOne: false
+      referencedRelation: "site_internal"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "attachments_site_id_fkey"
+      columns: ["site_id"]
+isOneToOne: false
       referencedRelation: "sites"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "attachments_uploaded_by_fkey"
+      columns: ["uploaded_by"]
+isOneToOne: false
+      referencedRelation: "profile_contacts"
       referencedColumns: ["id"]
     },{
       foreignKeyName: "attachments_uploaded_by_fkey"
@@ -93,7 +117,19 @@ isOneToOne: false
       foreignKeyName: "billing_rules_client_id_fkey"
       columns: ["client_id"]
 isOneToOne: false
+      referencedRelation: "client_internal"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "billing_rules_client_id_fkey"
+      columns: ["client_id"]
+isOneToOne: false
       referencedRelation: "clients"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "billing_rules_created_by_fkey"
+      columns: ["created_by"]
+isOneToOne: false
+      referencedRelation: "profile_contacts"
       referencedColumns: ["id"]
     },{
       foreignKeyName: "billing_rules_created_by_fkey"
@@ -131,6 +167,12 @@ isOneToOne: false
       foreignKeyName: "client_contact_sites_site_id_fkey"
       columns: ["site_id"]
 isOneToOne: false
+      referencedRelation: "site_internal"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "client_contact_sites_site_id_fkey"
+      columns: ["site_id"]
+isOneToOne: false
       referencedRelation: "sites"
       referencedColumns: ["id"]
     }
@@ -151,7 +193,19 @@ isOneToOne: false
       foreignKeyName: "client_contacts_client_id_fkey"
       columns: ["client_id"]
 isOneToOne: false
+      referencedRelation: "client_internal"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "client_contacts_client_id_fkey"
+      columns: ["client_id"]
+isOneToOne: false
       referencedRelation: "clients"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "client_contacts_user_id_fkey"
+      columns: ["user_id"]
+isOneToOne: true
+      referencedRelation: "profile_contacts"
       referencedColumns: ["id"]
     },{
       foreignKeyName: "client_contacts_user_id_fkey"
@@ -177,6 +231,12 @@ isOneToOne: true
       foreignKeyName: "clients_created_by_fkey"
       columns: ["created_by"]
 isOneToOne: false
+      referencedRelation: "profile_contacts"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "clients_created_by_fkey"
+      columns: ["created_by"]
+isOneToOne: false
       referencedRelation: "profiles"
       referencedColumns: ["id"]
     }
@@ -198,6 +258,12 @@ isOneToOne: false
       columns: ["closing_id"]
 isOneToOne: false
       referencedRelation: "monthly_closings"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "closing_versions_generated_by_fkey"
+      columns: ["generated_by"]
+isOneToOne: false
+      referencedRelation: "profile_contacts"
       referencedColumns: ["id"]
     },{
       foreignKeyName: "closing_versions_generated_by_fkey"
@@ -229,6 +295,12 @@ isOneToOne: false
       foreignKeyName: "company_settings_updated_by_fkey"
       columns: ["updated_by"]
 isOneToOne: false
+      referencedRelation: "profile_contacts"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "company_settings_updated_by_fkey"
+      columns: ["updated_by"]
+isOneToOne: false
       referencedRelation: "profiles"
       referencedColumns: ["id"]
     }
@@ -250,6 +322,12 @@ isOneToOne: false
       columns: ["expense_id"]
 isOneToOne: false
       referencedRelation: "expenses"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "expense_allocations_site_id_fkey"
+      columns: ["site_id"]
+isOneToOne: false
+      referencedRelation: "site_internal"
       referencedColumns: ["id"]
     },{
       foreignKeyName: "expense_allocations_site_id_fkey"
@@ -289,6 +367,12 @@ isOneToOne: false
       foreignKeyName: "expense_reviews_actor_id_fkey"
       columns: ["actor_id"]
 isOneToOne: false
+      referencedRelation: "profile_contacts"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "expense_reviews_actor_id_fkey"
+      columns: ["actor_id"]
+isOneToOne: false
       referencedRelation: "profiles"
       referencedColumns: ["id"]
     },{
@@ -315,6 +399,12 @@ isOneToOne: false
       foreignKeyName: "expenses_created_by_fkey"
       columns: ["created_by"]
 isOneToOne: false
+      referencedRelation: "profile_contacts"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "expenses_created_by_fkey"
+      columns: ["created_by"]
+isOneToOne: false
       referencedRelation: "profiles"
       referencedColumns: ["id"]
     },{
@@ -322,6 +412,12 @@ isOneToOne: false
       columns: ["expense_category_id"]
 isOneToOne: false
       referencedRelation: "expense_categories"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "expenses_paid_by_profile_id_fkey"
+      columns: ["paid_by_profile_id"]
+isOneToOne: false
+      referencedRelation: "profile_contacts"
       referencedColumns: ["id"]
     },{
       foreignKeyName: "expenses_paid_by_profile_id_fkey"
@@ -339,7 +435,19 @@ isOneToOne: false
       foreignKeyName: "expenses_purchased_by_fkey"
       columns: ["purchased_by"]
 isOneToOne: false
+      referencedRelation: "profile_contacts"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "expenses_purchased_by_fkey"
+      columns: ["purchased_by"]
+isOneToOne: false
       referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "expenses_reviewed_by_fkey"
+      columns: ["reviewed_by"]
+isOneToOne: false
+      referencedRelation: "profile_contacts"
       referencedColumns: ["id"]
     },{
       foreignKeyName: "expenses_reviewed_by_fkey"
@@ -383,7 +491,19 @@ isOneToOne: false
       foreignKeyName: "monthly_closings_client_id_fkey"
       columns: ["client_id"]
 isOneToOne: false
+      referencedRelation: "client_internal"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "monthly_closings_client_id_fkey"
+      columns: ["client_id"]
+isOneToOne: false
       referencedRelation: "clients"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "monthly_closings_created_by_fkey"
+      columns: ["created_by"]
+isOneToOne: false
+      referencedRelation: "profile_contacts"
       referencedColumns: ["id"]
     },{
       foreignKeyName: "monthly_closings_created_by_fkey"
@@ -418,6 +538,12 @@ isOneToOne: false
                   }
                   Relationships: [
                     {
+      foreignKeyName: "notifications_profile_id_fkey"
+      columns: ["profile_id"]
+isOneToOne: false
+      referencedRelation: "profile_contacts"
+      referencedColumns: ["id"]
+    },{
       foreignKeyName: "notifications_profile_id_fkey"
       columns: ["profile_id"]
 isOneToOne: false
@@ -517,6 +643,12 @@ isOneToOne: false
       foreignKeyName: "quote_versions_created_by_fkey"
       columns: ["created_by"]
 isOneToOne: false
+      referencedRelation: "profile_contacts"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "quote_versions_created_by_fkey"
+      columns: ["created_by"]
+isOneToOne: false
       referencedRelation: "profiles"
       referencedColumns: ["id"]
     },{
@@ -549,7 +681,19 @@ isOneToOne: false
       foreignKeyName: "quotes_client_id_fkey"
       columns: ["client_id"]
 isOneToOne: false
+      referencedRelation: "client_internal"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "quotes_client_id_fkey"
+      columns: ["client_id"]
+isOneToOne: false
       referencedRelation: "clients"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "quotes_created_by_fkey"
+      columns: ["created_by"]
+isOneToOne: false
+      referencedRelation: "profile_contacts"
       referencedColumns: ["id"]
     },{
       foreignKeyName: "quotes_created_by_fkey"
@@ -578,6 +722,12 @@ isOneToOne: false
                   }
                   Relationships: [
                     {
+      foreignKeyName: "reimbursement_payments_created_by_fkey"
+      columns: ["created_by"]
+isOneToOne: false
+      referencedRelation: "profile_contacts"
+      referencedColumns: ["id"]
+    },{
       foreignKeyName: "reimbursement_payments_created_by_fkey"
       columns: ["created_by"]
 isOneToOne: false
@@ -619,7 +769,19 @@ isOneToOne: true
       foreignKeyName: "reimbursements_payee_profile_id_fkey"
       columns: ["payee_profile_id"]
 isOneToOne: false
+      referencedRelation: "profile_contacts"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "reimbursements_payee_profile_id_fkey"
+      columns: ["payee_profile_id"]
+isOneToOne: false
       referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "reimbursements_settled_by_fkey"
+      columns: ["settled_by"]
+isOneToOne: false
+      referencedRelation: "profile_contacts"
       referencedColumns: ["id"]
     },{
       foreignKeyName: "reimbursements_settled_by_fkey"
@@ -642,6 +804,12 @@ isOneToOne: false
                   }
                   Relationships: [
                     {
+      foreignKeyName: "report_artifacts_requested_by_fkey"
+      columns: ["requested_by"]
+isOneToOne: false
+      referencedRelation: "profile_contacts"
+      referencedColumns: ["id"]
+    },{
       foreignKeyName: "report_artifacts_requested_by_fkey"
       columns: ["requested_by"]
 isOneToOne: false
@@ -671,6 +839,12 @@ isOneToOne: false
       foreignKeyName: "report_publications_published_by_fkey"
       columns: ["published_by"]
 isOneToOne: false
+      referencedRelation: "profile_contacts"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "report_publications_published_by_fkey"
+      columns: ["published_by"]
+isOneToOne: false
       referencedRelation: "profiles"
       referencedColumns: ["id"]
     },{
@@ -678,6 +852,12 @@ isOneToOne: false
       columns: ["report_artifact_id"]
 isOneToOne: false
       referencedRelation: "report_artifacts"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "report_publications_revoked_by_fkey"
+      columns: ["revoked_by"]
+isOneToOne: false
+      referencedRelation: "profile_contacts"
       referencedColumns: ["id"]
     },{
       foreignKeyName: "report_publications_revoked_by_fkey"
@@ -703,7 +883,19 @@ isOneToOne: false
       foreignKeyName: "request_assignments_assigned_by_fkey"
       columns: ["assigned_by"]
 isOneToOne: false
+      referencedRelation: "profile_contacts"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "request_assignments_assigned_by_fkey"
+      columns: ["assigned_by"]
+isOneToOne: false
       referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "request_assignments_profile_id_fkey"
+      columns: ["profile_id"]
+isOneToOne: false
+      referencedRelation: "profile_contacts"
       referencedColumns: ["id"]
     },{
       foreignKeyName: "request_assignments_profile_id_fkey"
@@ -716,6 +908,12 @@ isOneToOne: false
       columns: ["service_request_id"]
 isOneToOne: false
       referencedRelation: "service_requests"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "request_assignments_unassigned_by_fkey"
+      columns: ["unassigned_by"]
+isOneToOne: false
+      referencedRelation: "profile_contacts"
       referencedColumns: ["id"]
     },{
       foreignKeyName: "request_assignments_unassigned_by_fkey"
@@ -738,6 +936,12 @@ isOneToOne: false
                   }
                   Relationships: [
                     {
+      foreignKeyName: "request_comments_author_id_fkey"
+      columns: ["author_id"]
+isOneToOne: false
+      referencedRelation: "profile_contacts"
+      referencedColumns: ["id"]
+    },{
       foreignKeyName: "request_comments_author_id_fkey"
       columns: ["author_id"]
 isOneToOne: false
@@ -764,6 +968,12 @@ isOneToOne: false
                   }
                   Relationships: [
                     {
+      foreignKeyName: "request_events_actor_id_fkey"
+      columns: ["actor_id"]
+isOneToOne: false
+      referencedRelation: "profile_contacts"
+      referencedColumns: ["id"]
+    },{
       foreignKeyName: "request_events_actor_id_fkey"
       columns: ["actor_id"]
 isOneToOne: false
@@ -813,7 +1023,19 @@ isOneToOne: false
       foreignKeyName: "service_requests_client_id_fkey"
       columns: ["client_id"]
 isOneToOne: false
+      referencedRelation: "client_internal"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "service_requests_client_id_fkey"
+      columns: ["client_id"]
+isOneToOne: false
       referencedRelation: "clients"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "service_requests_created_by_fkey"
+      columns: ["created_by"]
+isOneToOne: false
+      referencedRelation: "profile_contacts"
       referencedColumns: ["id"]
     },{
       foreignKeyName: "service_requests_created_by_fkey"
@@ -875,6 +1097,12 @@ isOneToOne: false
       foreignKeyName: "site_areas_site_id_fkey"
       columns: ["site_id"]
 isOneToOne: false
+      referencedRelation: "site_internal"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "site_areas_site_id_fkey"
+      columns: ["site_id"]
+isOneToOne: false
       referencedRelation: "sites"
       referencedColumns: ["id"]
     }
@@ -895,13 +1123,31 @@ isOneToOne: false
       foreignKeyName: "site_memberships_created_by_fkey"
       columns: ["created_by"]
 isOneToOne: false
+      referencedRelation: "profile_contacts"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "site_memberships_created_by_fkey"
+      columns: ["created_by"]
+isOneToOne: false
       referencedRelation: "profiles"
       referencedColumns: ["id"]
     },{
       foreignKeyName: "site_memberships_profile_id_fkey"
       columns: ["profile_id"]
 isOneToOne: false
+      referencedRelation: "profile_contacts"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "site_memberships_profile_id_fkey"
+      columns: ["profile_id"]
+isOneToOne: false
       referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "site_memberships_site_id_fkey"
+      columns: ["site_id"]
+isOneToOne: false
+      referencedRelation: "site_internal"
       referencedColumns: ["id"]
     },{
       foreignKeyName: "site_memberships_site_id_fkey"
@@ -927,6 +1173,12 @@ isOneToOne: false
       foreignKeyName: "sites_client_id_fkey"
       columns: ["client_id"]
 isOneToOne: false
+      referencedRelation: "client_internal"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "sites_client_id_fkey"
+      columns: ["client_id"]
+isOneToOne: false
       referencedRelation: "clients"
       referencedColumns: ["id"]
     },{
@@ -939,6 +1191,12 @@ isOneToOne: false
       foreignKeyName: "sites_created_by_fkey"
       columns: ["created_by"]
 isOneToOne: false
+      referencedRelation: "profile_contacts"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "sites_created_by_fkey"
+      columns: ["created_by"]
+isOneToOne: false
       referencedRelation: "profiles"
       referencedColumns: ["id"]
     },{
@@ -946,6 +1204,12 @@ isOneToOne: false
       columns: ["quote_id"]
 isOneToOne: false
       referencedRelation: "quotes"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "sites_responsible_profile_id_fkey"
+      columns: ["responsible_profile_id"]
+isOneToOne: false
+      referencedRelation: "profile_contacts"
       referencedColumns: ["id"]
     },{
       foreignKeyName: "sites_responsible_profile_id_fkey"
@@ -985,7 +1249,19 @@ isOneToOne: false
       foreignKeyName: "task_assignments_assigned_by_fkey"
       columns: ["assigned_by"]
 isOneToOne: false
+      referencedRelation: "profile_contacts"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "task_assignments_assigned_by_fkey"
+      columns: ["assigned_by"]
+isOneToOne: false
       referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "task_assignments_profile_id_fkey"
+      columns: ["profile_id"]
+isOneToOne: false
+      referencedRelation: "profile_contacts"
       referencedColumns: ["id"]
     },{
       foreignKeyName: "task_assignments_profile_id_fkey"
@@ -1037,6 +1313,12 @@ isOneToOne: false
       foreignKeyName: "task_occurrences_site_id_fkey"
       columns: ["site_id"]
 isOneToOne: false
+      referencedRelation: "site_internal"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "task_occurrences_site_id_fkey"
+      columns: ["site_id"]
+isOneToOne: false
       referencedRelation: "sites"
       referencedColumns: ["id"]
     },{
@@ -1063,7 +1345,19 @@ isOneToOne: false
       foreignKeyName: "tasks_cancelled_by_fkey"
       columns: ["cancelled_by"]
 isOneToOne: false
+      referencedRelation: "profile_contacts"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "tasks_cancelled_by_fkey"
+      columns: ["cancelled_by"]
+isOneToOne: false
       referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "tasks_created_by_fkey"
+      columns: ["created_by"]
+isOneToOne: false
+      referencedRelation: "profile_contacts"
       referencedColumns: ["id"]
     },{
       foreignKeyName: "tasks_created_by_fkey"
@@ -1107,7 +1401,19 @@ isOneToOne: false
       foreignKeyName: "time_entries_approved_by_fkey"
       columns: ["approved_by"]
 isOneToOne: false
+      referencedRelation: "profile_contacts"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "time_entries_approved_by_fkey"
+      columns: ["approved_by"]
+isOneToOne: false
       referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "time_entries_created_by_fkey"
+      columns: ["created_by"]
+isOneToOne: false
+      referencedRelation: "profile_contacts"
       referencedColumns: ["id"]
     },{
       foreignKeyName: "time_entries_created_by_fkey"
@@ -1119,7 +1425,19 @@ isOneToOne: false
       foreignKeyName: "time_entries_profile_id_fkey"
       columns: ["profile_id"]
 isOneToOne: false
+      referencedRelation: "profile_contacts"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "time_entries_profile_id_fkey"
+      columns: ["profile_id"]
+isOneToOne: false
       referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "time_entries_site_id_fkey"
+      columns: ["site_id"]
+isOneToOne: false
+      referencedRelation: "site_internal"
       referencedColumns: ["id"]
     },{
       foreignKeyName: "time_entries_site_id_fkey"
@@ -1145,6 +1463,12 @@ isOneToOne: false
       foreignKeyName: "work_entries_author_id_fkey"
       columns: ["author_id"]
 isOneToOne: false
+      referencedRelation: "profile_contacts"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "work_entries_author_id_fkey"
+      columns: ["author_id"]
+isOneToOne: false
       referencedRelation: "profiles"
       referencedColumns: ["id"]
     },{
@@ -1152,6 +1476,12 @@ isOneToOne: false
       columns: ["blocker_reason_id"]
 isOneToOne: false
       referencedRelation: "pending_reasons"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "work_entries_reviewed_by_fkey"
+      columns: ["reviewed_by"]
+isOneToOne: false
+      referencedRelation: "profile_contacts"
       referencedColumns: ["id"]
     },{
       foreignKeyName: "work_entries_reviewed_by_fkey"
@@ -1171,6 +1501,12 @@ isOneToOne: false
 isOneToOne: false
       referencedRelation: "site_areas"
       referencedColumns: ["id","site_id"]
+    },{
+      foreignKeyName: "work_entries_site_id_fkey"
+      columns: ["site_id"]
+isOneToOne: false
+      referencedRelation: "site_internal"
+      referencedColumns: ["id"]
     },{
       foreignKeyName: "work_entries_site_id_fkey"
       columns: ["site_id"]
@@ -1201,6 +1537,12 @@ isOneToOne: false
       foreignKeyName: "work_entry_participants_profile_id_fkey"
       columns: ["profile_id"]
 isOneToOne: false
+      referencedRelation: "profile_contacts"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "work_entry_participants_profile_id_fkey"
+      columns: ["profile_id"]
+isOneToOne: false
       referencedRelation: "profiles"
       referencedColumns: ["id"]
     },{
@@ -1214,7 +1556,49 @@ isOneToOne: false
                 }
           }
           Views: {
-            [_ in never]: never
+            "client_internal": {
+                  Row: {
+                    "billing_info": string | null,"id": string | null,"notes_internal": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                           "billing_info"?: string | null,"id"?: string | null,"notes_internal"?: string | null
+                         }
+                        Update: {
+                           "billing_info"?: string | null,"id"?: string | null,"notes_internal"?: string | null
+                         }
+                        Relationships: [
+                    
+                  ]
+                },"profile_contacts": {
+                  Row: {
+                    "email": string | null,"id": string | null,"phone": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                           "email"?: string | null,"id"?: string | null,"phone"?: string | null
+                         }
+                        Update: {
+                           "email"?: string | null,"id"?: string | null,"phone"?: string | null
+                         }
+                        Relationships: [
+                    
+                  ]
+                },"site_internal": {
+                  Row: {
+                    "id": string | null,"notes_internal": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                           "id"?: string | null,"notes_internal"?: string | null
+                         }
+                        Update: {
+                           "id"?: string | null,"notes_internal"?: string | null
+                         }
+                        Relationships: [
+                    
+                  ]
+                }
           }
           Functions: {
             "attachment_revoke":

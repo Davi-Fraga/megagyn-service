@@ -72,7 +72,12 @@ export default async function ClientPage({
   const { feito } = await searchParams;
   if (!UUID_RE.test(id)) notFound();
   const db = await createSupabaseServer();
-  const client = rowOrNotFound(await db.from("clients").select("*").eq("id", id).maybeSingle());
+  // Notas internas e dados de cobrança só pela view client_internal (B-16): a tabela não os entrega pela API.
+  const [clientRes, internalRes] = await Promise.all([
+    db.from("clients").select("id, kind, legal_name, display_name, document, email, phone, address_text, is_active, created_by, created_at, updated_at, document_digits").eq("id", id).maybeSingle(),
+    db.from("client_internal").select("notes_internal, billing_info").eq("id", id).maybeSingle(),
+  ]);
+  const client = { ...rowOrNotFound(clientRes), notes_internal: internalRes.data?.notes_internal ?? null, billing_info: internalRes.data?.billing_info ?? null };
 
   const [sitesRes, contactsRes, profiles] = await Promise.all([
     db.from("sites").select("id, name, code, site_type, status, address_text, planned_start, planned_end").eq("client_id", id).order("name"),

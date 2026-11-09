@@ -39,7 +39,12 @@ export default async function SitePage({
   const { feito } = await searchParams;
   if (!UUID_RE.test(id)) notFound();
   const db = await createSupabaseServer();
-  const site = rowOrNotFound(await db.from("sites").select("*, client:clients(id, display_name, is_active)").eq("id", id).maybeSingle());
+  // Notas internas só pela view site_internal (B-16): a tabela não as entrega pela API.
+  const [siteRes, internalRes] = await Promise.all([
+    db.from("sites").select("id, client_id, name, code, site_type, status, address_text, planned_start, planned_end, quote_id, created_by, created_at, updated_at, access_hours, access_instructions, responsible_profile_id, client_responsible_contact_id, client:clients(id, display_name, is_active)").eq("id", id).maybeSingle(),
+    db.from("site_internal").select("notes_internal").eq("id", id).maybeSingle(),
+  ]);
+  const site = { ...rowOrNotFound(siteRes), notes_internal: internalRes.data?.notes_internal ?? null };
 
   const [areasRes, membershipsRes, profiles, contactsRes] = await Promise.all([
     db.from("site_areas").select("id, name, sort_order, is_active").eq("site_id", id).order("sort_order").order("name"),
