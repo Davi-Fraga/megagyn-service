@@ -579,6 +579,76 @@ isOneToOne: false
                   Relationships: [
                     
                   ]
+                },"permission_catalog": {
+                  Row: {
+                    "action": string,"admin_floor": boolean,"client_never": boolean,"label": string,"module": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "action": string,"admin_floor"?: boolean,"client_never"?: boolean,"label": string,"module": string
+                  }
+                  Update: {
+                    "action"?: string,"admin_floor"?: boolean,"client_never"?: boolean,"label"?: string,"module"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"permission_overrides": {
+                  Row: {
+                    "action": string,"allowed": boolean,"created_at": string,"expires_at": string | null,"granted_by": string | null,"id": string,"module": string,"profile_id": string,"reason": string,"site_id": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "action": string,"allowed": boolean,"created_at"?: string,"expires_at"?: string | null,"granted_by"?: string | null,"id"?: string,"module": string,"profile_id": string,"reason": string,"site_id"?: string | null
+                  }
+                  Update: {
+                    "action"?: string,"allowed"?: boolean,"created_at"?: string,"expires_at"?: string | null,"granted_by"?: string | null,"id"?: string,"module"?: string,"profile_id"?: string,"reason"?: string,"site_id"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "permission_overrides_granted_by_fkey"
+      columns: ["granted_by"]
+isOneToOne: false
+      referencedRelation: "profile_contacts"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "permission_overrides_granted_by_fkey"
+      columns: ["granted_by"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "permission_overrides_module_action_fkey"
+      columns: ["module","action"]
+isOneToOne: false
+      referencedRelation: "permission_catalog"
+      referencedColumns: ["module","action"]
+    },{
+      foreignKeyName: "permission_overrides_profile_id_fkey"
+      columns: ["profile_id"]
+isOneToOne: false
+      referencedRelation: "profile_contacts"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "permission_overrides_profile_id_fkey"
+      columns: ["profile_id"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "permission_overrides_site_id_fkey"
+      columns: ["site_id"]
+isOneToOne: false
+      referencedRelation: "site_internal"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "permission_overrides_site_id_fkey"
+      columns: ["site_id"]
+isOneToOne: false
+      referencedRelation: "sites"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"priority_definitions": {
                   Row: {
                     "created_at": string,"id": string,"is_active": boolean,"level": number,"name": string,"sla_days": number | null,"sort_order": number
@@ -990,6 +1060,38 @@ isOneToOne: false
       columns: ["work_entry_id"]
 isOneToOne: false
       referencedRelation: "work_entries"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"role_permissions": {
+                  Row: {
+                    "action": string,"allowed": boolean,"id": string,"module": string,"role": Database["public"]['Enums']["user_role"],"updated_at": string,"updated_by": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "action": string,"allowed"?: boolean,"id"?: string,"module": string,"role": Database["public"]['Enums']["user_role"],"updated_at"?: string,"updated_by"?: string | null
+                  }
+                  Update: {
+                    "action"?: string,"allowed"?: boolean,"id"?: string,"module"?: string,"role"?: Database["public"]['Enums']["user_role"],"updated_at"?: string,"updated_by"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "role_permissions_module_action_fkey"
+      columns: ["module","action"]
+isOneToOne: false
+      referencedRelation: "permission_catalog"
+      referencedColumns: ["module","action"]
+    },{
+      foreignKeyName: "role_permissions_updated_by_fkey"
+      columns: ["updated_by"]
+isOneToOne: false
+      referencedRelation: "profile_contacts"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "role_permissions_updated_by_fkey"
+      columns: ["updated_by"]
+isOneToOne: false
+      referencedRelation: "profiles"
       referencedColumns: ["id"]
     }
                   ]
@@ -1609,6 +1711,9 @@ isOneToOne: false
                            },
 "audit_admin_action":
 { Args: { "p_action": string,"p_entity": string,"p_entity_id": string,"p_reason"?: string }; Returns: number
+                           },
+"can":
+{ Args: { "p_action": string,"p_module": string,"p_site"?: string }; Returns: boolean
                            },
 "closing_version_create":
 { Args: { "p_closing_id": string,"p_criteria": Json,"p_cutoff_at": string,"p_header": Json,"p_payload": Json,"p_period_start": string,"p_reason"?: string,"p_summary": Json }; Returns: {
