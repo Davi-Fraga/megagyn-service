@@ -278,6 +278,32 @@ describe("reabertura e cancelamento preservam histórico", () => {
   });
 });
 
+describe("cenário 1 — O.S. em local de outro cliente", () => {
+  it("O.S. com local de outro cliente é recusada pelo banco", async () => {
+    // A abertura pela tela deriva o cliente do local: não há parâmetro de cliente para errar.
+    const r = await openRequest();
+    expect(r.client_id).toBe(siteA.client_id);
+
+    // Gravação direta com a chave de serviço (passa pela RLS, não pela FK composta): cliente de A, local de B.
+    const title = `Local de outro cliente ${uid()}`;
+    const svc = serviceClient();
+    const { error } = await svc.from("service_requests").insert({
+      number: `T1-${uid()}`,
+      client_id: siteA.client_id,
+      site_id: siteB.id,
+      origin: "cliente_externo",
+      title,
+      description: "Gravação direta com local de outro cliente (teste).",
+      client_request_id: uid(),
+      created_by: admin.id,
+    });
+    expect(error?.code).toBe("23503");
+    expect(error?.message).toContain("service_requests_site_id_client_id_fkey");
+    const { count } = await svc.from("service_requests").select("id", { count: "exact", head: true }).eq("title", title);
+    expect(count).toBe(0);
+  });
+});
+
 describe("T-A10 (campo) — escopo por local", () => {
   it("funcionário de outro local não vê o chamado, os eventos nem a foto", async () => {
     const r = await openRequest();
