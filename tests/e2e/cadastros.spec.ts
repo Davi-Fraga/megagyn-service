@@ -1,5 +1,5 @@
 import { expect, test, type Browser, type Locator, type Page } from "@playwright/test";
-import { PASSWORD, USERS, login, mobilePage } from "./helpers";
+import { PASSWORD, PHOTO_A, USERS, login, mobilePage, uploadPhotos } from "./helpers";
 
 /** Painel da página pelo título (cada Panel é uma <section> com <h2>). */
 function panel(page: Page, title: string) {
@@ -229,6 +229,20 @@ test("responsáveis do cliente, configurações e listas de escolha", async ({ p
   await row.getByRole("button", { name: "Confirmar anonimização" }).click();
   await expect(contacts.getByRole("listitem").filter({ hasText: "Contato removido" }).first()).toBeVisible({ timeout: 60_000 });
   await expect(contacts.getByText(`sindica.${ts}@exemplo.test`)).toHaveCount(0);
+
+  // B-18: foto do cadastro anexada ao cliente; desativar pede motivo, que aparece no histórico.
+  const docs = panel(page, "Documentos e fotos");
+  await docs.getByLabel("Tipo").selectOption({ label: "Foto do cadastro" });
+  await docs.getByLabel("Categoria").fill(`Fachada ${ts}`);
+  await uploadPhotos(page, [PHOTO_A], docs);
+  await docs.getByRole("button", { name: "Anexar ao cliente" }).click();
+  await expect(docs.getByText("Arquivo anexado ao cliente.")).toBeVisible({ timeout: 60_000 });
+  await expect(docs.getByText(`Fachada ${ts}`)).toBeVisible();
+  const status = panel(page, "Situação do cadastro");
+  await status.getByLabel("Motivo da desativação").fill(`Contrato encerrado E2E ${ts}`);
+  await status.getByRole("button", { name: "Desativar cliente" }).click();
+  await expect(page.getByText("Cliente desativado. Locais, chamados e relatórios continuam no histórico.")).toBeVisible({ timeout: 60_000 });
+  await expect(panel(page, "Histórico do cadastro")).toContainText(`Contrato encerrado E2E ${ts}`);
 
   // Configurações: aviso dos dados divergentes e salvamento sem alterar valores.
   await page.goto("/admin/configuracoes");

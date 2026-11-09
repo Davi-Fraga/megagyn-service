@@ -9,7 +9,7 @@ import { createSupabaseServer } from "@/server/supabase/server";
 
 export const runtime = "nodejs";
 
-const BUCKET = { photo: "evidence", receipt: "receipts", logo: "branding", quote: "quotes" } as const;
+const BUCKET = { photo: "evidence", receipt: "receipts", logo: "branding", quote: "quotes", registry: "registry" } as const;
 
 function fail(error: string, status = 400) {
   return NextResponse.json({ error }, { status });
@@ -68,7 +68,7 @@ export async function POST(request: Request) {
     if (!allowed) return fail("Você não tem acesso a este local.", 403);
   }
   if (bucket === "receipts" && role !== "admin" && role !== "foreman") return fail("Acesso não autorizado.", 403);
-  if ((bucket === "branding" || bucket === "quotes") && role !== "admin") return fail("Acesso não autorizado.", 403);
+  if ((bucket === "branding" || bucket === "quotes" || bucket === "registry") && role !== "admin") return fail("Acesso não autorizado.", 403);
 
   const bytes = Buffer.from(await file.arrayBuffer());
   const check = validateUpload({

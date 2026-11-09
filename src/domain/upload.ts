@@ -4,7 +4,7 @@
  */
 
 export type DetectedMime = "image/jpeg" | "image/png" | "image/webp" | "application/pdf";
-export type UploadPurpose = "photo" | "receipt" | "logo" | "quote";
+export type UploadPurpose = "photo" | "receipt" | "logo" | "quote" | "registry";
 export type UploadLimits = { maxImageMb: number; maxPdfMb: number };
 
 const EXTENSION: Record<DetectedMime, string> = {
@@ -19,6 +19,7 @@ const ALLOWED: Record<UploadPurpose, DetectedMime[]> = {
   receipt: ["image/jpeg", "image/png", "image/webp", "application/pdf"],
   logo: ["image/jpeg", "image/png", "image/webp"],
   quote: ["image/jpeg", "image/png", "image/webp"],
+  registry: ["image/jpeg", "image/png", "image/webp", "application/pdf"],
 };
 
 const DENIED_MESSAGE: Record<UploadPurpose, string> = {
@@ -26,6 +27,7 @@ const DENIED_MESSAGE: Record<UploadPurpose, string> = {
   receipt: "Tipo de arquivo não permitido. Envie foto (JPG, PNG, WEBP) ou PDF do comprovante.",
   logo: "Tipo de arquivo não permitido. Envie imagem JPG, PNG ou WEBP.",
   quote: "Tipo de arquivo não permitido. Envie foto JPG, PNG ou WEBP.",
+  registry: "Tipo de arquivo não permitido. Envie foto (JPG, PNG, WEBP) ou PDF do documento.",
 };
 
 function startsWith(bytes: Uint8Array, signature: number[], offset = 0): boolean {
@@ -83,4 +85,4 @@ export function uploadErrorMessage(status: number, serverError?: string): string
 }
 
 /** Maior lado guardado por tipo de envio. Comprovante fica maior para a nota continuar legível. */
-export const MAX_IMAGE_SIDE: Record<UploadPurpose, number> = { photo: 1600, quote: 1600, receipt: 2000, logo: 1600 };
+export const MAX_IMAGE_SIDE: Record<UploadPurpose, number> = { photo: 1600, quote: 1600, receipt: 2000, logo: 1600, registry: 2000 };

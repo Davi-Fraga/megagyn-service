@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { toActionError, type ActionState } from "@/domain/action-errors";
 import { addDaysIso, formatDateBR, todayIso, zonedMidnightUtc } from "@/domain/dates";
-import { fdBool, fdDate, fdStr, fdUuid, fdUuids } from "@/domain/form-data";
+import { fdBool, fdCaptions, fdDate, fdStr, fdUuid, fdUuids } from "@/domain/form-data";
 import {
   CATALOGS,
   CLIENT_DOCUMENT_UNIQUE,
@@ -136,11 +136,37 @@ export async function setClientActiveAction(_: ActionState, fd: FormData): Promi
   const id = fdUuid(fd, "client_id");
   if (!id) return notFound("Cliente");
   const active = fdBool(fd, "active");
-  const { data, error } = await db.from("clients").update({ is_active: active }).eq("id", id).select("id");
+  // B-18: pelo banco, que exige motivo para desativar e o grava na trilha.
+  const { error } = await db.rpc("client_set_active", {
+    p_client_id: id,
+    p_active: active,
+    p_reason: fdStr(fd, "reason") ?? undefined,
+  });
   if (error) return fail(error, "client.active_fail");
-  if (!data?.length) return notFound("Cliente");
   refresh();
   redirect(`/admin/clientes/${id}?feito=${active ? "ativado" : "desativado"}`);
+}
+
+/** B-18: liga arquivos do bucket de cadastros ao cliente, como documento ou foto cadastral. */
+export async function attachClientDocumentsAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  const { db } = await adminDb();
+  const id = fdUuid(fd, "client_id");
+  if (!id) return notFound("Cliente");
+  const files = fdUuids(fd, "attachment_ids");
+  const role = fdStr(fd, "role");
+  if (role !== "documento" && role !== "foto_cadastral") return invalid({ role: "Escolha documento ou foto do cadastro." });
+  if (files.length === 0) return invalid({ attachment_ids: "Envie ao menos 1 arquivo." });
+  const { error } = await db.rpc("client_attach_documents", {
+    p_client_id: id,
+    p_attachment_ids: files,
+    p_role: role,
+    p_category: fdStr(fd, "category") ?? undefined,
+  });
+  if (error) return fail(error, "client.documents_fail");
+  const captions = fdCaptions(fd);
+  if (Object.keys(captions).length > 0) await db.rpc("attachment_set_captions", { p_captions: captions });
+  refresh();
+  return { ok: true, message: files.length === 1 ? "Arquivo anexado ao cliente." : `${files.length} arquivos anexados ao cliente.` };
 }
 
 // ---------------------------------------------------------------------------
