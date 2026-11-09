@@ -3,6 +3,7 @@ import Link from "next/link";
 import { MIN_PASSWORD_LENGTH } from "@/domain/registry";
 import { createUserAction } from "@/server/actions/registry";
 import { ROLE_LABEL } from "@/server/auth";
+import { fetchAll } from "@/server/paginate";
 import { createSupabaseServer } from "@/server/supabase/server";
 import { ActionForm, SelectField, TextField } from "@/ui/form";
 import { EmptyState, PageHeader, Panel } from "@/ui/page";
@@ -15,12 +16,21 @@ export const metadata: Metadata = { title: "Usuários" };
 export default async function UsersPage() {
   const db = await createSupabaseServer();
   // E-mail e telefone só pela view profile_contacts (B-16): a tabela não os entrega pela API.
-  const [{ data }, { data: contacts }] = await Promise.all([
-    db.from("profiles").select("id, full_name, role, is_active").order("is_active", { ascending: false }).order("full_name"),
-    db.from("profile_contacts").select("id, email, phone"),
+  // As duas leituras vão em páginas: a API devolve no máximo 1000 linhas por consulta.
+  const [data, contacts] = await Promise.all([
+    fetchAll((from, to) =>
+      db
+        .from("profiles")
+        .select("id, full_name, role, is_active")
+        .order("is_active", { ascending: false })
+        .order("full_name")
+        .order("id")
+        .range(from, to),
+    ),
+    fetchAll((from, to) => db.from("profile_contacts").select("id, email, phone").order("id").range(from, to)),
   ]);
-  const contactOf = new Map((contacts ?? []).map((c) => [c.id, c]));
-  const users = (data ?? []).map((u) => ({ ...u, email: contactOf.get(u.id)?.email ?? "", phone: contactOf.get(u.id)?.phone ?? null }));
+  const contactOf = new Map(contacts.map((c) => [c.id, c]));
+  const users = data.map((u) => ({ ...u, email: contactOf.get(u.id)?.email ?? "", phone: contactOf.get(u.id)?.phone ?? null }));
 
   return (
     <>
