@@ -3,8 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { toActionError, type ActionState } from "@/domain/action-errors";
-import { formatDateBR, todayIso } from "@/domain/dates";
-import { fdBool, fdStr, fdUuid, fdUuids } from "@/domain/form-data";
+import { addDaysIso, formatDateBR, todayIso, zonedMidnightUtc } from "@/domain/dates";
+import { fdBool, fdDate, fdStr, fdUuid, fdUuids } from "@/domain/form-data";
 import {
   CATALOGS,
   CLIENT_DOCUMENT_UNIQUE,
@@ -506,6 +506,62 @@ export async function setUserActiveAction(_: ActionState, fd: FormData): Promise
   await auditAuth(db, id, active ? "auth_reativar" : "auth_bloquear");
   log.info(active ? "user.reactivated" : "user.deactivated", { id, left });
   redirect(`/admin/usuarios/${id}?feito=${active ? "ativado" : "desativado"}${left > 0 ? `&pendentes=${left}` : ""}`);
+}
+
+// ---------------------------------------------------------------------------
+// Exceções de permissão (B-25, sobre a matriz do B-24). Os pisos são do banco: ninguém altera a própria
+// permissão, o cliente nunca recebe certas ações e, com local, só vale onde a pessoa tem acesso.
+// ---------------------------------------------------------------------------
+
+/** Erro de piso do banco (42501 com mensagem própria): mostra a mensagem do banco, que diz o porquê. */
+function floorError(error: unknown): ActionState | null {
+  const e = error as { code?: string; message?: string } | null;
+  return e?.code === "42501" && e.message ? { ok: false, message: e.message } : null;
+}
+
+export async function grantPermissionAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  const { db } = await adminDb();
+  const profileId = fdUuid(fd, "profile_id");
+  if (!profileId) return notFound("Usuário");
+  const [module, action] = (fdStr(fd, "permission") ?? "").split(".");
+  const allowed = fdStr(fd, "allowed");
+  const reason = fdStr(fd, "reason");
+  const untilRaw = fdStr(fd, "expires_on");
+  const until = fdDate(fd, "expires_on");
+  const errors: FieldErrors = {};
+  if (!module || !action) errors.permission = "Escolha a permissão.";
+  if (allowed !== "1" && allowed !== "0") errors.allowed = "Escolha liberar ou bloquear.";
+  if (!reason) errors.reason = "Informe o motivo da exceção.";
+  else if (reason.length > 500) errors.reason = "Use no máximo 500 caracteres.";
+  if (untilRaw && !until) errors.expires_on = "Data inválida.";
+  else if (until && until < todayIso()) errors.expires_on = "A validade não pode ser no passado.";
+  if (Object.keys(errors).length > 0) return invalid(errors);
+
+  // "Vale até" inclui o dia inteiro: vence à meia-noite seguinte, no horário de São Paulo.
+  const [y, m, d] = (until ? addDaysIso(until, 1) : "").split("-").map(Number);
+  const { error } = await db.from("permission_overrides").insert({
+    profile_id: profileId,
+    module: module!,
+    action: action!,
+    allowed: allowed === "1",
+    site_id: fdUuid(fd, "site_id"),
+    reason: reason!,
+    expires_at: until ? zonedMidnightUtc(y!, m!, d!).toISOString() : null,
+  });
+  if (error) return floorError(error) ?? fail(error, "permission.grant_fail");
+  refresh();
+  return { ok: true, message: "Exceção registrada na trilha." };
+}
+
+export async function revokePermissionAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  const { db } = await adminDb();
+  const id = fdUuid(fd, "override_id");
+  if (!id) return { ok: false, message: "Exceção não encontrada. Atualize a página." };
+  const { data, error } = await db.from("permission_overrides").delete().eq("id", id).select("id");
+  if (error) return floorError(error) ?? fail(error, "permission.revoke_fail");
+  if (!data?.length) return { ok: false, message: "Exceção não encontrada. Atualize a página." };
+  refresh();
+  return { ok: true, message: "Exceção removida. A pessoa volta a seguir o papel." };
 }
 
 export async function sendPasswordLinkAction(_: ActionState, fd: FormData): Promise<ActionState> {

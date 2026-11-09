@@ -22,6 +22,8 @@ const ENTITY: Record<string, string> = {
   report_publications: "Entrega de relatório",
   profiles: "Usuário",
   site_memberships: "Vínculo com local",
+  role_permissions: "Permissão do papel",
+  permission_overrides: "Exceção de permissão",
   company_settings: "Configuração da empresa",
   clients: "Cliente",
   sites: "Local",
