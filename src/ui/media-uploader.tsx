@@ -6,7 +6,8 @@ import { newId } from "@/domain/ids";
 import { buttonClass } from "./button";
 import { cn } from "./cn";
 import { useFieldError, useFormBusy } from "./form";
-import { MAX_IMAGE_SIDE, uploadErrorMessage } from "@/domain/upload";
+import { useUploadLimits } from "./upload-limits";
+import { MAX_IMAGE_SIDE, droppedFilesMessage, effectiveMaxFiles, uploadErrorMessage, uploadLimitsText } from "@/domain/upload";
 
 type Purpose = "photo" | "receipt" | "logo" | "quote" | "registry";
 type Item = {
@@ -53,7 +54,7 @@ export function MediaUploader({
   siteId,
   hint,
   required,
-  max = 20,
+  max,
   errorName,
 }: {
   name: string;
@@ -62,10 +63,14 @@ export function MediaUploader({
   siteId?: string;
   hint?: string;
   required?: boolean;
+  /** Limite próprio do campo (logotipo: 1). Vale o menor entre ele e o das Configurações. */
   max?: number;
   errorName?: string;
 }) {
   const [items, setItems] = useState<Item[]>([]);
+  const [dropped, setDropped] = useState(0);
+  const limits = useUploadLimits();
+  const maxFiles = effectiveMaxFiles(limits, max);
   const setBusy = useFormBusy();
   const error = useFieldError(errorName ?? name);
   const cameraRef = useRef<HTMLInputElement>(null);
@@ -108,8 +113,10 @@ export function MediaUploader({
 
   function onFiles(list: FileList | null) {
     if (!list || list.length === 0) return;
-    const room = Math.max(0, max - items.length);
+    const room = Math.max(0, maxFiles - items.length);
     const files = Array.from(list).slice(0, room);
+    // B-31: o que passa do limite não entra, e a pessoa fica sabendo (antes, sumia sem aviso).
+    setDropped(list.length - files.length);
     const next: Item[] = files.map((file) => ({
       key: newId(),
       clientUploadId: newId(),
@@ -122,6 +129,7 @@ export function MediaUploader({
   }
 
   function remove(key: string) {
+    setDropped(0);
     setItems((prev) => {
       const item = prev.find((i) => i.key === key);
       if (item?.previewUrl) URL.revokeObjectURL(item.previewUrl);
@@ -138,6 +146,12 @@ export function MediaUploader({
         {required ? <span className="text-erro"> *</span> : <span className="font-normal text-muted"> (opcional)</span>}
       </legend>
       {hint && <p className="text-sm text-muted">{hint}</p>}
+      <p className="text-sm text-muted">{uploadLimitsText(limits, { takesPdf, max })}</p>
+      {dropped > 0 && (
+        <p role="alert" className="text-sm font-medium text-erro">
+          {droppedFilesMessage(maxFiles, dropped)}
+        </p>
+      )}
 
       <div className="grid grid-cols-2 gap-2">
         <button type="button" onClick={() => cameraRef.current?.click()} className={buttonClass("dark", "md", "w-full")}>

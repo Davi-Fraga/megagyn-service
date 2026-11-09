@@ -6,6 +6,9 @@
 export type DetectedMime = "image/jpeg" | "image/png" | "image/webp" | "application/pdf";
 export type UploadPurpose = "photo" | "receipt" | "logo" | "quote" | "registry";
 export type UploadLimits = { maxImageMb: number; maxPdfMb: number };
+/** Limites das Configurações; os padrões são os mesmos do banco (company_settings). */
+export type FileLimits = UploadLimits & { maxFiles: number };
+export const DEFAULT_FILE_LIMITS: FileLimits = { maxImageMb: 15, maxPdfMb: 20, maxFiles: 20 };
 
 const EXTENSION: Record<DetectedMime, string> = {
   "image/jpeg": "jpg",
@@ -86,3 +89,32 @@ export function uploadErrorMessage(status: number, serverError?: string): string
 
 /** Maior lado guardado por tipo de envio. Comprovante fica maior para a nota continuar legível. */
 export const MAX_IMAGE_SIDE: Record<UploadPurpose, number> = { photo: 1600, quote: 1600, receipt: 2000, logo: 1600, registry: 2000 };
+
+// ---------------------------------------------------------------------------
+// B-31: limites mostrados antes do envio e quantidade por envio
+// ---------------------------------------------------------------------------
+
+/** Quantos arquivos o campo aceita: o menor entre o do campo (logotipo: 1) e o das Configurações. */
+export function effectiveMaxFiles(limits: FileLimits, max?: number): number {
+  return Math.min(limits.maxFiles, max ?? limits.maxFiles);
+}
+
+const filesPerUpload = (n: number) => (n === 1 ? "1 arquivo por envio" : `Até ${n} arquivos por envio`);
+
+/** Texto mostrado antes de escolher os arquivos: tipo, tamanho e quantidade. */
+export function uploadLimitsText(limits: FileLimits, { takesPdf, max }: { takesPdf: boolean; max?: number }): string {
+  const types = takesPdf
+    ? `Foto JPG, PNG ou WEBP até ${limits.maxImageMb} MB, ou PDF até ${limits.maxPdfMb} MB`
+    : `Foto JPG, PNG ou WEBP, até ${limits.maxImageMb} MB cada`;
+  return `${types}. ${filesPerUpload(effectiveMaxFiles(limits, max))}.`;
+}
+
+/** Na tela: os arquivos escolhidos além do limite não entram, e a pessoa é avisada. */
+export function droppedFilesMessage(max: number, dropped: number): string {
+  return `Até ${max} arquivos por envio: ${dropped} ${dropped === 1 ? "ficou" : "ficaram"} de fora.`;
+}
+
+/** No servidor: lista de arquivos acima do limite das Configurações. */
+export function tooManyFilesMessage(max: number): string {
+  return `Envie no máximo ${max} ${max === 1 ? "arquivo" : "arquivos"} por vez.`;
+}

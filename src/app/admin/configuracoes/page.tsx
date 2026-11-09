@@ -147,7 +147,7 @@ export default async function SettingsPage() {
               <CurrentImage id={s.signature_attachment_id} label="Assinatura" />
             </div>
             <ActionForm action={updateBrandingAction} submitLabel="Salvar imagens" resetOnSuccess>
-              <MediaUploader name="logo_ids" label="Novo logotipo" purpose="logo" max={1} hint="PNG ou JPG, fundo claro." />
+              <MediaUploader name="logo_ids" label="Novo logotipo" purpose="logo" max={1} hint="Use fundo claro." />
               <MediaUploader name="signature_ids" label="Nova assinatura digitalizada" purpose="logo" max={1} />
               {s.logo_attachment_id && <CheckboxField label="Remover o logotipo atual" name="remove_logo" />}
               {s.signature_attachment_id && <CheckboxField label="Remover a assinatura atual" name="remove_signature" />}

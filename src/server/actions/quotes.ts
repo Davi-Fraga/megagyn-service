@@ -8,6 +8,7 @@ import { newId } from "@/domain/ids";
 import { readItemDrafts, validateQuoteItems } from "@/domain/quote-form";
 import { requireProfile } from "@/server/auth";
 import { saveCaptions } from "@/server/captions";
+import { checkFileCount } from "@/server/upload-limits";
 import type { Database, Json } from "@/server/db/database.types";
 import { errorInfo, log } from "@/server/log";
 import { currentQuoteSnapshot, loadQuoteBundle } from "@/app/admin/orcamentos/data";
@@ -131,8 +132,8 @@ export async function linkQuotePhotosAction(_: ActionState, fd: FormData): Promi
   if (!quoteId) return { ok: false, message: "Orçamento não encontrado." };
   if (role !== "local" && role !== "referencia") return { ok: false, message: "Tipo de foto inválido." };
   if (photos.length === 0) return { ok: false, message: "Envie ao menos 1 foto.", fieldErrors: { photo_ids: "Envie ao menos 1 foto." } };
-  const captionError = await saveCaptions(db, fd);
-  if (captionError) return captionError;
+  const uploadError = (await checkFileCount(db, fd, ["photo_ids"])) ?? (await saveCaptions(db, fd));
+  if (uploadError) return uploadError;
   const { error } = await db.rpc("quote_link_photos", { p_quote_id: quoteId, p_photo_ids: photos, p_role: role });
   if (error) return fail(error, "quote.photos_fail");
   refresh();

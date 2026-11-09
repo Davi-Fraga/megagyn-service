@@ -8,6 +8,7 @@ import { newId } from "@/domain/ids";
 import { actionReturnPath } from "@/domain/safe-redirect";
 import { requireProfile } from "@/server/auth";
 import { saveCaptions } from "@/server/captions";
+import { checkFileCount } from "@/server/upload-limits";
 import { errorInfo, log } from "@/server/log";
 import { createSupabaseServer } from "@/server/supabase/server";
 import type { Database } from "@/server/db/database.types";
@@ -56,8 +57,8 @@ export async function openRequestAction(_: ActionState, fd: FormData): Promise<A
     }
   }
 
-  const captionError = await saveCaptions(db, fd);
-  if (captionError) return captionError;
+  const uploadError = (await checkFileCount(db, fd, ["photo_ids"])) ?? (await saveCaptions(db, fd));
+  if (uploadError) return uploadError;
   const { data, error } = await db.rpc("request_open", {
     p_client_request_id: key(fd),
     p_site_id: nul(siteId),
@@ -230,8 +231,8 @@ export async function addRequestPhotosAction(_: ActionState, fd: FormData): Prom
   const photos = fdUuids(fd, "photo_ids");
   if (photos.length === 0) return { ok: false, message: "Tire ou escolha ao menos 1 foto.", fieldErrors: { photo_ids: "Envie ao menos 1 foto." } };
   const role = (fdStr(fd, "role") ?? "intermediaria") as Enums["evidence_role"];
-  const captionError = await saveCaptions(db, fd);
-  if (captionError) return captionError;
+  const uploadError = (await checkFileCount(db, fd, ["photo_ids"])) ?? (await saveCaptions(db, fd));
+  if (uploadError) return uploadError;
   const { error } = await db.rpc("request_add_photos", {
     p_request_id: nul(fdUuid(fd, "request_id")),
     p_client_request_id: key(fd),
@@ -254,8 +255,8 @@ export async function workEntryAction(_: ActionState, fd: FormData): Promise<Act
   const kind = (fdStr(fd, "kind") ?? "execucao") as Enums["work_kind"];
   const requestId = fdUuid(fd, "request_id");
   const occurrenceId = fdUuid(fd, "task_occurrence_id");
-  const captionError = await saveCaptions(db, fd);
-  if (captionError) return captionError;
+  const uploadError = (await checkFileCount(db, fd, ["photo_ids"])) ?? (await saveCaptions(db, fd));
+  if (uploadError) return uploadError;
   const { data, error } = await db.rpc("work_entry_create", {
     p_client_request_id: key(fd),
     p_site_id: nul(fdUuid(fd, "site_id")),
@@ -283,8 +284,8 @@ export async function reportPendingAction(_: ActionState, fd: FormData): Promise
   await requireProfile(["admin", "worker", "foreman"]);
   const db = await createSupabaseServer();
   const id = nul(fdUuid(fd, "request_id"));
-  const captionError = await saveCaptions(db, fd);
-  if (captionError) return captionError;
+  const uploadError = (await checkFileCount(db, fd, ["photo_ids"])) ?? (await saveCaptions(db, fd));
+  if (uploadError) return uploadError;
   const { error } = await db.rpc("request_report_pending", {
     p_request_id: id,
     p_client_request_id: key(fd),
@@ -304,8 +305,8 @@ export async function markExecutedAction(_: ActionState, fd: FormData): Promise<
   await requireProfile(["admin", "worker", "foreman"]);
   const db = await createSupabaseServer();
   const id = nul(fdUuid(fd, "request_id"));
-  const captionError = await saveCaptions(db, fd);
-  if (captionError) return captionError;
+  const uploadError = (await checkFileCount(db, fd, ["photo_ids", "result_photo_ids"])) ?? (await saveCaptions(db, fd));
+  if (uploadError) return uploadError;
   const { error } = await db.rpc("request_mark_executed", {
     p_request_id: id,
     p_client_request_id: key(fd),
