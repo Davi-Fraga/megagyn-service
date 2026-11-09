@@ -123,6 +123,24 @@ test.describe.serial("cadastros e usuário inativado", () => {
     await expect(team.getByText(`${workerName} agora tem acesso a este local.`)).toBeVisible();
     await expect(team.getByRole("link", { name: workerName })).toBeVisible();
 
+    // 5b. Exceção de permissão pela tela do usuário (B-25): registrada, visível na matriz e na trilha.
+    await page.goto(userUrl);
+    const perms = panel(page, "Permissões");
+    const validar = perms.locator("tr").filter({ hasText: "O.S.: validar e encerrar" });
+    await expect(validar).toContainText("Só administração");
+    await perms.getByLabel("Permissão").selectOption({ label: "O.S.: validar e encerrar" });
+    await perms.getByLabel("Liberar ou bloquear").selectOption({ label: "Liberar" });
+    await perms.getByLabel("Motivo da exceção").fill("Cobertura de férias (E2E)");
+    await perms.getByRole("button", { name: "Registrar exceção" }).click();
+    await expect(perms.getByText("Exceção registrada na trilha.")).toBeVisible({ timeout: 60_000 });
+    await expect(validar).toContainText("Liberada");
+    await expect(validar).toContainText("Cobertura de férias (E2E)");
+    await validar.getByRole("button", { name: "Remover exceção" }).click();
+    await expect(validar).not.toContainText("Liberada", { timeout: 60_000 });
+    await page.goto("/admin/auditoria?entidade=permission_overrides");
+    await expect(page.locator("li").filter({ hasText: "Criou Exceção de permissão" }).first()).toBeVisible();
+    await expect(page.locator("li").filter({ hasText: "Removeu Exceção de permissão" }).first()).toBeVisible();
+
     // 6. O funcionário entra pelo celular e chega ao campo.
     const worker = await mobilePage(browser);
     await login(worker, workerEmail);

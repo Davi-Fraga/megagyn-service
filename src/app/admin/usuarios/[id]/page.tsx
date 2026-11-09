@@ -20,6 +20,7 @@ import { Badge } from "@/ui/status";
 import { ActiveBadge } from "../../clientes/_shared/fields";
 import { RowAction } from "../../clientes/_shared/row-action";
 import { ROLE_OPTIONS } from "../_shared/role-options";
+import { PermissionsPanel } from "./permissions-panel";
 import { rowOrNotFound } from "@/server/query";
 
 export const metadata: Metadata = { title: "Usuário" };
@@ -122,6 +123,23 @@ export default async function UserPage({
     : [null, null];
   const heirs = (people?.list ?? []).filter((p) => p.is_active && p.id !== id && p.role !== "client");
   const hasWork = !!openItems && openItems.requests.length + openItems.tasks.length > 0;
+  // B-25: a matriz da pessoa (padrão do papel e exceções individuais).
+  const [catalog, roleRows, overrides] =
+    user.role === "admin"
+      ? [[], [], []]
+      : await Promise.all([
+          db.from("permission_catalog").select("module, action, label, admin_floor, client_never").order("label").then((r) => r.data ?? []),
+          db.from("role_permissions").select("module, action, allowed").eq("role", user.role).then((r) => r.data ?? []),
+          db
+            .from("permission_overrides")
+            .select("id, module, action, allowed, reason, expires_at, site:sites(name)")
+            .eq("profile_id", id)
+            .order("created_at")
+            .then((r) => r.data ?? []),
+        ]);
+  const activeSites = list
+    .filter((m) => m.site && (!m.active_to || m.active_to >= today))
+    .map((m) => ({ id: m.site!.id, name: m.site!.name }));
 
   return (
     <>
@@ -196,6 +214,16 @@ export default async function UserPage({
               </ul>
             )}
           </Panel>
+
+          <PermissionsPanel
+            profileId={user.id}
+            role={user.role}
+            self={self}
+            catalog={catalog}
+            roleRows={roleRows}
+            overrides={overrides}
+            sites={activeSites}
+          />
 
           <Panel title="Senha">
             {user.is_active ? (
