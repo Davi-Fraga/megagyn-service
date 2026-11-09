@@ -250,6 +250,61 @@ describe("T-A3 — pendência e retomada", () => {
   });
 });
 
+describe("B-34 — reprogramar mudando prazo ou prioridade exige motivo", () => {
+  const plusDays = (n: number) => new Date(Date.now() + n * 86_400_000).toISOString().slice(0, 10);
+  const reschedule = (requestId: string, extra: Record<string, unknown>) =>
+    admin.db.rpc("request_schedule", {
+      p_request_id: requestId,
+      p_assignee_ids: [worker.id],
+      p_scheduled_date: today(),
+      p_client_request_id: uid(),
+      ...extra,
+    });
+
+  it("reprogramar mudando o prazo sem motivo é recusado", async () => {
+    const r = await openRequest({ p_due_date: plusDays(5) });
+    await schedule(r.id);
+    const { error } = await reschedule(r.id, { p_due_date: plusDays(9) });
+    expect(error?.message).toBe("Informe o motivo da mudança de prazo ou prioridade.");
+    expect(error?.hint).toBe("reason");
+    const { data } = await admin.db.from("service_requests").select("due_date").eq("id", r.id).single();
+    expect(data?.due_date).toBe(plusDays(5));
+  });
+
+  it("reprogramar mudando a prioridade sem motivo também é recusado", async () => {
+    const r = await openRequest({ p_priority_id: await catalogId("priority_definitions", "Média") });
+    await schedule(r.id);
+    const { error } = await reschedule(r.id, { p_priority_id: await catalogId("priority_definitions", "Urgente") });
+    expect(error?.hint).toBe("reason");
+  });
+
+  it("com motivo, grava a mudança e o motivo fica no histórico", async () => {
+    const r = await openRequest({ p_due_date: plusDays(5) });
+    await schedule(r.id);
+    const { error } = await reschedule(r.id, { p_due_date: plusDays(9), p_reason: "Material chega na semana que vem" });
+    expect(error).toBeNull();
+    const { data: events } = await admin.db
+      .from("request_events")
+      .select("event_type, reason")
+      .eq("service_request_id", r.id)
+      .eq("event_type", "reprogramacao");
+    expect(events).toEqual([{ event_type: "reprogramacao", reason: "Material chega na semana que vem" }]);
+  });
+
+  it("sem mudar prazo nem prioridade, reprogramar responsável ou data segue sem motivo", async () => {
+    const r = await openRequest({ p_due_date: plusDays(5) });
+    await schedule(r.id);
+    const { error } = await reschedule(r.id, { p_scheduled_date: plusDays(1), p_due_date: plusDays(5) });
+    expect(error).toBeNull();
+  });
+
+  it("na triagem (chamado Aberto), definir ou mudar prazo e prioridade não pede motivo", async () => {
+    const r = await openRequest({ p_due_date: plusDays(5) });
+    const { error } = await reschedule(r.id, { p_due_date: plusDays(7), p_priority_id: await catalogId("priority_definitions", "Alta") });
+    expect(error).toBeNull();
+  });
+});
+
 describe("reabertura e cancelamento preservam histórico", () => {
   it("reabrir mantém o evento de validação anterior", async () => {
     const r = await openRequest();
