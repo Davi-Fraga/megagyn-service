@@ -239,7 +239,7 @@ async function main() {
     .update({
       trade_name: "Megagyn (DEMO)",
       legal_name: "Razão social a confirmar (DEMO)",
-      cnpj: "00.000.000/0000-00",
+      cnpj: null, // CNPJ oficial a confirmar (DP-15): em branco, nunca um número inventado.
       address_text: "Endereço a confirmar — Goiânia, GO",
       phone: "(00) 00000-0000",
       website: "site-a-confirmar.example",

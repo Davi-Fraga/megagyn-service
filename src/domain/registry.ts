@@ -350,9 +350,11 @@ export function parseSettingsForm(fd: FormData): Parsed<SettingsValues> {
   const intro = text(fd, "quote_intro_text", 2000);
   if (!intro) errors.quote_intro_text = "Informe o texto de abertura do orçamento.";
 
-  // Só confere a quantidade de números: o CNPJ oficial ainda está para confirmar (Q2).
-  const cnpj = text(fd, "cnpj", 30);
-  if (cnpj && onlyDigits(cnpj).length !== 14) errors.cnpj = "O CNPJ tem 14 números.";
+  // B-27: confere o dígito verificador e grava formatado. O CNPJ oficial ainda está para confirmar
+  // (DP-15): em branco é aceito, nunca um número inventado.
+  const rawCnpj = text(fd, "cnpj", 30);
+  if (rawCnpj && !isValidCnpj(rawCnpj)) errors.cnpj = "CNPJ inválido. Confira os 14 números ou deixe em branco.";
+  const cnpj = rawCnpj ? formatDocument(rawCnpj) : null;
   const email = text(fd, "email", 200)?.toLowerCase() ?? null;
   checkEmail(errors, "email", email);
 

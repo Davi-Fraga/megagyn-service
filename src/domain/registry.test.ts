@@ -219,13 +219,28 @@ describe("configurações da empresa", () => {
   ];
 
   it("aceita os campos e converte vazios em null", () => {
-    const r = parseSettingsForm(fd([...required, ["cnpj", "00.000.000/0000-00"], ["website", "site-a-confirmar.example"], ["crea", ""]]));
+    const r = parseSettingsForm(fd([...required, ["cnpj", "11.222.333/0001-81"], ["website", "site-a-confirmar.example"], ["crea", ""]]));
     expect(r.ok).toBe(true);
     if (!r.ok) return;
     expect(r.values.crea).toBeNull();
     expect(r.values.legal_name).toBe("");
     expect(r.values.max_image_mb).toBe(15);
-    expect(r.values.cnpj).toBe("00.000.000/0000-00");
+    expect(r.values.cnpj).toBe("11.222.333/0001-81");
+  });
+
+  it("CNPJ com dígito verificador errado é recusado (B-27)", () => {
+    for (const cnpj of ["11.222.333/0001-82", "00.000.000/0000-00"]) {
+      const r = parseSettingsForm(fd([...required, ["cnpj", cnpj]]));
+      expect(r.ok).toBe(false);
+      if (!r.ok) expect(r.fieldErrors.cnpj).toBe("CNPJ inválido. Confira os 14 números ou deixe em branco.");
+    }
+  });
+
+  it("CNPJ válido sem pontuação é aceito e gravado formatado; vazio fica nulo (B-27)", () => {
+    const r = parseSettingsForm(fd([...required, ["cnpj", "11222333000181"]]));
+    expect(r.ok && r.values.cnpj).toBe("11.222.333/0001-81");
+    const empty = parseSettingsForm(fd([...required, ["cnpj", ""]]));
+    expect(empty.ok && empty.values.cnpj).toBeNull();
   });
 
   it("limites fora da faixa e CNPJ incompleto", () => {
