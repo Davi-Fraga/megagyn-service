@@ -3,12 +3,13 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { toActionError, type ActionState } from "@/domain/action-errors";
-import { fdBool, fdCaptions, fdDate, fdNumber, fdStr, fdUuid, fdUuids } from "@/domain/form-data";
+import { fdBool, fdDate, fdNumber, fdStr, fdUuid, fdUuids } from "@/domain/form-data";
 import { newId } from "@/domain/ids";
 import { actionReturnPath } from "@/domain/safe-redirect";
 import { requireProfile } from "@/server/auth";
+import { saveCaptions } from "@/server/captions";
 import { errorInfo, log } from "@/server/log";
-import { createSupabaseServer, type ServerDb } from "@/server/supabase/server";
+import { createSupabaseServer } from "@/server/supabase/server";
 import type { Database } from "@/server/db/database.types";
 
 type Enums = Database["public"]["Enums"];
@@ -18,11 +19,6 @@ const nul = <T,>(v: T | null): T => v as T;
 
 function key(fd: FormData): string {
   return fdUuid(fd, "client_request_id") ?? newId();
-}
-
-async function saveCaptions(db: ServerDb, fd: FormData) {
-  const captions = fdCaptions(fd);
-  if (Object.keys(captions).length > 0) await db.rpc("attachment_set_captions", { p_captions: captions });
 }
 
 function fail(error: unknown, event: string): ActionState {
@@ -60,6 +56,8 @@ export async function openRequestAction(_: ActionState, fd: FormData): Promise<A
     }
   }
 
+  const captionError = await saveCaptions(db, fd);
+  if (captionError) return captionError;
   const { data, error } = await db.rpc("request_open", {
     p_client_request_id: key(fd),
     p_site_id: nul(siteId),
@@ -77,7 +75,6 @@ export async function openRequestAction(_: ActionState, fd: FormData): Promise<A
     p_photo_ids: fdUuids(fd, "photo_ids"),
   });
   if (error || !data) return fail(error, "request.open_fail");
-  await saveCaptions(db, fd);
 
   const assignees = fdUuids(fd, "assignee_ids");
   const scheduled = fdDate(fd, "scheduled_date");
@@ -233,6 +230,8 @@ export async function addRequestPhotosAction(_: ActionState, fd: FormData): Prom
   const photos = fdUuids(fd, "photo_ids");
   if (photos.length === 0) return { ok: false, message: "Tire ou escolha ao menos 1 foto.", fieldErrors: { photo_ids: "Envie ao menos 1 foto." } };
   const role = (fdStr(fd, "role") ?? "intermediaria") as Enums["evidence_role"];
+  const captionError = await saveCaptions(db, fd);
+  if (captionError) return captionError;
   const { error } = await db.rpc("request_add_photos", {
     p_request_id: nul(fdUuid(fd, "request_id")),
     p_client_request_id: key(fd),
@@ -240,7 +239,6 @@ export async function addRequestPhotosAction(_: ActionState, fd: FormData): Prom
     p_role: role,
   });
   if (error) return fail(error, "request.photos_fail");
-  await saveCaptions(db, fd);
   refresh();
   return { ok: true, message: `${photos.length} foto(s) adicionada(s) ao chamado.` };
 }
@@ -256,6 +254,8 @@ export async function workEntryAction(_: ActionState, fd: FormData): Promise<Act
   const kind = (fdStr(fd, "kind") ?? "execucao") as Enums["work_kind"];
   const requestId = fdUuid(fd, "request_id");
   const occurrenceId = fdUuid(fd, "task_occurrence_id");
+  const captionError = await saveCaptions(db, fd);
+  if (captionError) return captionError;
   const { data, error } = await db.rpc("work_entry_create", {
     p_client_request_id: key(fd),
     p_site_id: nul(fdUuid(fd, "site_id")),
@@ -274,7 +274,6 @@ export async function workEntryAction(_: ActionState, fd: FormData): Promise<Act
     p_photo_ids: fdUuids(fd, "photo_ids"),
   });
   if (error || !data) return fail(error, "work_entry.create_fail");
-  await saveCaptions(db, fd);
   refresh();
   const back = fdStr(fd, "return_to");
   redirect(back && back.startsWith("/campo") ? `${back}${back.includes("?") ? "&" : "?"}feito=registro` : "/campo?feito=registro");
@@ -284,6 +283,8 @@ export async function reportPendingAction(_: ActionState, fd: FormData): Promise
   await requireProfile(["admin", "worker", "foreman"]);
   const db = await createSupabaseServer();
   const id = nul(fdUuid(fd, "request_id"));
+  const captionError = await saveCaptions(db, fd);
+  if (captionError) return captionError;
   const { error } = await db.rpc("request_report_pending", {
     p_request_id: id,
     p_client_request_id: key(fd),
@@ -295,7 +296,6 @@ export async function reportPendingAction(_: ActionState, fd: FormData): Promise
     p_photo_ids: fdUuids(fd, "photo_ids"),
   });
   if (error) return fail(error, "request.pending_fail");
-  await saveCaptions(db, fd);
   refresh();
   redirect(actionReturnPath(fdStr(fd, "base"), "/campo/chamados", id, "pendencia"));
 }
@@ -304,6 +304,8 @@ export async function markExecutedAction(_: ActionState, fd: FormData): Promise<
   await requireProfile(["admin", "worker", "foreman"]);
   const db = await createSupabaseServer();
   const id = nul(fdUuid(fd, "request_id"));
+  const captionError = await saveCaptions(db, fd);
+  if (captionError) return captionError;
   const { error } = await db.rpc("request_mark_executed", {
     p_request_id: id,
     p_client_request_id: key(fd),
@@ -316,7 +318,6 @@ export async function markExecutedAction(_: ActionState, fd: FormData): Promise<
     p_photo_ids: fdUuids(fd, "photo_ids"),
   });
   if (error) return fail(error, "request.executed_fail");
-  await saveCaptions(db, fd);
   refresh();
   redirect(actionReturnPath(fdStr(fd, "base"), "/campo/chamados", id, "executada"));
 }
