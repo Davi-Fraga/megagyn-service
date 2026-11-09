@@ -364,3 +364,59 @@ describe("integridade geral", () => {
     expect(data ?? []).toEqual([]);
   });
 });
+
+describe("B-26 — edição com versão desatualizada", () => {
+  /** Edita só o título, repetindo os demais campos como estão no banco. */
+  async function editTitle(id: string, title: string, extra: Record<string, unknown> = {}) {
+    const { data: r } = await serviceClient()
+      .from("service_requests")
+      .select("description, priority_id, service_category_id, due_date, site_area_id, is_internal")
+      .eq("id", id)
+      .single();
+    return admin.db.rpc("request_update", {
+      p_request_id: id,
+      p_title: title,
+      p_description: r!.description,
+      p_priority_id: r!.priority_id as string,
+      p_service_category_id: r!.service_category_id as string,
+      p_due_date: r!.due_date as string,
+      p_site_area_id: r!.site_area_id as string,
+      p_is_internal: r!.is_internal,
+      ...extra,
+    } as never);
+  }
+  const titleOf = async (id: string) => (await serviceClient().from("service_requests").select("title").eq("id", id).single()).data!.title;
+
+  it("edição com versão antiga é recusada e não sobrescreve a anterior", async () => {
+    const req = await openRequest();
+    const first = await editTitle(req.id, "Título salvo pela primeira aba", { p_expected_version: req.version });
+    expect(first.error).toBeNull();
+    expect((first.data as { version: number }).version).toBe(req.version + 1);
+
+    const stale = await editTitle(req.id, "Título da segunda aba", { p_expected_version: req.version });
+    expect(stale.error?.hint).toBe("expectedVersion");
+    expect(stale.error?.message).toContain("foi alterado depois que você abriu a página");
+    expect(await titleOf(req.id)).toBe("Título salvo pela primeira aba");
+  });
+
+  it("mudança de situação também conta como alteração", async () => {
+    const req = await openRequest();
+    await schedule(req.id);
+    const stale = await editTitle(req.id, "Título com versão de antes da programação", { p_expected_version: req.version });
+    expect(stale.error?.hint).toBe("expectedVersion");
+  });
+
+  it("o reenvio da mesma edição (mesma chave) não acusa versão", async () => {
+    const req = await openRequest();
+    const key = uid();
+    const args = { p_expected_version: req.version, p_client_request_id: key };
+    expect((await editTitle(req.id, "Título reenviado", args)).error).toBeNull();
+    expect((await editTitle(req.id, "Título reenviado", args)).error).toBeNull();
+  });
+
+  it("sem a versão esperada, a edição segue como antes (app anterior)", async () => {
+    const req = await openRequest();
+    expect((await editTitle(req.id, "Título sem versão")).error).toBeNull();
+    expect(await titleOf(req.id)).toBe("Título sem versão");
+  });
+});

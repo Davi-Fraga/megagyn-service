@@ -255,6 +255,7 @@ export default async function ClientPage({
           <Panel title="Dados do cliente">
             <ActionForm action={updateClientAction} submitLabel="Salvar dados">
               <input type="hidden" name="client_id" value={client.id} />
+              <input type="hidden" name="expected_updated_at" value={client.updated_at} />
               <ClientFields client={client} />
             </ActionForm>
           </Panel>
