@@ -493,3 +493,13 @@ describe("B-08 — orçamento salvo uma vez, sem itens duplicados", () => {
     }
   });
 });
+
+describe("B-22 — orçamento só com local do mesmo cliente", () => {
+  it("orçamento com local de outro cliente é recusado pelo banco", async () => {
+    const other = await createClientWithSite("Outro B-22 orçamento");
+    const { error } = await admin.db
+      .from("quotes")
+      .insert({ number: "", client_id: clientId, site_id: other.site.id, title: "Local de outro cliente (teste)", created_by: admin.id });
+    expect(error?.code).toBe("23503");
+  });
+});

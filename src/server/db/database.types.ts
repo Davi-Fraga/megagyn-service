@@ -103,10 +103,10 @@ isOneToOne: false
       referencedColumns: ["id"]
     },{
       foreignKeyName: "billing_rules_site_id_fkey"
-      columns: ["site_id"]
+      columns: ["site_id","client_id"]
 isOneToOne: false
       referencedRelation: "sites"
-      referencedColumns: ["id"]
+      referencedColumns: ["id","client_id"]
     }
                   ]
                 },"client_contact_sites": {
@@ -399,10 +399,10 @@ isOneToOne: false
       referencedColumns: ["id"]
     },{
       foreignKeyName: "monthly_closings_site_id_fkey"
-      columns: ["site_id"]
+      columns: ["site_id","client_id"]
 isOneToOne: false
       referencedRelation: "sites"
-      referencedColumns: ["id"]
+      referencedColumns: ["id","client_id"]
     }
                   ]
                 },"notifications": {
@@ -559,10 +559,10 @@ isOneToOne: false
       referencedColumns: ["id"]
     },{
       foreignKeyName: "quotes_site_id_fkey"
-      columns: ["site_id"]
+      columns: ["site_id","client_id"]
 isOneToOne: false
       referencedRelation: "sites"
-      referencedColumns: ["id"]
+      referencedColumns: ["id","client_id"]
     }
                   ]
                 },"reimbursement_payments": {

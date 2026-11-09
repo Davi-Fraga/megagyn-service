@@ -24,6 +24,12 @@ export async function issueClosingAction(_: ActionState, fd: FormData): Promise<
   const includeBilling = fdBool(fd, "include_billing");
   const reason = fdStr(fd, "reason");
   if (!clientId || !Number.isInteger(year) || month < 1 || month > 12) return { ok: false, message: "Escolha cliente, mês e ano." };
+  // B-22: a unidade tem de ser do cliente. Conferido antes de gravar o fechamento, para não sobrar
+  // fechamento sem versão (o banco também recusa, pela FK composta).
+  if (siteId) {
+    const { data: site } = await db.from("sites").select("client_id").eq("id", siteId).maybeSingle();
+    if (site?.client_id !== clientId) return { ok: false, message: "A unidade escolhida não é deste cliente. Volte e escolha cliente e unidade de novo." };
+  }
 
   let closingId: string;
   let existing = db
