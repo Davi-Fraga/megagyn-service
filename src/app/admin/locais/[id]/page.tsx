@@ -227,6 +227,7 @@ export default async function SitePage({
             </div>
             <ActionForm action={updateSiteAction} submitLabel="Salvar dados do local">
               <input type="hidden" name="site_id" value={site.id} />
+              <input type="hidden" name="expected_updated_at" value={site.updated_at} />
               <SiteFields
                 site={site}
                 responsibles={siteResponsibleOptions(profiles.list, contactsRes.data ?? [], {

@@ -71,6 +71,12 @@ function invalid(fieldErrors: FieldErrors): ActionState {
 
 const notFound = (what: string): ActionState => ({ ok: false, message: `${what} não encontrado. Atualize a página.` });
 
+/** B-26: o registro mudou depois que a tela foi aberta (updated_at diferente do lido). */
+const stale = (what: string): ActionState => ({
+  ok: false,
+  message: `Este ${what} foi alterado depois que você abriu a página. Nada foi salvo: recarregue para ver a versão atual.`,
+});
+
 function refresh() {
   revalidatePath("/", "layout");
 }
@@ -111,9 +117,16 @@ export async function updateClientAction(_: ActionState, fd: FormData): Promise<
   if (!id) return notFound("Cliente");
   const parsed = parseClientForm(fd);
   if (!parsed.ok) return invalid(parsed.fieldErrors);
-  const { data, error } = await db.from("clients").update(parsed.values).eq("id", id).select("id");
+  // B-26: grava só se o cliente ainda está como a tela o leu.
+  const expected = fdStr(fd, "expected_updated_at");
+  let update = db.from("clients").update(parsed.values).eq("id", id);
+  if (expected) update = update.eq("updated_at", expected);
+  const { data, error } = await update.select("id");
   if (error) return fail(error, "client.update_fail");
-  if (!data?.length) return notFound("Cliente");
+  if (!data?.length) {
+    const { data: current } = await db.from("clients").select("id").eq("id", id).maybeSingle();
+    return expected && current ? stale("cliente") : notFound("Cliente");
+  }
   refresh();
   return { ok: true, message: "Dados do cliente salvos." };
 }
@@ -285,9 +298,13 @@ export async function updateSiteAction(_: ActionState, fd: FormData): Promise<Ac
   if (await contactOutsideClient(db, parsed.values.client_responsible_contact_id, site.client_id)) {
     return invalid({ client_responsible_contact_id: "Escolha um contato deste cliente." });
   }
-  const { data, error } = await db.from("sites").update(parsed.values).eq("id", id).select("id");
+  // B-26: grava só se o local ainda está como a tela o leu.
+  const expected = fdStr(fd, "expected_updated_at");
+  let update = db.from("sites").update(parsed.values).eq("id", id);
+  if (expected) update = update.eq("updated_at", expected);
+  const { data, error } = await update.select("id");
   if (error) return fail(error, "site.update_fail");
-  if (!data?.length) return notFound("Local");
+  if (!data?.length) return expected ? stale("local") : notFound("Local");
   refresh();
   return { ok: true, message: "Dados do local salvos." };
 }

@@ -228,6 +228,7 @@ export default async function AdminRequestPage({
               <div className="pt-4">
                 <ActionForm action={updateRequestAction} submitLabel="Salvar alterações">
                   <input type="hidden" name="request_id" value={r.id} />
+                  <input type="hidden" name="expected_version" value={r.version} />
                   <TextField label="Título" name="title" required defaultValue={r.title} />
                   <TextAreaField label="Descrição" name="description" required defaultValue={r.description} rows={4} />
                   <SelectField

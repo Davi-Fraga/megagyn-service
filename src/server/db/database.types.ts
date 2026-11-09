@@ -2277,7 +2277,7 @@ isOneToOne: false
         isSetofReturn: false
       } },
 "request_update":
-{ Args: { "p_client_request_id"?: string,"p_description": string,"p_due_date": string,"p_is_internal": boolean,"p_priority_id": string,"p_reason"?: string,"p_request_id": string,"p_service_category_id": string,"p_site_area_id": string,"p_title": string }; Returns: {
+{ Args: { "p_client_request_id"?: string,"p_description": string,"p_due_date": string,"p_expected_version"?: number,"p_is_internal": boolean,"p_priority_id": string,"p_reason"?: string,"p_request_id": string,"p_service_category_id": string,"p_site_area_id": string,"p_title": string }; Returns: {
               "cancelled_at": string | null,
 "channel": Database["public"]['Enums']["request_channel"] | null,
 "client_id": string,

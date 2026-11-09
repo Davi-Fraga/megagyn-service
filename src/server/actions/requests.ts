@@ -129,6 +129,8 @@ export async function updateRequestAction(_: ActionState, fd: FormData): Promise
     p_is_internal: fdBool(fd, "is_internal"),
     p_reason: fdStr(fd, "reason") ?? undefined,
     p_client_request_id: key(fd),
+    // B-26: a versão lida ao abrir a tela; o banco recusa se o chamado mudou desde então.
+    p_expected_version: fdNumber(fd, "expected_version") ?? undefined,
   });
   if (error) return fail(error, "request.update_fail");
   refresh();
