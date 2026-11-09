@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { createUser, serviceClient, type TestUser } from "./helpers";
+import { createUser, serviceClient, sql, type TestUser } from "./helpers";
 
 /** B-17 (M-08): o banco recusa CPF/CNPJ repetido, com ou sem pontuação. */
 
@@ -45,5 +45,12 @@ describe("B-17 — CPF/CNPJ único", () => {
       const { error } = await insertClient("pj", doc);
       expect(error).toBeNull();
     }
+  });
+});
+
+describe("B-27 — CNPJ da empresa", () => {
+  it("o CNPJ provisório de zeros não fica nas Configurações (sairia nos PDFs)", () => {
+    const zeros = sql("select count(*) from public.company_settings where regexp_replace(coalesce(cnpj, ''), '\\D', '', 'g') ~ '^0{14}$'");
+    expect(zeros).toBe("0");
   });
 });

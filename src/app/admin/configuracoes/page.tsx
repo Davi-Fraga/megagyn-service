@@ -71,7 +71,7 @@ export default async function SettingsPage() {
                 <TextField label="Telefone" name="phone" type="tel" maxLength={40} defaultValue={s.phone ?? ""} />
                 <TextField label="E-mail" name="email" type="email" maxLength={200} defaultValue={s.email ?? ""} />
               </div>
-              <TextField label="Site" name="website" maxLength={200} defaultValue={s.website ?? ""} hint="Ex.: www.megagyn.com.br" />
+              <TextField label="Site" name="website" maxLength={200} defaultValue={s.website ?? ""} hint="Ex.: www.empresa.com.br" />
             </Section>
 
             <Section title="Responsável técnico">
