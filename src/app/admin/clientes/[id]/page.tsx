@@ -14,11 +14,12 @@ import {
   updateClientAction,
   updateContactAction,
 } from "@/server/actions/registry";
+import { loadProfiles } from "@/server/data";
 import { createSupabaseServer } from "@/server/supabase/server";
 import { ActionForm, CheckboxGroup, TextField } from "@/ui/form";
 import { EmptyState, Notice, PageHeader, Panel, RowList } from "@/ui/page";
 import { Badge } from "@/ui/status";
-import { ActiveBadge, ClientFields, SiteFields, SiteStatusBadge } from "../_shared/fields";
+import { ActiveBadge, ClientFields, SiteFields, SiteStatusBadge, siteResponsibleOptions } from "../_shared/fields";
 import { RowAction } from "../_shared/row-action";
 import { rowOrNotFound } from "@/server/query";
 
@@ -73,7 +74,7 @@ export default async function ClientPage({
   const db = await createSupabaseServer();
   const client = rowOrNotFound(await db.from("clients").select("*").eq("id", id).maybeSingle());
 
-  const [sitesRes, contactsRes] = await Promise.all([
+  const [sitesRes, contactsRes, profiles] = await Promise.all([
     db.from("sites").select("id, name, code, site_type, status, address_text, planned_start, planned_end").eq("client_id", id).order("name"),
     db
       .from("client_contacts")
@@ -81,6 +82,7 @@ export default async function ClientPage({
       .eq("client_id", id)
       .order("is_active", { ascending: false })
       .order("name"),
+    loadProfiles(db),
   ]);
   const sites = sitesRes.data ?? [];
   const contacts = contactsRes.data ?? [];
@@ -145,7 +147,7 @@ export default async function ClientPage({
                 <div className="border-t border-linha p-3">
                   <ActionForm action={createSiteAction} submitLabel="Cadastrar local" pendingLabel="Cadastrando…">
                     <input type="hidden" name="client_id" value={client.id} />
-                    <SiteFields />
+                    <SiteFields responsibles={siteResponsibleOptions(profiles.list, contacts)} />
                   </ActionForm>
                 </div>
               </details>

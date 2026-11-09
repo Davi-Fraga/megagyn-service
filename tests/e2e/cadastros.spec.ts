@@ -73,10 +73,17 @@ test.describe.serial("cadastros e usuário inativado", () => {
     await sites.getByLabel("Nome do local").fill(siteName);
     await sites.getByLabel("Código").fill(siteCode.toLowerCase());
     await sites.getByLabel("Tipo de local").selectOption({ label: "Obra temporária" });
+    // B-21: acesso e responsável na Megagyn (o cliente novo ainda não tem contato).
+    await sites.getByLabel("Horário de acesso").fill("Segunda a sexta, das 7h às 17h");
+    await sites.getByLabel("Orientações de acesso").fill("Retirar a chave na portaria.");
+    await sites.getByLabel("Responsável na Megagyn").selectOption({ label: "Carlos Encarregado (demo)" });
     await sites.getByRole("button", { name: "Cadastrar local" }).click();
     await page.waitForURL(/\/admin\/locais\/[0-9a-f-]{36}/, { timeout: 120_000 });
     await expect(page.getByText("Local cadastrado.")).toBeVisible();
     await expect(page.getByText(siteCode, { exact: true })).toBeVisible();
+    await expect(page.getByLabel("Horário de acesso")).toHaveValue("Segunda a sexta, das 7h às 17h");
+    await expect(page.getByLabel("Orientações de acesso")).toHaveValue("Retirar a chave na portaria.");
+    await expect(page.getByLabel("Responsável na Megagyn").locator("option:checked")).toHaveText("Carlos Encarregado (demo)");
     const siteUrl = page.url().split("?")[0]!;
 
     // 3. Setor do local.

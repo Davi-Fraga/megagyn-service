@@ -178,7 +178,7 @@ export async function getRequestDetail(db: ServerDb, id: string) {
     await db
       .from("service_requests")
       .select(
-        "*, site:sites(id, name, code, address_text, site_type), client:clients(id, display_name, legal_name), area:site_areas(id, name), category:service_categories(id, name), priority:priority_definitions(id, name, level)",
+        "*, site:sites(id, name, code, address_text, site_type, access_hours, access_instructions, responsible_profile_id), client:clients(id, display_name, legal_name), area:site_areas(id, name), category:service_categories(id, name), priority:priority_definitions(id, name, level)",
       )
       .eq("id", id)
       .maybeSingle(),

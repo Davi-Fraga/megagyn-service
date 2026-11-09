@@ -245,6 +245,13 @@ export async function anonymizeContactAction(_: ActionState, fd: FormData): Prom
 // Locais (obras e unidades)
 // ---------------------------------------------------------------------------
 
+/** B-21: o responsável do cliente tem de ser contato do mesmo cliente (o banco também recusa, pela FK composta). */
+async function contactOutsideClient(db: ServerDb, contactId: string | null, clientId: string): Promise<boolean> {
+  if (!contactId) return false;
+  const { data } = await db.from("client_contacts").select("client_id").eq("id", contactId).maybeSingle();
+  return data?.client_id !== clientId;
+}
+
 export async function createSiteAction(_: ActionState, fd: FormData): Promise<ActionState> {
   const { profile, db } = await adminDb();
   const clientId = fdUuid(fd, "client_id");
@@ -254,6 +261,9 @@ export async function createSiteAction(_: ActionState, fd: FormData): Promise<Ac
   if (!client.is_active) return { ok: false, message: "Cliente desativado. Reative o cliente antes de cadastrar locais." };
   const parsed = parseSiteForm(fd);
   if (!parsed.ok) return invalid(parsed.fieldErrors);
+  if (await contactOutsideClient(db, parsed.values.client_responsible_contact_id, clientId)) {
+    return invalid({ client_responsible_contact_id: "Escolha um contato deste cliente." });
+  }
   const { data, error } = await db
     .from("sites")
     .insert({ ...parsed.values, client_id: clientId, created_by: profile.id })
@@ -270,6 +280,11 @@ export async function updateSiteAction(_: ActionState, fd: FormData): Promise<Ac
   if (!id) return notFound("Local");
   const parsed = parseSiteForm(fd);
   if (!parsed.ok) return invalid(parsed.fieldErrors);
+  const { data: site } = await db.from("sites").select("client_id").eq("id", id).maybeSingle();
+  if (!site) return notFound("Local");
+  if (await contactOutsideClient(db, parsed.values.client_responsible_contact_id, site.client_id)) {
+    return invalid({ client_responsible_contact_id: "Escolha um contato deste cliente." });
+  }
   const { data, error } = await db.from("sites").update(parsed.values).eq("id", id).select("id");
   if (error) return fail(error, "site.update_fail");
   if (!data?.length) return notFound("Local");

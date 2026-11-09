@@ -193,7 +193,20 @@ export type SiteValues = {
   planned_start: string | null;
   planned_end: string | null;
   notes_internal: string | null;
+  /** B-21: horário e orientações de acesso; responsável na Megagyn e responsável do cliente (contato). */
+  access_hours: string | null;
+  access_instructions: string | null;
+  responsible_profile_id: string | null;
+  client_responsible_contact_id: string | null;
 };
+
+/** Id opcional do formulário: vazio vira null; preenchido e inválido vira erro no campo. */
+function optionalId(fd: FormData, key: string, errors: FieldErrors): string | null {
+  if (!fdStr(fd, key)) return null;
+  const id = fdUuid(fd, key);
+  if (!id) errors[key] = "Escolha uma opção da lista.";
+  return id;
+}
 
 export function parseSiteForm(fd: FormData): Parsed<SiteValues> {
   const errors: FieldErrors = {};
@@ -221,6 +234,13 @@ export function parseSiteForm(fd: FormData): Parsed<SiteValues> {
   if (endRaw && !end) errors.planned_end = "Data inválida.";
   if (start && end && end < start) errors.planned_end = "O término previsto não pode ser antes do início.";
 
+  const accessHours = text(fd, "access_hours", 200);
+  if ((fdStr(fd, "access_hours") ?? "").length > 200) errors.access_hours = "Use no máximo 200 caracteres.";
+  const accessInstructions = text(fd, "access_instructions", 2000);
+  if ((fdStr(fd, "access_instructions") ?? "").length > 2000) errors.access_instructions = "Use no máximo 2000 caracteres.";
+  const responsibleProfileId = optionalId(fd, "responsible_profile_id", errors);
+  const clientResponsibleContactId = optionalId(fd, "client_responsible_contact_id", errors);
+
   return result(errors, {
     name: name ?? "",
     code,
@@ -230,6 +250,10 @@ export function parseSiteForm(fd: FormData): Parsed<SiteValues> {
     planned_start: start,
     planned_end: end,
     notes_internal: text(fd, "notes_internal", 2000),
+    access_hours: accessHours,
+    access_instructions: accessInstructions,
+    responsible_profile_id: responsibleProfileId,
+    client_responsible_contact_id: clientResponsibleContactId,
   });
 }
 
