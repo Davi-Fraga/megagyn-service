@@ -21,13 +21,14 @@ export const getSessionProfile = cache(async (): Promise<{ userId: string; profi
   if (!user) return null;
   const { data } = await supabase
     .from("profiles")
-    .select("id, email, full_name, role, is_active")
+    .select("id, full_name, role, is_active")
     .eq("id", user.id)
     .maybeSingle();
   return {
     userId: user.id,
     profile: data
-      ? { id: data.id, email: data.email, fullName: data.full_name, role: data.role, isActive: data.is_active }
+      ? // O e-mail vem da sessão: profiles.email não é lido pela API (B-16, só pela view profile_contacts).
+        { id: data.id, email: user.email ?? "", fullName: data.full_name, role: data.role, isActive: data.is_active }
       : null,
   };
 });

@@ -5,7 +5,8 @@ import { USERS, login, mobilePage } from "./helpers";
 test("acesso ao local: a administração preenche e o funcionário vê no chamado", async ({ page, browser }) => {
   const hours = `Segunda a sexta, 7h às 17h (E2E ${Date.now()})`;
   await login(page, USERS.admin);
-  await page.goto("/admin/locais");
+  // Busca pelo nome: a lista tem limite, e a base local acumula locais criados pelos testes de banco.
+  await page.goto("/admin/locais?q=Torre%20A");
   await page.getByRole("link", { name: /Torre A/ }).first().click();
   await page.waitForURL(/\/admin\/locais\/[0-9a-f-]{36}/, { timeout: 120_000 });
   await page.getByLabel("Horário de acesso").fill(hours);

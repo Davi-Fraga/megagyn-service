@@ -485,9 +485,13 @@ export async function sendPasswordLinkAction(_: ActionState, fd: FormData): Prom
   const { db } = await adminDb();
   const id = fdUuid(fd, "profile_id");
   if (!id) return notFound("Usuário");
-  const { data: person } = await db.from("profiles").select("email, is_active").eq("id", id).maybeSingle();
-  if (!person) return notFound("Usuário");
-  if (!person.is_active) return { ok: false, message: "Reative o acesso antes de enviar o link." };
+  const [{ data: profile }, { data: contact }] = await Promise.all([
+    db.from("profiles").select("is_active").eq("id", id).maybeSingle(),
+    db.from("profile_contacts").select("email").eq("id", id).maybeSingle(),
+  ]);
+  if (!profile || !contact?.email) return notFound("Usuário");
+  if (!profile.is_active) return { ok: false, message: "Reative o acesso antes de enviar o link." };
+  const person = { email: contact.email };
   const { error } = await db.auth.resetPasswordForEmail(person.email, {
     redirectTo: `${env.appUrl}/auth/callback?next=/redefinir-senha`,
   });
