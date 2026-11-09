@@ -14,9 +14,10 @@ import {
   updateClientAction,
   updateContactAction,
 } from "@/server/actions/registry";
-import { loadProfiles } from "@/server/data";
+import { loadPhotos, loadProfiles } from "@/server/data";
 import { createSupabaseServer } from "@/server/supabase/server";
-import { ActionForm, CheckboxGroup, TextField } from "@/ui/form";
+import { ActionForm, CheckboxGroup, TextAreaField, TextField } from "@/ui/form";
+import { ClientDocuments, ClientHistory } from "./client-documents";
 import { EmptyState, Notice, PageHeader, Panel, RowList } from "@/ui/page";
 import { Badge } from "@/ui/status";
 import { ActiveBadge, ClientFields, SiteFields, SiteStatusBadge, siteResponsibleOptions } from "../_shared/fields";
@@ -79,7 +80,7 @@ export default async function ClientPage({
   ]);
   const client = { ...rowOrNotFound(clientRes), notes_internal: internalRes.data?.notes_internal ?? null, billing_info: internalRes.data?.billing_info ?? null };
 
-  const [sitesRes, contactsRes, profiles] = await Promise.all([
+  const [sitesRes, contactsRes, profiles, photoMap, categoriesRes, historyRes] = await Promise.all([
     db.from("sites").select("id, name, code, site_type, status, address_text, planned_start, planned_end").eq("client_id", id).order("name"),
     db
       .from("client_contacts")
@@ -88,7 +89,23 @@ export default async function ClientPage({
       .order("is_active", { ascending: false })
       .order("name"),
     loadProfiles(db),
+    // B-18: documentos e fotos do cadastro, com a categoria do vínculo, e a trilha do cliente.
+    loadPhotos(db, "client", [id]),
+    db.from("attachment_links").select("attachment_id, category").eq("entity_type", "client").eq("entity_id", id),
+    db
+      .from("audit_events")
+      .select("id, action, actor_id, reason, created_at, before, after")
+      .eq("entity_type", "clients")
+      .eq("entity_id", id)
+      .order("created_at", { ascending: false })
+      .limit(30),
   ]);
+  const categoryOf = new Map((categoriesRes.data ?? []).map((l) => [l.attachment_id, l.category]));
+  const files = (photoMap.get(id) ?? []).map((f) => ({
+    ...f,
+    caption: [categoryOf.get(f.id), f.caption].filter(Boolean).join(" · ") || null,
+  }));
+  const history = historyRes.data ?? [];
   const sites = sitesRes.data ?? [];
   const contacts = contactsRes.data ?? [];
   const siteName = new Map(sites.map((s) => [s.id, s.name]));
@@ -260,19 +277,18 @@ export default async function ClientPage({
             </ActionForm>
           </Panel>
 
+          <ClientDocuments clientId={client.id} files={files} />
+
           <Panel title="Situação do cadastro">
             {client.is_active ? (
-              <RowAction
-                action={setClientActiveAction}
-                hidden={{ ...hidden, active: "0" }}
-                label="Desativar cliente"
-                variant="danger"
-                confirm={{
-                  intro: "O cliente deixa de aparecer nas listas de escolha. Locais, chamados, relatórios e o histórico continuam guardados.",
-                  label: "Confirmar desativação",
-                  variant: "danger",
-                }}
-              />
+              <ActionForm action={setClientActiveAction} submitLabel="Desativar cliente" submitVariant="danger">
+                <input type="hidden" name="client_id" value={client.id} />
+                <input type="hidden" name="active" value="0" />
+                <TextAreaField label="Motivo da desativação" name="reason" required rows={2} maxLength={500} />
+                <p className="text-sm text-muted">
+                  O cliente deixa de aparecer nas listas de escolha. Locais, chamados, relatórios e o histórico continuam guardados.
+                </p>
+              </ActionForm>
             ) : (
               <div className="space-y-3">
                 <p className="text-sm text-muted">Cliente desativado. Reative para voltar a usá-lo em novos cadastros.</p>
@@ -280,6 +296,8 @@ export default async function ClientPage({
               </div>
             )}
           </Panel>
+
+          <ClientHistory rows={history} name={(actor) => profiles.name(actor)} />
         </div>
       </div>
     </>

@@ -44,6 +44,15 @@ describe("validateUpload", () => {
     expect(validateUpload({ bytes: PDF, size: 1000, declaredMime: "application/pdf", purpose: "photo", limits }).ok).toBe(false);
   });
 
+  it("aceita PDF e foto como documento do cadastro do cliente (B-18)", () => {
+    expect(validateUpload({ bytes: PDF, size: 1000, declaredMime: "application/pdf", purpose: "registry", limits }).ok).toBe(true);
+    expect(validateUpload({ bytes: JPEG, size: 1000, declaredMime: "image/jpeg", purpose: "registry", limits }).ok).toBe(true);
+    expect(validateUpload({ bytes: EXE, size: 1000, declaredMime: "application/pdf", purpose: "registry", limits })).toEqual({
+      ok: false,
+      error: "Tipo de arquivo não permitido. Envie foto (JPG, PNG, WEBP) ou PDF do documento.",
+    });
+  });
+
   it("respeita limites configuráveis de tamanho", () => {
     const big = validateUpload({ bytes: JPEG, size: 16 * 1024 * 1024, declaredMime: "image/jpeg", purpose: "photo", limits });
     expect(big).toEqual({ ok: false, error: "Arquivo maior que 15 MB. Reduza a foto e tente de novo." });

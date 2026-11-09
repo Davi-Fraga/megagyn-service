@@ -8,7 +8,7 @@ import { cn } from "./cn";
 import { useFieldError, useFormBusy } from "./form";
 import { MAX_IMAGE_SIDE, uploadErrorMessage } from "@/domain/upload";
 
-type Purpose = "photo" | "receipt" | "logo" | "quote";
+type Purpose = "photo" | "receipt" | "logo" | "quote" | "registry";
 type Item = {
   key: string;
   clientUploadId: string;
@@ -71,7 +71,8 @@ export function MediaUploader({
   const cameraRef = useRef<HTMLInputElement>(null);
   const galleryRef = useRef<HTMLInputElement>(null);
   const busyKey = useId();
-  const accept = purpose === "receipt" ? "image/jpeg,image/png,image/webp,application/pdf" : "image/jpeg,image/png,image/webp";
+  const takesPdf = purpose === "receipt" || purpose === "registry";
+  const accept = takesPdf ? "image/jpeg,image/png,image/webp,application/pdf" : "image/jpeg,image/png,image/webp";
 
   useEffect(() => {
     setBusy(busyKey, items.some((i) => i.status === "enviando") ? "enviando" : items.some((i) => i.status === "falhou") ? "falhou" : null);
@@ -145,7 +146,7 @@ export function MediaUploader({
         </button>
         <button type="button" onClick={() => galleryRef.current?.click()} className={buttonClass("secondary", "md", "w-full")}>
           <ImagePlus aria-hidden className="size-5" />
-          {purpose === "receipt" ? "Galeria ou PDF" : "Da galeria"}
+          {takesPdf ? "Galeria ou PDF" : "Da galeria"}
         </button>
       </div>
       <input
