@@ -43,7 +43,7 @@ function OpenItemsList({ items }: { items: OpenItems }) {
     return <p className="text-sm text-muted">Nenhum chamado, tarefa ou acesso a local em aberto.</p>;
   }
   return (
-    <section aria-labelledby="pendencias" className="space-y-3 rounded-panel border border-linha p-4">
+    <section aria-labelledby="pendencias" className="space-y-3 border-y border-linha py-4">
       <h3 id="pendencias" className="font-semibold">
         Pendências desta pessoa
       </h3>
@@ -54,7 +54,7 @@ function OpenItemsList({ items }: { items: OpenItems }) {
             {items.requests.map((r) => (
               <li key={r.id}>
                 <Link href={`/admin/chamados/${r.id}`} className="hover:underline">
-                  {r.number} · {r.title}
+                  <span className="tipo-condensada">{r.number}</span> {r.title}
                 </Link>{" "}
                 <span className="text-muted">({r.site_name})</span>
               </li>
@@ -192,18 +192,18 @@ export default async function UserPage({
             {list.length === 0 ? (
               <p className="text-muted">Nenhum vínculo com locais.</p>
             ) : (
-              <ul className="divide-y divide-linha rounded-panel border border-linha">
+              <ul className="divide-y divide-linha border-y border-linha">
                 {list.map((m) => {
                   const ended = !!m.active_to && m.active_to < today;
                   return (
-                    <li key={m.id} className="flex flex-wrap items-center justify-between gap-2 px-4 py-3">
+                    <li key={m.id} className="flex flex-wrap items-center justify-between gap-2 py-4">
                       <div className="min-w-0">
                         <Link href={`/admin/locais/${m.site?.id}`} className="font-semibold hover:underline">
                           {m.site?.name}
                         </Link>{" "}
                         <span className="tipo-condensada text-sm text-muted">{m.site?.code}</span>
                         <p className="text-sm text-muted">
-                          {m.site?.client?.display_name} · {formatDateBR(m.active_from)}
+                          {m.site?.client?.display_name}, {formatDateBR(m.active_from)}
                           {m.active_to ? ` a ${formatDateBR(m.active_to)}` : " até hoje"}
                         </p>
                       </div>

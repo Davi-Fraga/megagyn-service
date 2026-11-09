@@ -65,8 +65,8 @@ function ItemFields({ def, item }: { def: CatalogDef; item?: CatalogRow }) {
 }
 
 function extraText(def: CatalogDef, item: CatalogRow): string | null {
-  if (def.extra === "priority") return `Nível ${item.level ?? 0}${item.sla_days != null ? ` · prazo padrão ${item.sla_days} dia(s)` : ""}`;
-  if (def.extra === "supplier") return [item.document, item.phone].filter(Boolean).join(" · ") || null;
+  if (def.extra === "priority") return `Nível ${item.level ?? 0}${item.sla_days != null ? `, prazo padrão ${item.sla_days} dia(s)` : ""}`;
+  if (def.extra === "supplier") return [item.document, item.phone].filter(Boolean).join(", ") || null;
   return null;
 }
 
@@ -95,15 +95,15 @@ export default async function CatalogPage({ params }: { params: Promise<{ catalo
           {items.length === 0 ? (
             <EmptyState title="Nenhum item cadastrado." />
           ) : (
-            <ul className="divide-y divide-linha rounded-panel border border-linha bg-papel">
+            <ul className="divide-y divide-linha border-y border-linha">
               {items.map((item) => {
                 const extra = extraText(def, item);
                 return (
-                  <li key={item.id} className="space-y-2 px-4 py-3">
+                  <li key={item.id} className="space-y-2 py-4">
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <div className="min-w-0">
                         <p className="font-semibold">
-                          {item.name} <span className="text-sm font-normal text-muted">· ordem {item.sort_order}</span>
+                          {item.name} <span className="tipo-condensada ml-2 text-[0.9375rem] font-normal text-muted">ordem {item.sort_order}</span>
                         </p>
                         {extra && <p className="text-sm text-muted">{extra}</p>}
                       </div>

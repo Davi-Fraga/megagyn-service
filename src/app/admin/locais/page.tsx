@@ -94,15 +94,16 @@ export default async function SitesPage({ searchParams }: { searchParams: Promis
         <EmptyState title={filtered ? "Nenhum local com esses filtros." : "Nenhum local cadastrado."} />
       ) : (
         <DataTable
-          variant="boxed"
+          variant="ruler"
           minWidth="min-w-[44rem]"
           rows={sites}
           rowKey={(s) => s.id}
           columns={[
             {
               header: "Código",
+              headerClassName: "whitespace-nowrap",
               cell: (s) => (
-                <Link href={`/admin/locais/${s.id}`} className="tipo-condensada text-[1.0625rem] underline-offset-4 hover:underline">
+                <Link href={`/admin/locais/${s.id}`} className="tipo-condensada whitespace-nowrap text-[1.0625rem] underline-offset-4 hover:underline">
                   {s.code}
                 </Link>
               ),
@@ -111,15 +112,15 @@ export default async function SitesPage({ searchParams }: { searchParams: Promis
               header: "Local",
               cell: (s) => (
                 <>
-                  <Link href={`/admin/locais/${s.id}`} className="font-semibold hover:underline">
+                  <Link href={`/admin/locais/${s.id}`} className="text-[1.0625rem] font-semibold leading-snug hover:underline">
                     {s.name}
                   </Link>
-                  <p className="text-sm text-muted">{s.client?.display_name}</p>
+                  <p className="mt-0.5 text-[0.9375rem] text-muted">{s.client?.display_name}</p>
                 </>
               ),
             },
-            { header: "Tipo", className: "text-sm", cell: (s) => SITE_TYPE_LABEL[s.site_type] },
-            { header: "Equipe", align: "right", cell: (s) => teamSize.get(s.id) ?? 0 },
+            { header: "Tipo", className: "text-[0.9375rem]", cell: (s) => SITE_TYPE_LABEL[s.site_type] },
+            { header: "Equipe", align: "right", className: "tipo-condensada text-[1.0625rem] tabular-nums", cell: (s) => teamSize.get(s.id) ?? 0 },
             { header: "Situação", cell: (s) => <SiteStatusBadge status={s.status} /> },
           ]}
         />

@@ -103,7 +103,7 @@ export default async function ClientPage({
   const categoryOf = new Map((categoriesRes.data ?? []).map((l) => [l.attachment_id, l.category]));
   const files = (photoMap.get(id) ?? []).map((f) => ({
     ...f,
-    caption: [categoryOf.get(f.id), f.caption].filter(Boolean).join(" · ") || null,
+    caption: [categoryOf.get(f.id), f.caption].filter(Boolean).join(", ") || null,
   }));
   const history = historyRes.data ?? [];
   const sites = sitesRes.data ?? [];
@@ -151,7 +151,7 @@ export default async function ClientPage({
                           <p className="text-sm text-muted">
                             {SITE_TYPE_LABEL[s.site_type]}
                             {s.planned_start || s.planned_end
-                              ? ` · ${formatDateBR(s.planned_start)} a ${formatDateBR(s.planned_end)}`
+                              ? `, ${formatDateBR(s.planned_start)} a ${formatDateBR(s.planned_end)}`
                               : ""}
                           </p>
                         </div>
@@ -188,18 +188,18 @@ export default async function ClientPage({
                 <EmptyState title="Nenhum responsável cadastrado." />
               </div>
             ) : (
-              <ul className="mb-4 divide-y divide-linha rounded-panel border border-linha">
+              <ul className="mb-4 divide-y divide-linha border-y border-linha">
                 {contacts.map((c) => {
                   // Vínculo encerrado (ended_at) fica só no histórico.
                   const linked = c.sites.filter((s) => !s.ended_at).map((s) => s.site_id);
                   const anonymized = !!c.anonymized_at;
                   return (
-                    <li key={c.id} className="space-y-2 px-4 py-3">
+                    <li key={c.id} className="space-y-2 py-4">
                       <div className="flex flex-wrap items-start justify-between gap-2">
                         <div className="min-w-0">
                           <p className="font-semibold">
                             {c.name}
-                            {c.role_title && <span className="font-normal text-muted"> · {c.role_title}</span>}
+                            {c.role_title && <span className="font-normal text-muted">, {c.role_title}</span>}
                           </p>
                           <p className="flex flex-wrap gap-x-4 text-sm text-muted">
                             {c.phone && (

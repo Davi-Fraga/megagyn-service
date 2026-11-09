@@ -99,18 +99,17 @@ export default async function SitePage({
             {current.length === 0 ? (
               <p className="mb-4 text-muted">Ninguém da equipe de campo tem acesso a este local.</p>
             ) : (
-              <ul className="mb-4 divide-y divide-linha rounded-panel border border-linha">
+              <ul className="mb-4 divide-y divide-linha border-y border-linha">
                 {current.map((m) => {
                   const p = byId.get(m.profile_id);
                   return (
-                    <li key={m.id} className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
+                    <li key={m.id} className="flex flex-wrap items-center justify-between gap-3 py-4">
                       <div className="min-w-0">
                         <Link href={`/admin/usuarios/${m.profile_id}`} className="font-semibold hover:underline">
                           {p?.full_name ?? "—"}
                         </Link>
                         <p className="text-sm text-muted">
-                          {p ? ROLE_LABEL[p.role] : ""} · desde {formatDateBR(m.active_from)}
-                          {p && !p.is_active ? " · usuário desativado" : ""}
+                          {[p ? ROLE_LABEL[p.role] : null, `desde ${formatDateBR(m.active_from)}`, p && !p.is_active ? "usuário desativado" : null].filter(Boolean).join(", ")}
                         </p>
                       </div>
                       {m.active_to ? (
@@ -174,9 +173,9 @@ export default async function SitePage({
             {areas.length === 0 ? (
               <p className="mb-4 text-muted">Nenhum setor cadastrado.</p>
             ) : (
-              <ul className="mb-4 divide-y divide-linha rounded-panel border border-linha">
+              <ul className="mb-4 divide-y divide-linha border-y border-linha">
                 {areas.map((a) => (
-                  <li key={a.id} className="space-y-2 px-4 py-3">
+                  <li key={a.id} className="space-y-2 py-4">
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <p className="font-semibold">
                         {a.name} <span className="text-sm font-normal text-muted">· ordem {a.sort_order}</span>
