@@ -209,7 +209,9 @@ export default async function AdminRequestPage({
                   defaultValue={r.service_category_id ?? ""}
                   options={catalogs.categories.map((c) => ({ value: c.id, label: c.name }))}
                 />
-                {r.status !== "aberta" && <TextAreaField label="Motivo da reprogramação" name="reason" rows={2} />}
+                {r.status !== "aberta" && (
+                  <TextAreaField label="Motivo da reprogramação" name="reason" rows={2} hint="Obrigatório ao mudar prazo ou prioridade." />
+                )}
               </ActionForm>
             </Panel>
           )}
