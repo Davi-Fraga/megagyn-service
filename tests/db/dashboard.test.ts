@@ -255,13 +255,13 @@ describe("painel da administração", () => {
     expect(seen.summary.work_entries).toEqual({ total: 2, by_site: [{ site_id: mixedSiteId, count: 2 }] });
   }, 60_000);
 
-  it("usuário anônimo não conta nada", async () => {
+  it("usuário anônimo não conta nada: a leitura é recusada (B-16)", async () => {
     const { createClient } = await import("@supabase/supabase-js");
     const anonDb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, { auth: { persistSession: false } });
+    // Desde o B-16 o anônimo não tem leitura nenhuma de locais: em vez de zeros, a consulta é recusada.
     const { data, error } = await anonDb.rpc("dashboard_summary", { p_today: today, p_from: today, p_to: today });
-    expect(error).toBeNull();
-    const s = data as unknown as { requests: { not_closed: number }; work_entries: { total: number }; active_sites: number };
-    expect([s.requests.not_closed, s.work_entries.total, s.active_sites]).toEqual([0, 0, 0]);
+    expect(data).toBeNull();
+    expect(error?.code).toBe("42501");
   });
 
   it("leitura de chamados e atividades decide o admin uma vez por consulta", () => {
