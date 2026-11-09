@@ -913,14 +913,14 @@ isOneToOne: false
                   ]
                 },"sites": {
                   Row: {
-                    "address_text": string | null,"client_id": string,"code": string,"created_at": string,"created_by": string | null,"id": string,"name": string,"notes_internal": string | null,"planned_end": string | null,"planned_start": string | null,"quote_id": string | null,"site_type": Database["public"]['Enums']["site_type"],"status": Database["public"]['Enums']["site_status"],"updated_at": string
+                    "access_hours": string | null,"access_instructions": string | null,"address_text": string | null,"client_id": string,"client_responsible_contact_id": string | null,"code": string,"created_at": string,"created_by": string | null,"id": string,"name": string,"notes_internal": string | null,"planned_end": string | null,"planned_start": string | null,"quote_id": string | null,"responsible_profile_id": string | null,"site_type": Database["public"]['Enums']["site_type"],"status": Database["public"]['Enums']["site_status"],"updated_at": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "address_text"?: string | null,"client_id": string,"code": string,"created_at"?: string,"created_by"?: string | null,"id"?: string,"name": string,"notes_internal"?: string | null,"planned_end"?: string | null,"planned_start"?: string | null,"quote_id"?: string | null,"site_type": Database["public"]['Enums']["site_type"],"status"?: Database["public"]['Enums']["site_status"],"updated_at"?: string
+                    "access_hours"?: string | null,"access_instructions"?: string | null,"address_text"?: string | null,"client_id": string,"client_responsible_contact_id"?: string | null,"code": string,"created_at"?: string,"created_by"?: string | null,"id"?: string,"name": string,"notes_internal"?: string | null,"planned_end"?: string | null,"planned_start"?: string | null,"quote_id"?: string | null,"responsible_profile_id"?: string | null,"site_type": Database["public"]['Enums']["site_type"],"status"?: Database["public"]['Enums']["site_status"],"updated_at"?: string
                   }
                   Update: {
-                    "address_text"?: string | null,"client_id"?: string,"code"?: string,"created_at"?: string,"created_by"?: string | null,"id"?: string,"name"?: string,"notes_internal"?: string | null,"planned_end"?: string | null,"planned_start"?: string | null,"quote_id"?: string | null,"site_type"?: Database["public"]['Enums']["site_type"],"status"?: Database["public"]['Enums']["site_status"],"updated_at"?: string
+                    "access_hours"?: string | null,"access_instructions"?: string | null,"address_text"?: string | null,"client_id"?: string,"client_responsible_contact_id"?: string | null,"code"?: string,"created_at"?: string,"created_by"?: string | null,"id"?: string,"name"?: string,"notes_internal"?: string | null,"planned_end"?: string | null,"planned_start"?: string | null,"quote_id"?: string | null,"responsible_profile_id"?: string | null,"site_type"?: Database["public"]['Enums']["site_type"],"status"?: Database["public"]['Enums']["site_status"],"updated_at"?: string
                   }
                   Relationships: [
                     {
@@ -929,6 +929,12 @@ isOneToOne: false
 isOneToOne: false
       referencedRelation: "clients"
       referencedColumns: ["id"]
+    },{
+      foreignKeyName: "sites_client_responsible_contact_fkey"
+      columns: ["client_responsible_contact_id","client_id"]
+isOneToOne: false
+      referencedRelation: "client_contacts"
+      referencedColumns: ["id","client_id"]
     },{
       foreignKeyName: "sites_created_by_fkey"
       columns: ["created_by"]
@@ -940,6 +946,12 @@ isOneToOne: false
       columns: ["quote_id"]
 isOneToOne: false
       referencedRelation: "quotes"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "sites_responsible_profile_id_fkey"
+      columns: ["responsible_profile_id"]
+isOneToOne: false
+      referencedRelation: "profiles"
       referencedColumns: ["id"]
     }
                   ]

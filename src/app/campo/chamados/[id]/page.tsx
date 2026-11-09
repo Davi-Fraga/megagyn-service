@@ -117,6 +117,34 @@ export default async function FieldRequestPage({
           <div className="mt-4">
             <PhotoGrid photos={detail.requestPhotos} emptyText="Sem fotos da situação inicial." />
           </div>
+          {r.site && (r.site.access_hours || r.site.access_instructions || r.site.responsible_profile_id) && (
+            // B-21: o que a equipe precisa saber para entrar no local.
+            <section aria-labelledby="acesso-local" className="mt-5 border-t border-linha pt-4">
+              <h3 id="acesso-local" className="text-[1.0625rem] font-semibold">
+                Acesso ao local
+              </h3>
+              <dl className="mt-2 space-y-1.5 text-[0.95rem]">
+                {r.site.access_hours && (
+                  <div>
+                    <dt className="text-muted">Horário</dt>
+                    <dd>{r.site.access_hours}</dd>
+                  </div>
+                )}
+                {r.site.access_instructions && (
+                  <div>
+                    <dt className="text-muted">Orientações</dt>
+                    <dd className="whitespace-pre-line">{r.site.access_instructions}</dd>
+                  </div>
+                )}
+                {r.site.responsible_profile_id && (
+                  <div>
+                    <dt className="text-muted">Responsável na Megagyn</dt>
+                    <dd>{profiles.name(r.site.responsible_profile_id)}</dd>
+                  </div>
+                )}
+              </dl>
+            </section>
+          )}
         </Panel>
 
         {!["concluida", "cancelada", "aberta"].includes(r.status) && (

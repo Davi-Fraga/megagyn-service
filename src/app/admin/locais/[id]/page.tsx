@@ -18,7 +18,7 @@ import { createSupabaseServer } from "@/server/supabase/server";
 import { ActionForm, SelectField, TextField } from "@/ui/form";
 import { DescriptionList, Notice, PageHeader, Panel } from "@/ui/page";
 import { Badge } from "@/ui/status";
-import { ActiveBadge, SiteFields, SiteStatusBadge } from "../../clientes/_shared/fields";
+import { ActiveBadge, SiteFields, SiteStatusBadge, siteResponsibleOptions } from "../../clientes/_shared/fields";
 import { RowAction } from "../../clientes/_shared/row-action";
 import { rowOrNotFound } from "@/server/query";
 
@@ -41,7 +41,7 @@ export default async function SitePage({
   const db = await createSupabaseServer();
   const site = rowOrNotFound(await db.from("sites").select("*, client:clients(id, display_name, is_active)").eq("id", id).maybeSingle());
 
-  const [areasRes, membershipsRes, profiles] = await Promise.all([
+  const [areasRes, membershipsRes, profiles, contactsRes] = await Promise.all([
     db.from("site_areas").select("id, name, sort_order, is_active").eq("site_id", id).order("sort_order").order("name"),
     db
       .from("site_memberships")
@@ -49,6 +49,7 @@ export default async function SitePage({
       .eq("site_id", id)
       .order("active_from", { ascending: false }),
     loadProfiles(db),
+    db.from("client_contacts").select("id, name, role_title, is_active, anonymized_at").eq("client_id", site.client_id).order("name"),
   ]);
   const today = todayIso();
   const areas = areasRes.data ?? [];
@@ -221,7 +222,13 @@ export default async function SitePage({
             </div>
             <ActionForm action={updateSiteAction} submitLabel="Salvar dados do local">
               <input type="hidden" name="site_id" value={site.id} />
-              <SiteFields site={site} />
+              <SiteFields
+                site={site}
+                responsibles={siteResponsibleOptions(profiles.list, contactsRes.data ?? [], {
+                  profileId: site.responsible_profile_id,
+                  contactId: site.client_responsible_contact_id,
+                })}
+              />
             </ActionForm>
           </Panel>
         </div>

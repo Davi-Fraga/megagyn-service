@@ -119,6 +119,33 @@ describe("local", () => {
     ["site_type", "unidade_recorrente"],
   ];
 
+  it("acesso e responsáveis do local (B-21): textos aparados, ids validados, vazios nulos", () => {
+    const profile = "11111111-1111-4111-8111-111111111111";
+    const contact = "22222222-2222-4222-8222-222222222222";
+    const r = parseSiteForm(
+      fd([
+        ...base,
+        ["access_hours", "  Seg a sex, 7h às 17h  "],
+        ["access_instructions", "Retirar a chave na portaria."],
+        ["responsible_profile_id", profile],
+        ["client_responsible_contact_id", contact],
+      ]),
+    );
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.values).toMatchObject({
+      access_hours: "Seg a sex, 7h às 17h",
+      access_instructions: "Retirar a chave na portaria.",
+      responsible_profile_id: profile,
+      client_responsible_contact_id: contact,
+    });
+    const empty = parseSiteForm(fd(base));
+    expect(empty.ok && [empty.values.access_hours, empty.values.responsible_profile_id, empty.values.client_responsible_contact_id]).toEqual([null, null, null]);
+    const bad = parseSiteForm(fd([...base, ["responsible_profile_id", "x"], ["access_hours", "a".repeat(201)]]));
+    expect(bad.ok).toBe(false);
+    if (!bad.ok) expect(Object.keys(bad.fieldErrors).sort()).toEqual(["access_hours", "responsible_profile_id"]);
+  });
+
   it("normaliza o código e aceita datas em ordem", () => {
     const r = parseSiteForm(fd([...base, ["planned_start", "2026-10-01"], ["planned_end", "2026-12-20"]]));
     expect(r.ok).toBe(true);
