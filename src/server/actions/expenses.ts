@@ -9,6 +9,7 @@ import { newId } from "@/domain/ids";
 import { validateAllocations } from "@/domain/money";
 import { requireProfile } from "@/server/auth";
 import { saveCaptions } from "@/server/captions";
+import { checkFileCount } from "@/server/upload-limits";
 import { errorInfo, log } from "@/server/log";
 import { createSupabaseServer } from "@/server/supabase/server";
 
@@ -70,8 +71,8 @@ export async function saveExpenseAction(_: ActionState, fd: FormData): Promise<A
 
   const paidByKind = fdStr(fd, "paid_by_kind") === "colaborador" ? "colaborador" : "empresa";
   const supplierId = fdUuid(fd, "supplier_id");
-  const captionError = await saveCaptions(db, fd);
-  if (captionError) return captionError;
+  const uploadError = (await checkFileCount(db, fd, ["receipt_ids"])) ?? (await saveCaptions(db, fd));
+  if (uploadError) return uploadError;
   const { data, error } = await db.rpc("expense_save", {
     p_client_request_id: key(fd),
     p_expense_id: expenseId ?? undefined,

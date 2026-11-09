@@ -26,6 +26,7 @@ import {
 } from "@/domain/registry";
 import { requireProfile } from "@/server/auth";
 import { saveCaptions } from "@/server/captions";
+import { checkFileCount } from "@/server/upload-limits";
 import { env } from "@/server/env";
 import { errorInfo, log } from "@/server/log";
 import { createSupabaseAdmin } from "@/server/supabase/admin";
@@ -157,8 +158,8 @@ export async function attachClientDocumentsAction(_: ActionState, fd: FormData):
   const role = fdStr(fd, "role");
   if (role !== "documento" && role !== "foto_cadastral") return invalid({ role: "Escolha documento ou foto do cadastro." });
   if (files.length === 0) return invalid({ attachment_ids: "Envie ao menos 1 arquivo." });
-  const captionError = await saveCaptions(db, fd);
-  if (captionError) return captionError;
+  const uploadError = (await checkFileCount(db, fd, ["attachment_ids"])) ?? (await saveCaptions(db, fd));
+  if (uploadError) return uploadError;
   const { error } = await db.rpc("client_attach_documents", {
     p_client_id: id,
     p_attachment_ids: files,

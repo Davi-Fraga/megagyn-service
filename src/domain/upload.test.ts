@@ -1,5 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { detectFileType, requestTooLarge, uploadErrorMessage, validateUpload } from "./upload";
+import {
+  detectFileType,
+  droppedFilesMessage,
+  effectiveMaxFiles,
+  requestTooLarge,
+  tooManyFilesMessage,
+  uploadErrorMessage,
+  uploadLimitsText,
+  validateUpload,
+} from "./upload";
 
 const bytes = (...b: number[]) => new Uint8Array([...b, ...new Array(16).fill(0)]);
 const ascii = (s: string, pad = 16) => new Uint8Array([...Buffer.from(s, "latin1"), ...new Array(pad).fill(0)]);
@@ -92,5 +101,35 @@ describe("uploadErrorMessage", () => {
   });
   it("sem mensagem, orienta tentar de novo", () => {
     expect(uploadErrorMessage(500)).toBe("Falha no envio. Toque em tentar de novo.");
+  });
+});
+
+describe("B-31 — limites visíveis antes do envio", () => {
+  const limits = { maxImageMb: 15, maxPdfMb: 20, maxFiles: 20 };
+
+  it("foto: tipo, tamanho e quantidade", () => {
+    expect(uploadLimitsText(limits, { takesPdf: false })).toBe("Foto JPG, PNG ou WEBP, até 15 MB cada. Até 20 arquivos por envio.");
+  });
+  it("com PDF, os dois tamanhos", () => {
+    expect(uploadLimitsText(limits, { takesPdf: true })).toBe("Foto JPG, PNG ou WEBP até 15 MB, ou PDF até 20 MB. Até 20 arquivos por envio.");
+  });
+  it("o limite do campo vale quando é menor que o das Configurações (logotipo: 1)", () => {
+    expect(effectiveMaxFiles(limits, 1)).toBe(1);
+    expect(uploadLimitsText(limits, { takesPdf: false, max: 1 })).toBe("Foto JPG, PNG ou WEBP, até 15 MB cada. 1 arquivo por envio.");
+  });
+  it("o limite das Configurações vale quando é menor que o do campo", () => {
+    expect(effectiveMaxFiles({ ...limits, maxFiles: 5 }, 20)).toBe(5);
+    expect(effectiveMaxFiles({ ...limits, maxFiles: 5 })).toBe(5);
+  });
+});
+
+describe("B-31 — arquivos acima do limite", () => {
+  it("na tela, diz quantos ficaram de fora", () => {
+    expect(droppedFilesMessage(5, 1)).toBe("Até 5 arquivos por envio: 1 ficou de fora.");
+    expect(droppedFilesMessage(5, 3)).toBe("Até 5 arquivos por envio: 3 ficaram de fora.");
+  });
+  it("no servidor, recusa com o limite", () => {
+    expect(tooManyFilesMessage(5)).toBe("Envie no máximo 5 arquivos por vez.");
+    expect(tooManyFilesMessage(1)).toBe("Envie no máximo 1 arquivo por vez.");
   });
 });
