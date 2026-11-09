@@ -209,6 +209,12 @@ test("responsáveis do cliente, configurações e listas de escolha", async ({ p
   await newClient.getByLabel("Razão social ou nome completo").fill(`Condomínio E2E ${ts} (fictício)`);
   await newClient.getByRole("button", { name: "Cadastrar cliente" }).click();
   await page.waitForURL(/\/admin\/clientes\/[0-9a-f-]{36}/, { timeout: 120_000 });
+  const clientUrl = page.url().split("?")[0]!;
+
+  // A lista de clientes mostra o cliente novo (a contagem de locais falhava em silêncio depois do B-16).
+  await page.goto(`/admin/clientes?q=${encodeURIComponent(`Condomínio E2E ${ts}`)}`);
+  await expect(page.getByRole("link", { name: `Condomínio E2E ${ts} (fictício)` })).toBeVisible();
+  await page.goto(clientUrl);
 
   // Responsável: cadastrar, editar e anonimizar.
   const contacts = panel(page, "Responsáveis do cliente");

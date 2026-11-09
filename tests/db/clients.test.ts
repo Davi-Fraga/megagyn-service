@@ -1,4 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { listClients } from "@/server/client-list";
 import { createClientWithSite, createUser, serviceClient, sql, type TestUser } from "./helpers";
 
 /** B-17 (M-08): o banco recusa CPF/CNPJ repetido, com ou sem pontuação. */
@@ -22,6 +23,16 @@ const asCnpj = (d: string) => `${d.slice(0, 2)}.${d.slice(2, 5)}.${d.slice(5, 8)
 const NAME = "Cliente fictício B-17";
 const insertClient = (kind: "pf" | "pj", document: string | null) =>
   admin.db.from("clients").insert({ kind, legal_name: NAME, display_name: NAME, document, created_by: admin.id }).select("id").single();
+
+describe("lista de clientes da administração", () => {
+  // Desde as permissões por coluna do B-16, sites(count) pede leitura da tabela inteira de locais e a
+  // consulta falhava; a tela mostrava "Nenhum cliente cadastrado".
+  it("traz o cliente com a contagem de locais", async () => {
+    const { client } = await createClientWithSite("Lista");
+    const list = await listClients(admin.db, { q: client.display_name, situation: "ativos" });
+    expect(list.map((c) => [c.id, c.siteCount])).toEqual([[client.id, 1]]);
+  });
+});
 
 describe("B-17 — CPF/CNPJ único", () => {
   it("o mesmo CNPJ com e sem pontuação é recusado", async () => {
