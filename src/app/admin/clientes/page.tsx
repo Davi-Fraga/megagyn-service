@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { CLIENT_KIND_LABEL, sanitizeSearch } from "@/domain/registry";
 import { createClientAction } from "@/server/actions/registry";
+import { listClients, type ClientSituation } from "@/server/client-list";
 import { createSupabaseServer } from "@/server/supabase/server";
 import { ButtonLink, buttonClass } from "@/ui/button";
 import { ActionForm } from "@/ui/form";
@@ -21,19 +22,9 @@ const SITUATIONS = [
 export default async function ClientsPage({ searchParams }: { searchParams: Promise<{ q?: string; situacao?: string }> }) {
   const params = await searchParams;
   const q = sanitizeSearch(params.q);
-  const situation = SITUATIONS.some((s) => s.value === params.situacao) ? params.situacao! : "ativos";
+  const situation = (SITUATIONS.some((s) => s.value === params.situacao) ? params.situacao! : "ativos") as ClientSituation;
   const db = await createSupabaseServer();
-
-  let query = db
-    .from("clients")
-    .select("id, kind, legal_name, display_name, document, email, phone, is_active, sites(count)")
-    .order("display_name")
-    .limit(300);
-  if (situation === "ativos") query = query.eq("is_active", true);
-  if (situation === "inativos") query = query.eq("is_active", false);
-  if (q) query = query.or(`display_name.ilike.*${q}*,legal_name.ilike.*${q}*`);
-  const { data } = await query;
-  const clients = data ?? [];
+  const clients = await listClients(db, { q, situation });
   const filtered = !!q || situation !== "ativos";
 
   return (
@@ -119,7 +110,7 @@ export default async function ClientsPage({ searchParams }: { searchParams: Prom
                     </>
                   ),
                 },
-                { header: "Locais", align: "right", cell: (c) => c.sites[0]?.count ?? 0 },
+                { header: "Locais", align: "right", cell: (c) => c.siteCount },
                 { header: "Situação", cell: (c) => <ActiveBadge active={c.is_active} /> },
               ]}
             />
