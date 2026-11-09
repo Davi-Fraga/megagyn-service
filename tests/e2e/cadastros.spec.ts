@@ -147,6 +147,19 @@ test.describe.serial("cadastros e usuário inativado", () => {
     await worker.waitForURL(/\/campo/, { timeout: 120_000 });
     await expect(worker.getByText("Registrar o que foi feito").first()).toBeVisible();
 
+    // 6b. Registra uma atividade com foto (o único local dele já vem escolhido). O link da foto abre para
+    // ele, sem ficar no cache do navegador (A-28): depois do bloqueio, o navegador não a mostra de novo.
+    await worker.goto("/campo/registrar");
+    await worker.getByLabel("O que foi feito").fill(`Atividade E2E ${ts}`);
+    await uploadPhotos(worker, [PHOTO_A]);
+    await worker.getByRole("button", { name: "Salvar registro" }).click();
+    await worker.waitForURL(/feito=registro/, { timeout: 60_000 });
+    await worker.goto("/campo/atividades");
+    const photoSrc = (await worker.locator('img[src^="/api/files/"]').first().getAttribute("src"))!;
+    const allowed = await worker.request.get(photoSrc);
+    expect(allowed.status()).toBe(200);
+    expect(allowed.headers()["cache-control"]).toContain("no-store");
+
     // 7. A administração vê as pendências (B-20) e desativa o acesso; o vínculo com o local é encerrado.
     await page.goto(userUrl);
     const pending = page.getByRole("region", { name: "Pendências desta pessoa" });
@@ -158,6 +171,11 @@ test.describe.serial("cadastros e usuário inativado", () => {
     const teamRow = panel(page, "Equipe com acesso").locator("li").filter({ hasText: workerName });
     await expect(teamRow).toContainText("usuário desativado");
     await expect(teamRow).toContainText("Acesso até");
+
+    // 7b. Cenário 22: com a sessão ainda aberta, o link da foto não responde 200, e a recusa sai sem cache.
+    const blocked = await worker.request.get(photoSrc);
+    expect([401, 404]).toContain(blocked.status());
+    expect(blocked.headers()["cache-control"]).toContain("no-store");
 
     // 8. A sessão que estava aberta perde o acesso na hora (sessão revogada no Auth).
     await worker.goto("/campo");
