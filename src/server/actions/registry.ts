@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { toActionError, type ActionState } from "@/domain/action-errors";
 import { addDaysIso, formatDateBR, todayIso, zonedMidnightUtc } from "@/domain/dates";
-import { fdBool, fdCaptions, fdDate, fdStr, fdUuid, fdUuids } from "@/domain/form-data";
+import { fdBool, fdDate, fdStr, fdUuid, fdUuids } from "@/domain/form-data";
 import {
   CATALOGS,
   CLIENT_DOCUMENT_UNIQUE,
@@ -25,6 +25,7 @@ import {
   type UniqueRule,
 } from "@/domain/registry";
 import { requireProfile } from "@/server/auth";
+import { saveCaptions } from "@/server/captions";
 import { env } from "@/server/env";
 import { errorInfo, log } from "@/server/log";
 import { createSupabaseAdmin } from "@/server/supabase/admin";
@@ -156,6 +157,8 @@ export async function attachClientDocumentsAction(_: ActionState, fd: FormData):
   const role = fdStr(fd, "role");
   if (role !== "documento" && role !== "foto_cadastral") return invalid({ role: "Escolha documento ou foto do cadastro." });
   if (files.length === 0) return invalid({ attachment_ids: "Envie ao menos 1 arquivo." });
+  const captionError = await saveCaptions(db, fd);
+  if (captionError) return captionError;
   const { error } = await db.rpc("client_attach_documents", {
     p_client_id: id,
     p_attachment_ids: files,
@@ -163,8 +166,6 @@ export async function attachClientDocumentsAction(_: ActionState, fd: FormData):
     p_category: fdStr(fd, "category") ?? undefined,
   });
   if (error) return fail(error, "client.documents_fail");
-  const captions = fdCaptions(fd);
-  if (Object.keys(captions).length > 0) await db.rpc("attachment_set_captions", { p_captions: captions });
   refresh();
   return { ok: true, message: files.length === 1 ? "Arquivo anexado ao cliente." : `${files.length} arquivos anexados ao cliente.` };
 }

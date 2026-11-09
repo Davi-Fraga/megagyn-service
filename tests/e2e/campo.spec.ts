@@ -151,12 +151,15 @@ test("minhas atividades: filtro por período e entrada inválida", async ({ brow
   await worker.getByLabel("Onde foi feito").selectOption({ label: "Torre A — Condomínio Jardim Exemplo" });
   await worker.getByLabel("O que foi feito").fill(text);
   await uploadPhotos(worker, [PHOTO_A]);
+  // B-32: a legenda é gravada antes do registro e aparece com a foto.
+  await worker.getByLabel("Legenda da foto").fill(`Legenda ${text}`);
   await worker.getByRole("button", { name: "Salvar registro" }).click();
   // /\/campo/ já casaria com /campo/registrar e seguiria antes de o registro gravar.
   await worker.waitForURL(/feito=registro/, { timeout: 60_000 });
 
   await worker.goto("/campo/atividades");
-  await expect(worker.getByText(text)).toBeVisible({ timeout: 60_000 });
+  await expect(worker.getByText(text, { exact: true })).toBeVisible({ timeout: 60_000 });
+  await expect(worker.getByText(`Legenda ${text}`)).toBeVisible();
 
   await worker.getByLabel("De", { exact: true }).fill("2000-01-01");
   await worker.getByLabel("Até", { exact: true }).fill("2000-01-31");

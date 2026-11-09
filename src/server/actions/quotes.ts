@@ -3,10 +3,11 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { toActionError, type ActionState } from "@/domain/action-errors";
-import { fdCaptions, fdDate, fdStr, fdUuid, fdUuids } from "@/domain/form-data";
+import { fdDate, fdStr, fdUuid, fdUuids } from "@/domain/form-data";
 import { newId } from "@/domain/ids";
 import { readItemDrafts, validateQuoteItems } from "@/domain/quote-form";
 import { requireProfile } from "@/server/auth";
+import { saveCaptions } from "@/server/captions";
 import type { Database, Json } from "@/server/db/database.types";
 import { errorInfo, log } from "@/server/log";
 import { currentQuoteSnapshot, loadQuoteBundle } from "@/app/admin/orcamentos/data";
@@ -130,10 +131,10 @@ export async function linkQuotePhotosAction(_: ActionState, fd: FormData): Promi
   if (!quoteId) return { ok: false, message: "Orçamento não encontrado." };
   if (role !== "local" && role !== "referencia") return { ok: false, message: "Tipo de foto inválido." };
   if (photos.length === 0) return { ok: false, message: "Envie ao menos 1 foto.", fieldErrors: { photo_ids: "Envie ao menos 1 foto." } };
+  const captionError = await saveCaptions(db, fd);
+  if (captionError) return captionError;
   const { error } = await db.rpc("quote_link_photos", { p_quote_id: quoteId, p_photo_ids: photos, p_role: role });
   if (error) return fail(error, "quote.photos_fail");
-  const captions = fdCaptions(fd);
-  if (Object.keys(captions).length > 0) await db.rpc("attachment_set_captions", { p_captions: captions });
   refresh();
   return { ok: true, message: `${photos.length} foto(s) adicionada(s) ao orçamento.` };
 }

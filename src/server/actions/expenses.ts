@@ -4,12 +4,13 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { fieldError, toActionError, type ActionState } from "@/domain/action-errors";
 import { fdAllocations } from "@/domain/expense-form";
-import { fdCaptions, fdDate, fdMoney, fdStr, fdUuid, fdUuids } from "@/domain/form-data";
+import { fdDate, fdMoney, fdStr, fdUuid, fdUuids } from "@/domain/form-data";
 import { newId } from "@/domain/ids";
 import { validateAllocations } from "@/domain/money";
 import { requireProfile } from "@/server/auth";
+import { saveCaptions } from "@/server/captions";
 import { errorInfo, log } from "@/server/log";
-import { createSupabaseServer, type ServerDb } from "@/server/supabase/server";
+import { createSupabaseServer } from "@/server/supabase/server";
 
 /**
  * Compras/despesas INTERNAS: registro com rateio (campo), conferência e reembolso (administração).
@@ -48,11 +49,6 @@ function refresh() {
   revalidatePath("/", "layout");
 }
 
-async function saveCaptions(db: ServerDb, fd: FormData) {
-  const captions = fdCaptions(fd);
-  if (Object.keys(captions).length > 0) await db.rpc("attachment_set_captions", { p_captions: captions });
-}
-
 // ---------------------------------------------------------------------------
 // Campo (encarregado; a administração também pode registrar)
 // ---------------------------------------------------------------------------
@@ -74,6 +70,8 @@ export async function saveExpenseAction(_: ActionState, fd: FormData): Promise<A
 
   const paidByKind = fdStr(fd, "paid_by_kind") === "colaborador" ? "colaborador" : "empresa";
   const supplierId = fdUuid(fd, "supplier_id");
+  const captionError = await saveCaptions(db, fd);
+  if (captionError) return captionError;
   const { data, error } = await db.rpc("expense_save", {
     p_client_request_id: key(fd),
     p_expense_id: expenseId ?? undefined,
@@ -97,7 +95,6 @@ export async function saveExpenseAction(_: ActionState, fd: FormData): Promise<A
     p_submit: submit,
   });
   if (error || !data) return fail(error, "expense.save_fail");
-  await saveCaptions(db, fd);
   refresh();
 
   redirect(`/campo/compras/${data.id}?feito=${doneCode(fdStr(fd, "was_status"), data.review_status)}`);
