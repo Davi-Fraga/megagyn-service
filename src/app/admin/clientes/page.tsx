@@ -79,7 +79,7 @@ export default async function ClientsPage({ searchParams }: { searchParams: Prom
             />
           ) : (
             <DataTable
-              variant="boxed"
+              variant="ruler"
               minWidth="min-w-[40rem]"
               rows={clients}
               rowKey={(c) => c.id}
@@ -88,29 +88,27 @@ export default async function ClientsPage({ searchParams }: { searchParams: Prom
                   header: "Cliente",
                   cell: (c) => (
                     <>
-                      <Link href={`/admin/clientes/${c.id}`} className="font-semibold hover:underline">
+                      <Link href={`/admin/clientes/${c.id}`} className="text-[1.0625rem] font-semibold leading-snug hover:underline">
                         {c.display_name}
                       </Link>
-                      <p className="text-sm text-muted">
-                        {c.legal_name !== c.display_name ? `${c.legal_name} · ` : ""}
-                        {CLIENT_KIND_LABEL[c.kind]}
-                        {c.document ? ` · ${c.document}` : ""}
+                      <p className="mt-0.5 text-[0.9375rem] text-muted">
+                        {[c.legal_name !== c.display_name ? c.legal_name : null, CLIENT_KIND_LABEL[c.kind], c.document].filter(Boolean).join(", ")}
                       </p>
                     </>
                   ),
                 },
                 {
                   header: "Contato",
-                  className: "text-sm",
+                  className: "text-[0.9375rem]",
                   cell: (c) => (
                     <>
-                      {c.phone && <p>{c.phone}</p>}
+                      {c.phone && <p className="tipo-condensada">{c.phone}</p>}
                       {c.email && <p className="break-all">{c.email}</p>}
                       {!c.phone && !c.email && "—"}
                     </>
                   ),
                 },
-                { header: "Locais", align: "right", cell: (c) => c.siteCount },
+                { header: "Locais", align: "right", className: "tipo-condensada text-[1.0625rem] tabular-nums", cell: (c) => c.siteCount },
                 { header: "Situação", cell: (c) => <ActiveBadge active={c.is_active} /> },
               ]}
             />

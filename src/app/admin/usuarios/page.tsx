@@ -45,7 +45,7 @@ export default async function UsersPage() {
             <EmptyState title="Nenhum usuário cadastrado." />
           ) : (
             <DataTable
-              variant="boxed"
+              variant="ruler"
               minWidth="min-w-[40rem]"
               rows={users}
               rowKey={(u) => u.id}
@@ -54,15 +54,15 @@ export default async function UsersPage() {
                   header: "Nome",
                   cell: (u) => (
                     <>
-                      <Link href={`/admin/usuarios/${u.id}`} className="font-semibold hover:underline">
+                      <Link href={`/admin/usuarios/${u.id}`} className="text-[1.0625rem] font-semibold leading-snug hover:underline">
                         {u.full_name}
                       </Link>
-                      {u.phone && <p className="text-sm text-muted">{u.phone}</p>}
+                      {u.phone && <p className="tipo-condensada mt-0.5 text-[0.9375rem] text-muted">{u.phone}</p>}
                     </>
                   ),
                 },
-                { header: "E-mail", className: "text-sm break-all", cell: (u) => u.email },
-                { header: "Papel", className: "text-sm", cell: (u) => ROLE_LABEL[u.role] },
+                { header: "E-mail", className: "text-[0.9375rem] break-all", cell: (u) => u.email },
+                { header: "Papel", className: "text-[0.9375rem]", cell: (u) => ROLE_LABEL[u.role] },
                 { header: "Situação", cell: (u) => <ActiveBadge active={u.is_active} /> },
               ]}
             />

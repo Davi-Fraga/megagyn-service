@@ -70,11 +70,11 @@ export function ClientHistory({ rows, name }: { rows: ClientHistoryRow[]; name: 
       {rows.length === 0 ? (
         <p className="text-sm text-muted">Nada registrado ainda.</p>
       ) : (
-        <ul className="divide-y divide-linha rounded-panel border border-linha">
+        <ul className="divide-y divide-linha border-y border-linha">
           {rows.map((r) => (
-            <li key={r.id} className="px-4 py-3 text-sm">
+            <li key={r.id} className="py-3 text-sm">
               <p>
-                <span className="font-semibold">{describe(r)}</span> · {r.actor_id ? name(r.actor_id) : "Sistema"}
+                <span className="font-semibold">{describe(r)}</span>, {r.actor_id ? name(r.actor_id) : "Sistema"}
               </p>
               <p className="text-muted">{formatDateTimeBR(r.created_at)}</p>
               {r.reason && <p className="mt-1">Motivo: {r.reason}</p>}

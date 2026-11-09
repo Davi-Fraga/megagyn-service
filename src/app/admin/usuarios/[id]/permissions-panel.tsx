@@ -63,7 +63,7 @@ export function PermissionsPanel({
         O papel define o padrão. Uma exceção vale só para esta pessoa e fica na trilha; com local, vale só onde ela tem acesso.
       </p>
       <DataTable
-        variant="boxed"
+        variant="ruler"
         minWidth="min-w-[36rem]"
         rows={visible}
         rowKey={keyOf}
