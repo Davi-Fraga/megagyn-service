@@ -505,6 +505,9 @@ export function parseCatalogForm(fd: FormData, def: CatalogDef): Parsed<CatalogV
 
 export type UniqueRule = { constraint: string; field: string; message: string };
 
+/** B-17: o banco recusa CPF/CNPJ repetido, com ou sem pontuação (índice sobre só os números). */
+export const CLIENT_DOCUMENT_UNIQUE: UniqueRule = { constraint: "clients_document_digits_uidx", field: "document", message: "CPF/CNPJ já cadastrado." };
+
 /** Violação de unicidade conhecida → mensagem amigável no campo certo; null se não for o caso. */
 export function friendlyUniqueViolation(error: unknown, rules: UniqueRule[]): ActionState<never> | null {
   const e = (error ?? {}) as { code?: string; message?: string };

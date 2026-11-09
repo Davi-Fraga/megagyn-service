@@ -163,14 +163,14 @@ isOneToOne: true
                   ]
                 },"clients": {
                   Row: {
-                    "address_text": string | null,"billing_info": string | null,"created_at": string,"created_by": string | null,"display_name": string,"document": string | null,"email": string | null,"id": string,"is_active": boolean,"kind": Database["public"]['Enums']["client_kind"],"legal_name": string,"notes_internal": string | null,"phone": string | null,"updated_at": string
+                    "address_text": string | null,"billing_info": string | null,"created_at": string,"created_by": string | null,"display_name": string,"document": string | null,"document_digits": string | null,"email": string | null,"id": string,"is_active": boolean,"kind": Database["public"]['Enums']["client_kind"],"legal_name": string,"notes_internal": string | null,"phone": string | null,"updated_at": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "address_text"?: string | null,"billing_info"?: string | null,"created_at"?: string,"created_by"?: string | null,"display_name": string,"document"?: string | null,"email"?: string | null,"id"?: string,"is_active"?: boolean,"kind"?: Database["public"]['Enums']["client_kind"],"legal_name": string,"notes_internal"?: string | null,"phone"?: string | null,"updated_at"?: string
+                    "address_text"?: string | null,"billing_info"?: string | null,"created_at"?: string,"created_by"?: string | null,"display_name": string,"document"?: string | null,"document_digits"?: never,"email"?: string | null,"id"?: string,"is_active"?: boolean,"kind"?: Database["public"]['Enums']["client_kind"],"legal_name": string,"notes_internal"?: string | null,"phone"?: string | null,"updated_at"?: string
                   }
                   Update: {
-                    "address_text"?: string | null,"billing_info"?: string | null,"created_at"?: string,"created_by"?: string | null,"display_name"?: string,"document"?: string | null,"email"?: string | null,"id"?: string,"is_active"?: boolean,"kind"?: Database["public"]['Enums']["client_kind"],"legal_name"?: string,"notes_internal"?: string | null,"phone"?: string | null,"updated_at"?: string
+                    "address_text"?: string | null,"billing_info"?: string | null,"created_at"?: string,"created_by"?: string | null,"display_name"?: string,"document"?: string | null,"document_digits"?: never,"email"?: string | null,"id"?: string,"is_active"?: boolean,"kind"?: Database["public"]['Enums']["client_kind"],"legal_name"?: string,"notes_internal"?: string | null,"phone"?: string | null,"updated_at"?: string
                   }
                   Relationships: [
                     {
