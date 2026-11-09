@@ -13,7 +13,8 @@ import {
 } from "@/server/actions/registry";
 import { createSupabaseAdmin } from "@/server/supabase/admin";
 import { createSupabaseServer } from "@/server/supabase/server";
-import { ActionForm, SelectField, TextField } from "@/ui/form";
+import { loadProfiles } from "@/server/data";
+import { ActionForm, SelectField, TextAreaField, TextField } from "@/ui/form";
 import { DescriptionList, Notice, PageHeader, Panel } from "@/ui/page";
 import { Badge } from "@/ui/status";
 import { ActiveBadge } from "../../clientes/_shared/fields";
@@ -25,19 +26,73 @@ export const metadata: Metadata = { title: "Usuário" };
 
 const DONE: Record<string, string> = {
   criado: "Usuário cadastrado. Se for da equipe de campo, dê acesso aos locais em que vai trabalhar.",
-  ativado: "Acesso reativado. A pessoa já pode entrar de novo.",
+  ativado: "Acesso reativado. A pessoa já pode entrar de novo. O desligamento encerra os acessos aos locais: confira a lista abaixo.",
   desativado: "Acesso desativado. A pessoa não entra mais no sistema; tudo o que ela registrou continua no histórico.",
 };
+
+/** B-20: o que a pessoa tem aberto, lido por profile_open_items (só a administração). */
+type OpenItems = {
+  requests: Array<{ id: string; number: string; title: string; site_name: string }>;
+  tasks: Array<{ id: string; title: string; scheduled_date: string }>;
+  memberships: Array<{ id: string; site_name: string }>;
+};
+
+function OpenItemsList({ items }: { items: OpenItems }) {
+  if (items.requests.length + items.tasks.length + items.memberships.length === 0) {
+    return <p className="text-sm text-muted">Nenhum chamado, tarefa ou acesso a local em aberto.</p>;
+  }
+  return (
+    <section aria-labelledby="pendencias" className="space-y-3 rounded-panel border border-linha p-4">
+      <h3 id="pendencias" className="font-semibold">
+        Pendências desta pessoa
+      </h3>
+      {items.requests.length > 0 && (
+        <div>
+          <p className="text-sm font-semibold">Chamados não encerrados ({items.requests.length})</p>
+          <ul className="mt-1 space-y-1 text-sm">
+            {items.requests.map((r) => (
+              <li key={r.id}>
+                <Link href={`/admin/chamados/${r.id}`} className="hover:underline">
+                  {r.number} · {r.title}
+                </Link>{" "}
+                <span className="text-muted">({r.site_name})</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+      {items.tasks.length > 0 && (
+        <div>
+          <p className="text-sm font-semibold">Tarefas abertas ({items.tasks.length})</p>
+          <ul className="mt-1 space-y-1 text-sm">
+            {items.tasks.map((t) => (
+              <li key={t.id}>
+                {t.title} <span className="text-muted">({formatDateBR(t.scheduled_date)})</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+      {items.memberships.length > 0 && (
+        <div>
+          <p className="text-sm font-semibold">Acessos a locais que serão encerrados ({items.memberships.length})</p>
+          <p className="mt-1 text-sm">{items.memberships.map((m) => m.site_name).join(", ")}</p>
+        </div>
+      )}
+    </section>
+  );
+}
 
 export default async function UserPage({
   params,
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ feito?: string }>;
+  searchParams: Promise<{ feito?: string; pendentes?: string }>;
 }) {
   const { id } = await params;
-  const { feito } = await searchParams;
+  const { feito, pendentes } = await searchParams;
+  const leftOpen = Number(pendentes ?? 0);
   if (!UUID_RE.test(id)) notFound();
   const me = await requireProfile(["admin"]);
   const db = await createSupabaseServer();
@@ -60,6 +115,13 @@ export default async function UserPage({
   const today = todayIso();
   const isField = user.role === "worker" || user.role === "foreman";
   const list = memberships ?? [];
+  // B-20: prévia do desligamento e quem pode receber as pendências (equipe ativa, sem esta pessoa).
+  const canDeactivate = user.is_active && !self;
+  const [openItems, people] = canDeactivate
+    ? await Promise.all([db.rpc("profile_open_items", { p_profile: id }).then((r) => r.data as unknown as OpenItems | null), loadProfiles(db)])
+    : [null, null];
+  const heirs = (people?.list ?? []).filter((p) => p.is_active && p.id !== id && p.role !== "client");
+  const hasWork = !!openItems && openItems.requests.length + openItems.tasks.length > 0;
 
   return (
     <>
@@ -88,6 +150,14 @@ export default async function UserPage({
       {feito && DONE[feito] && (
         <div className="mb-4">
           <Notice tone="ok">{DONE[feito]}</Notice>
+        </div>
+      )}
+      {feito === "desativado" && leftOpen > 0 && (
+        <div className="mb-4">
+          <Notice tone="alerta">
+            {leftOpen === 1 ? "1 chamado ou tarefa ficou sem responsável." : `${leftOpen} chamados ou tarefas ficaram sem responsável.`} Programe
+            de novo em Chamados e na Agenda.
+          </Notice>
         </div>
       )}
 
@@ -187,17 +257,27 @@ export default async function UserPage({
             {self ? (
               <p className="text-sm text-muted">Este é o seu usuário. Só outro administrador pode desativar o seu acesso.</p>
             ) : user.is_active ? (
-              <RowAction
-                action={setUserActiveAction}
-                hidden={{ profile_id: user.id, active: "0" }}
-                label="Desativar acesso"
-                variant="danger"
-                confirm={{
-                  intro: `${user.full_name} deixa de entrar no sistema na hora. Chamados, fotos, despesas e registros feitos por esta pessoa continuam no histórico com o nome dela.`,
-                  label: "Confirmar desativação",
-                  variant: "danger",
-                }}
-              />
+              <div className="space-y-4">
+                {openItems && <OpenItemsList items={openItems} />}
+                <ActionForm action={setUserActiveAction} submitLabel="Desativar acesso" submitVariant="danger">
+                  <input type="hidden" name="profile_id" value={user.id} />
+                  <input type="hidden" name="active" value="0" />
+                  {hasWork && (
+                    <SelectField
+                      label="Transferir chamados e tarefas para"
+                      name="reassign_to"
+                      placeholder="Não transferir: deixar sem responsável"
+                      options={heirs.map((p) => ({ value: p.id, label: `${p.full_name} — ${ROLE_LABEL[p.role]}` }))}
+                      hint="A pessoa escolhida só recebe o que for de um local em que ela trabalha. O resto fica sem responsável, à vista nas listas."
+                    />
+                  )}
+                  <TextAreaField label="Motivo do desligamento" name="reason" required rows={2} maxLength={500} />
+                  <p className="text-sm text-muted">
+                    {user.full_name} deixa de entrar no sistema na hora, e os acessos aos locais são encerrados hoje. Chamados, fotos, despesas e
+                    registros feitos por esta pessoa continuam no histórico com o nome dela.
+                  </p>
+                </ActionForm>
+              </div>
             ) : (
               <RowAction action={setUserActiveAction} hidden={{ profile_id: user.id, active: "1" }} label="Reativar acesso" variant="primary" />
             )}

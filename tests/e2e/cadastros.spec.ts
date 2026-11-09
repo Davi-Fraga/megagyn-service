@@ -33,8 +33,9 @@ async function setWorkerActive(page: Page, userUrl: string, active: boolean) {
     await page.getByRole("button", { name: "Reativar acesso" }).click();
     await expect(page.getByText("Acesso reativado.")).toBeVisible({ timeout: 60_000 });
   } else {
-    await openConfirm(page.getByRole("button", { name: "Desativar acesso" }), page.getByRole("button", { name: "Confirmar desativação" }));
-    await page.getByRole("button", { name: "Confirmar desativação" }).click();
+    // B-20: o desligamento pede o motivo e encerra os acessos aos locais.
+    await page.getByLabel("Motivo do desligamento").fill("Desligamento de teste (fictício)");
+    await page.getByRole("button", { name: "Desativar acesso" }).click();
     await expect(page.getByText("Acesso desativado. A pessoa não entra mais no sistema")).toBeVisible({ timeout: 60_000 });
   }
 }
@@ -128,8 +129,17 @@ test.describe.serial("cadastros e usuário inativado", () => {
     await worker.waitForURL(/\/campo/, { timeout: 120_000 });
     await expect(worker.getByText("Registrar o que foi feito").first()).toBeVisible();
 
-    // 7. A administração desativa o acesso.
+    // 7. A administração vê as pendências (B-20) e desativa o acesso; o vínculo com o local é encerrado.
+    await page.goto(userUrl);
+    const pending = page.getByRole("region", { name: "Pendências desta pessoa" });
+    await expect(pending).toContainText("Acessos a locais que serão encerrados (1)");
+    await expect(pending).toContainText(siteName);
     await setWorkerActive(page, userUrl, false);
+    await expect(page.getByRole("region", { name: "Pendências desta pessoa" })).toHaveCount(0);
+    await page.goto(siteUrl);
+    const teamRow = panel(page, "Equipe com acesso").locator("li").filter({ hasText: workerName });
+    await expect(teamRow).toContainText("usuário desativado");
+    await expect(teamRow).toContainText("Acesso até");
 
     // 8. A sessão que estava aberta perde o acesso na hora (sessão revogada no Auth).
     await worker.goto("/campo");

@@ -474,13 +474,23 @@ export async function setUserActiveAction(_: ActionState, fd: FormData): Promise
   if (blocked) return { ok: false, message: blocked };
 
   // 1º o perfil (RLS e telas cortam o acesso na hora); 2º o Auth (bloqueia login e renovação de sessão).
-  const { data, error } = await db
-    .from("profiles")
-    .update(active ? { is_active: true, deactivated_at: null } : { is_active: false, deactivated_at: new Date().toISOString() })
-    .eq("id", id)
-    .select("id");
-  if (error) return fail(error, "user.active_fail");
-  if (!data?.length) return notFound("Usuário");
+  // B-20: o desligamento é do banco, numa transação só: tira a pessoa dos chamados e tarefas abertos
+  // (transferindo quando pedido), encerra os vínculos com locais e desativa o perfil.
+  let left = 0;
+  if (active) {
+    const { data, error } = await db.from("profiles").update({ is_active: true, deactivated_at: null }).eq("id", id).select("id");
+    if (error) return fail(error, "user.active_fail");
+    if (!data?.length) return notFound("Usuário");
+  } else {
+    const { data, error } = await db.rpc("profile_deactivate", {
+      p_profile: id,
+      p_reason: fdStr(fd, "reason") ?? "",
+      p_reassign_to: fdUuid(fd, "reassign_to") ?? undefined,
+    });
+    if (error) return fail(error, "user.deactivate_fail");
+    const summary = data as { requests_left?: number; tasks_left?: number } | null;
+    left = (summary?.requests_left ?? 0) + (summary?.tasks_left ?? 0);
+  }
 
   const ban = await createSupabaseAdmin().auth.admin.updateUserById(id, { ban_duration: active ? "none" : BAN_FOREVER });
   refresh();
@@ -494,8 +504,8 @@ export async function setUserActiveAction(_: ActionState, fd: FormData): Promise
     };
   }
   await auditAuth(db, id, active ? "auth_reativar" : "auth_bloquear");
-  log.info(active ? "user.reactivated" : "user.deactivated", { id });
-  redirect(`/admin/usuarios/${id}?feito=${active ? "ativado" : "desativado"}`);
+  log.info(active ? "user.reactivated" : "user.deactivated", { id, left });
+  redirect(`/admin/usuarios/${id}?feito=${active ? "ativado" : "desativado"}${left > 0 ? `&pendentes=${left}` : ""}`);
 }
 
 export async function sendPasswordLinkAction(_: ActionState, fd: FormData): Promise<ActionState> {
