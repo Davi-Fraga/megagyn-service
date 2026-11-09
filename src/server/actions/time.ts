@@ -49,10 +49,16 @@ export async function createBillingRuleAction(_: ActionState, fd: FormData): Pro
   if (!price || price <= 0) errors.unit_price = "Informe o valor (ex.: 333,00).";
   if (!validFrom) errors.valid_from = "Informe o início da vigência.";
   if (unitType !== "diaria" && unitType !== "hora") errors.unit_type = "Escolha diária ou hora.";
+  // B-22: a unidade tem de ser do cliente (o banco também recusa, pela FK composta).
+  const siteId = fdUuid(fd, "site_id");
+  if (clientId && siteId) {
+    const { data: site } = await db.from("sites").select("client_id").eq("id", siteId).maybeSingle();
+    if (site?.client_id !== clientId) errors.site_id = "Escolha uma unidade deste cliente.";
+  }
   if (Object.keys(errors).length) return { ok: false, message: "Confira os campos destacados.", fieldErrors: errors };
   const { error } = await db.from("billing_rules").insert({
     client_id: clientId!,
-    site_id: fdUuid(fd, "site_id"),
+    site_id: siteId,
     unit_type: unitType!,
     unit_price_cents: price!,
     valid_from: validFrom!,

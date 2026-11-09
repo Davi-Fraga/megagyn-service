@@ -89,3 +89,14 @@ test("tarefa: o cliente filtra os locais, e o local já marcado de outro cliente
   await expect(galpao).toBeVisible();
   await expect(galpao).toBeChecked();
 });
+
+test("regra de cobrança: unidade de outro cliente é recusada com o erro no campo (B-22)", async ({ page }) => {
+  await login(page, USERS.admin);
+  await page.goto("/admin/horas");
+  const form = page.locator("form").filter({ has: page.getByRole("button", { name: "Criar regra" }) });
+  await form.locator('select[name="client_id"]').selectOption({ label: CONDO });
+  await form.locator('select[name="site_id"]').selectOption({ label: `${INDUSTRIA} — Galpão de montagem` });
+  await form.locator('input[name="unit_price"]').fill("333,00");
+  await form.getByRole("button", { name: "Criar regra" }).click();
+  await expect(form.getByText("Escolha uma unidade deste cliente.").first()).toBeVisible({ timeout: 120_000 });
+});

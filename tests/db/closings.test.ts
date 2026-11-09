@@ -271,3 +271,28 @@ describe("C2 — histórico grande (limite de 1000 linhas da API)", () => {
     }
   }, 120_000);
 });
+
+describe("B-22 — fechamento e regra de cobrança só com local do mesmo cliente", () => {
+  it("fechamento com local de outro cliente é recusado pelo banco e não deixa linha órfã", async () => {
+    const other = await createClientWithSite("Outro B-22");
+    const { error } = await admin.db
+      .from("monthly_closings")
+      .insert({ client_id: clientId, site_id: other.site.id, period_year: 2026, period_month: 1, created_by: admin.id });
+    expect(error?.code).toBe("23503");
+    const { data } = await admin.db.from("monthly_closings").select("id").eq("client_id", clientId).eq("site_id", other.site.id);
+    expect(data).toEqual([]);
+  });
+
+  it("regra de cobrança com local de outro cliente é recusada pelo banco", async () => {
+    const other = await createClientWithSite("Outro B-22 regra");
+    const { error } = await admin.db.from("billing_rules").insert({
+      client_id: clientId,
+      site_id: other.site.id,
+      unit_type: "diaria",
+      unit_price_cents: 33300,
+      valid_from: "2026-01-01",
+      created_by: admin.id,
+    });
+    expect(error?.code).toBe("23503");
+  });
+});
