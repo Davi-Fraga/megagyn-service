@@ -25,7 +25,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return new NextResponse("Sessão expirada", { status: 401 });
+  if (!user) return new NextResponse("Sessão expirada", { status: 401, headers: { "Cache-Control": "no-store" } });
 
   const { data: att } = await supabase
     .from("attachments")
@@ -56,7 +56,9 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
   const headers: Record<string, string> = {
     "Content-Type": plan.contentType,
     "Content-Length": String(data.size),
-    "Cache-Control": "private, max-age=3600",
+    // A-28: sem cache no navegador. Com cache, a foto vista antes de um bloqueio ou de uma remoção
+    // continuaria aparecendo por até 1 h, sem passar pela RLS.
+    "Cache-Control": "private, no-store",
     "Content-Disposition": `${plan.disposition}; filename*=UTF-8''${name}`,
     "X-Content-Type-Options": "nosniff",
   };
