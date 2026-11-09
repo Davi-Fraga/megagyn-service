@@ -1755,6 +1755,12 @@ isOneToOne: false
 "notifications_mark_read":
 { Args: { "p_ids"?: (string)[] }; Returns: number
                            },
+"profile_deactivate":
+{ Args: { "p_profile": string,"p_reason": string,"p_reassign_to"?: string }; Returns: Json
+                           },
+"profile_open_items":
+{ Args: { "p_profile": string }; Returns: Json
+                           },
 "quote_duplicate":
 { Args: { "p_quote_id": string }; Returns: {
               "accepted_at": string | null,

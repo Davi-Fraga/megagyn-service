@@ -420,3 +420,87 @@ describe("B-26 — edição com versão desatualizada", () => {
     expect(await titleOf(req.id)).toBe("Título sem versão");
   });
 });
+
+describe("B-20 — desligamento com pendências", () => {
+  /** Pessoa nova com acesso ao local A, um chamado programado e uma tarefa abertos para ela. */
+  async function personWithPendencies(name: string) {
+    const person = await createUser("worker", name);
+    await addMembership(person.id, siteA.id);
+    const req = await openRequest();
+    await schedule(req.id, [person.id]);
+    const { data: task, error } = await admin.db.rpc("task_create", {
+      p_client_request_id: uid(),
+      p_title: `Tarefa de ${name}`,
+      p_scheduled_date: today(),
+      p_assignee_ids: [person.id],
+      p_occurrences: [{ site_id: siteA.id }],
+    });
+    if (error) throw error;
+    return { person, req, task: task! };
+  }
+  type OpenItems = { requests: Array<{ id: string }>; tasks: Array<{ id: string }>; memberships: Array<{ site_id: string }> };
+  const deactivate = (args: Record<string, unknown>) => admin.db.rpc("profile_deactivate" as never, args as never);
+  const openAssignees = async (requestId: string) =>
+    (await serviceClient().from("request_assignments").select("profile_id").eq("service_request_id", requestId).is("unassigned_at", null)).data!.map((a) => a.profile_id);
+  const taskAssignees = async (taskId: string) =>
+    (await serviceClient().from("task_assignments").select("profile_id").eq("task_id", taskId)).data!.map((a) => a.profile_id);
+
+  it("a prévia lista os chamados, as tarefas e os locais abertos da pessoa (só para a administração)", async () => {
+    const { person, req, task } = await personWithPendencies("Prévia Desligamento");
+    const { data, error } = await admin.db.rpc("profile_open_items" as never, { p_profile: person.id } as never);
+    expect(error).toBeNull();
+    const items = data as unknown as OpenItems;
+    expect(items.requests.map((r) => r.id)).toEqual([req.id]);
+    expect(items.tasks.map((t) => t.id)).toEqual([task.id]);
+    expect(items.memberships.map((m) => m.site_id)).toEqual([siteA.id]);
+    const byWorker = await worker.db.rpc("profile_open_items" as never, { p_profile: person.id } as never);
+    expect(byWorker.error?.code).toBe("42501");
+  });
+
+  it("desativar com transferência move as atribuições abertas e mantém o autor dos registros", async () => {
+    const { person, req, task } = await personWithPendencies("Transferência Desligamento");
+    const started = await person.db.rpc("request_start", { p_request_id: req.id });
+    expect(started.error).toBeNull();
+
+    const { data, error } = await deactivate({ p_profile: person.id, p_reason: "Fim do contrato (fictício)", p_reassign_to: foreman.id });
+    expect(error).toBeNull();
+    expect(data).toMatchObject({ requests_moved: 1, requests_left: 0, tasks_moved: 1, tasks_left: 0, memberships_ended: 1 });
+
+    expect(await openAssignees(req.id)).toEqual([foreman.id]);
+    expect(await taskAssignees(task.id)).toEqual([foreman.id]);
+    const svc = serviceClient();
+    const { data: events } = await svc.from("request_events").select("event_type, actor_id").eq("service_request_id", req.id);
+    expect(events).toEqual(expect.arrayContaining([{ event_type: "inicio", actor_id: person.id }, { event_type: "atribuicao", actor_id: admin.id }]));
+    const { data: memberships } = await svc.from("site_memberships").select("active_to").eq("profile_id", person.id);
+    expect(memberships!.every((m) => m.active_to !== null && m.active_to <= today())).toBe(true);
+    const { data: profile } = await svc.from("profiles").select("is_active, deactivated_at").eq("id", person.id).single();
+    expect(profile!.is_active).toBe(false);
+    expect(profile!.deactivated_at).not.toBeNull();
+    const { count } = await svc.from("notifications").select("id", { count: "exact", head: true }).eq("kind", "desligamento").eq("link", `/admin/usuarios/${person.id}`);
+    expect(count).toBeGreaterThan(0);
+  });
+
+  it("sem transferência, ou para quem não trabalha no local, as pendências ficam sem responsável e são contadas", async () => {
+    const alone = await personWithPendencies("Sem Transferência");
+    const res = await deactivate({ p_profile: alone.person.id, p_reason: "Desligamento (fictício)" });
+    expect(res.error).toBeNull();
+    expect(res.data).toMatchObject({ requests_moved: 0, requests_left: 1, tasks_moved: 0, tasks_left: 1 });
+    expect(await openAssignees(alone.req.id)).toEqual([]);
+    expect(await taskAssignees(alone.task.id)).toEqual([]);
+
+    const elsewhere = await personWithPendencies("Transferência Inválida");
+    const res2 = await deactivate({ p_profile: elsewhere.person.id, p_reason: "Desligamento (fictício)", p_reassign_to: outsider.id });
+    expect(res2.data).toMatchObject({ requests_moved: 0, requests_left: 1, tasks_moved: 0, tasks_left: 1 });
+    expect(await openAssignees(elsewhere.req.id)).toEqual([]);
+  });
+
+  it("exige motivo, recusa desativar a si mesmo e só a administração desativa", async () => {
+    const { person } = await personWithPendencies("Regras Desligamento");
+    expect((await deactivate({ p_profile: person.id, p_reason: " " })).error?.hint).toBe("reason");
+    expect((await deactivate({ p_profile: admin.id, p_reason: "Teste" })).error?.message).toContain("próprio acesso");
+    const byWorker = await worker.db.rpc("profile_deactivate" as never, { p_profile: person.id, p_reason: "Teste" } as never);
+    expect(byWorker.error?.code).toBe("42501");
+    const { data: profile } = await serviceClient().from("profiles").select("is_active").eq("id", person.id).single();
+    expect(profile!.is_active).toBe(true);
+  });
+});
