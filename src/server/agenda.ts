@@ -1,5 +1,24 @@
+import type { TaskAuditRow } from "@/domain/task-history";
 import type { ServerDb } from "./data";
 import { fetchAll } from "./paginate";
+import { orThrow } from "./query";
+
+const AUDIT_COLUMNS = "id, entity_type, entity_id, action, actor_id, reason, before, after, created_at";
+
+/**
+ * B-39: trilha da tarefa (só a administração lê audit_events). Tarefa pelo id; locais pelos ids das
+ * ocorrências; responsáveis pela chave composta "tarefa:pessoa" que o gatilho grava.
+ */
+export async function loadTaskAuditRows(db: ServerDb, taskId: string, occurrenceIds: string[]): Promise<TaskAuditRow[]> {
+  const [task, occurrences, assignments] = await Promise.all([
+    db.from("audit_events").select(AUDIT_COLUMNS).eq("entity_type", "tasks").eq("entity_id", taskId),
+    occurrenceIds.length > 0
+      ? db.from("audit_events").select(AUDIT_COLUMNS).eq("entity_type", "task_occurrences").in("entity_id", occurrenceIds)
+      : Promise.resolve({ data: [], error: null }),
+    db.from("audit_events").select(AUDIT_COLUMNS).eq("entity_type", "task_assignments").like("entity_id", `${taskId}:%`),
+  ]);
+  return [...(orThrow(task) ?? []), ...(orThrow(occurrences) ?? []), ...(orThrow(assignments) ?? [])];
+}
 
 export type OccurrenceFilters = { from: string; to: string; siteId: string | null; clientId: string | null; personId: string | null };
 
