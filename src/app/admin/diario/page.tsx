@@ -97,6 +97,13 @@ export default async function DiaryPage({ searchParams }: { searchParams: Promis
                         {d.planned.map((pl, i) => (
                           <li key={i}>
                             {pl.title} — {pl.assigneeNames.join(", ")} · {pl.status === "nao_realizada" ? `não realizado (${pl.noShowReason ?? "sem motivo"})` : pl.status}
+                            {/* B-38: observação e fotos do encerramento; não vão ao PDF (texto sem revisão). */}
+                            {pl.finishNotes && <p className="text-muted">Encerramento: {pl.finishNotes}</p>}
+                            {pl.photos.length > 0 && (
+                              <div className="mt-1.5">
+                                <PhotoGrid photos={pl.photos} />
+                              </div>
+                            )}
                           </li>
                         ))}
                       </ul>

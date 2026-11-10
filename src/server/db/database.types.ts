@@ -2538,7 +2538,7 @@ isOneToOne: false
         isSetofReturn: false
       } },
 "task_occurrence_finish":
-{ Args: { "p_notes"?: string,"p_occurrence_id": string }; Returns: {
+{ Args: { "p_notes"?: string,"p_occurrence_id": string,"p_photo_ids"?: (string)[] }; Returns: {
               "created_at": string,
 "finished_at": string | null,
 "id": string,

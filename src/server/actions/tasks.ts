@@ -8,8 +8,10 @@ import { newId } from "@/domain/ids";
 import { actionReturnPath } from "@/domain/safe-redirect";
 import { buildOccurrences } from "@/domain/task-form";
 import { requireProfile } from "@/server/auth";
+import { saveCaptions } from "@/server/captions";
 import { errorInfo, log } from "@/server/log";
 import { createSupabaseServer } from "@/server/supabase/server";
+import { checkFileCount } from "@/server/upload-limits";
 
 const nul = <T,>(v: T | null): T => v as T;
 
@@ -103,9 +105,13 @@ export async function startOccurrenceAction(_: ActionState, fd: FormData): Promi
 export async function finishOccurrenceAction(_: ActionState, fd: FormData): Promise<ActionState> {
   await requireProfile(["admin", "worker", "foreman"]);
   const db = await createSupabaseServer();
+  const uploadError = (await checkFileCount(db, fd, ["photo_ids"])) ?? (await saveCaptions(db, fd));
+  if (uploadError) return uploadError;
+  // B-38: observação e fotos do encerramento (opcionais; DP-05).
   const { error } = await db.rpc("task_occurrence_finish", {
     p_occurrence_id: nul(fdUuid(fd, "occurrence_id")),
     p_notes: fdStr(fd, "notes") ?? undefined,
+    p_photo_ids: fdUuids(fd, "photo_ids"),
   });
   if (error) return fail(error, "task.finish_fail");
   refresh();

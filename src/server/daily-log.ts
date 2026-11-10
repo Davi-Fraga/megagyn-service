@@ -12,7 +12,9 @@ export type DiaryActivity = ClosingDay["activities"][number] & {
   reviewStatus: string;
   createdAt: string;
 };
-export type DiaryDay = Omit<ClosingDay, "activities"> & { activities: DiaryActivity[] };
+/** B-38: a tarefa concluída traz a observação e as fotos do encerramento (só na visão da administração). */
+export type DiaryPlanned = ClosingDay["planned"][number] & { finishNotes: string | null; photos: Array<{ id: string; caption: string | null }> };
+export type DiaryDay = Omit<ClosingDay, "activities" | "planned"> & { activities: DiaryActivity[]; planned: DiaryPlanned[] };
 
 type EntryRow = {
   id: string;
@@ -63,7 +65,7 @@ export async function loadDiary(
     fetchAll((a, b) =>
       db
         .from("task_occurrences")
-        .select("site_id, scheduled_date, status, no_show_reason, task:tasks(title, assignments:task_assignments(profile_id))")
+        .select("id, site_id, scheduled_date, status, no_show_reason, notes, task:tasks(title, assignments:task_assignments(profile_id))")
         .in("site_id", siteIds)
         .gte("scheduled_date", from)
         .lte("scheduled_date", to)
@@ -79,8 +81,19 @@ export async function loadDiary(
   const reasons = new Map((reasonsRes.data ?? []).map((r) => [r.id, r.name]));
   const entries = ((entriesRes.data ?? []) as unknown as EntryRow[]).filter((e) => !(options.clientView && e.request?.is_internal));
   const photos = await loadPhotos(db, "work_entry", entries.map((e) => e.id));
-  type OccRow = { site_id: string; scheduled_date: string; status: string; no_show_reason: string | null; task: { title: string; assignments: Array<{ profile_id: string }> | null } | null };
+  type OccRow = {
+    id: string;
+    site_id: string;
+    scheduled_date: string;
+    status: string;
+    no_show_reason: string | null;
+    notes: string | null;
+    task: { title: string; assignments: Array<{ profile_id: string }> | null } | null;
+  };
   const occurrences = (occRes.data ?? []) as unknown as OccRow[];
+  // B-38: fotos do encerramento. Na visão do cliente não entram (toClientDay é lista branca).
+  const finished = options.clientView ? [] : occurrences.filter((o) => o.status === "concluida").map((o) => o.id);
+  const finishPhotos = await loadPhotos(db, "task_occurrence", finished);
   const extra = new Map(entries.map((e) => [e.id, e]));
 
   for (const siteId of siteIds) {
@@ -121,6 +134,8 @@ export async function loadDiary(
           status: o.status,
           assigneeNames: (o.task?.assignments ?? []).map((a) => profiles.name(a.profile_id)),
           noShowReason: o.no_show_reason,
+          finishNotes: o.status === "concluida" && !options.clientView ? o.notes : null,
+          photos: (finishPhotos.get(o.id) ?? []).filter((ph) => !ph.revoked).map((ph) => ({ id: ph.id, caption: ph.caption ?? null, role: ph.role ?? "" })),
         })),
     });
     result.set(
@@ -130,7 +145,14 @@ export async function loadDiary(
         team: d.team,
         hoursByPerson: d.hoursByPerson,
         totalHours: d.totalHours,
-        planned: d.planned.map((pl) => ({ title: pl.title, status: pl.status, assigneeNames: pl.assigneeNames, noShowReason: pl.noShowReason })),
+        planned: d.planned.map((pl) => ({
+          title: pl.title,
+          status: pl.status,
+          assigneeNames: pl.assigneeNames,
+          noShowReason: pl.noShowReason,
+          finishNotes: pl.finishNotes ?? null,
+          photos: (pl.photos ?? []).map((ph) => ({ id: ph.id, caption: ph.caption })),
+        })),
         activities: d.activities.map((a) => {
           const row = extra.get(a.id)!;
           return {
@@ -166,7 +188,10 @@ export function toClientDay(day: DiaryDay): ClosingDay {
     team: day.team,
     hoursByPerson: day.hoursByPerson,
     totalHours: day.totalHours,
-    planned: day.planned.filter((p) => p.status === "nao_realizada" || p.status === "prevista"),
+    // Lista branca também aqui: a observação e as fotos do encerramento (B-38) não vão ao cliente.
+    planned: day.planned
+      .filter((p) => p.status === "nao_realizada" || p.status === "prevista")
+      .map((p) => ({ title: p.title, status: p.status, assigneeNames: p.assigneeNames, noShowReason: p.noShowReason })),
     activities: day.activities.map((a) => ({
       id: a.id,
       text: a.text,
