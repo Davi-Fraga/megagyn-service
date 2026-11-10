@@ -45,7 +45,9 @@ export function Ruler({
               </span>
               <span
                 className={cn(
-                  "tipo-condensada mt-2.5 block pr-1 text-[0.8125rem] leading-tight break-words sm:text-[1.0625rem]",
+                  // No celular sem recuo à direita: o vão entre as etapas já separa, e a 360 px os 4 px
+                  // partiam "Programada" em duas linhas (B-41).
+                  "tipo-condensada mt-2.5 block text-[0.8125rem] leading-tight break-words sm:pr-1 sm:text-[1.0625rem]",
                   s.state === "futura" ? "font-medium text-muted" : "text-grafite",
                 )}
               >
@@ -53,15 +55,15 @@ export function Ruler({
                 <span className="sr-only">, {STATE_SR[s.state]}</span>
               </span>
               {dates[s.stage] && (
-                <span className="tipo-condensada block pr-1 text-[0.8125rem] font-medium leading-snug text-muted sm:text-[0.9375rem]">
+                <span className="tipo-condensada block text-[0.8125rem] font-medium leading-snug text-muted sm:pr-1 sm:text-[0.9375rem]">
                   {formatDateTimeBR(dates[s.stage])}
                 </span>
               )}
               {s.state === "pausada" && (
-                <span className={cn("tipo-condensada mt-1 block pr-1 text-[0.8125rem] leading-tight sm:text-[0.9375rem]", tone)}>{summary}</span>
+                <span className={cn("tipo-condensada mt-1 block text-[0.8125rem] leading-tight sm:pr-1 sm:text-[0.9375rem]", tone)}>{summary}</span>
               )}
               {s.state === "atual" && note && (
-                <span className="tipo-condensada mt-1 block pr-1 text-[0.8125rem] leading-tight sm:text-[0.9375rem]">{note}</span>
+                <span className="tipo-condensada mt-1 block text-[0.8125rem] leading-tight sm:pr-1 sm:text-[0.9375rem]">{note}</span>
               )}
             </li>
           ))}
