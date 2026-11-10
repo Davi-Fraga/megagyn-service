@@ -18,16 +18,20 @@ const moneyIn = (key: "approved" | "inReview"): Reader => async (page) => {
 
 const REQUESTS = countIn(/(\d+) chamado\(s\) encontrado\(s\)/);
 
+/** Os 4 indicadores do caderno (GPT p. 5), no topo do painel e nesta ordem (B-28). */
+const HEADLINE = ["O.S. em aberto", "Prazo vencido", "Aguardam validação", "Tarefas de hoje"] as const;
+
 /** Todos os cartões do painel e como ler o total da lista que cada um abre. */
 const CARDS: ReadonlyArray<readonly [string, Reader]> = [
+  ["O.S. em aberto", REQUESTS],
+  ["Prazo vencido", REQUESTS],
+  ["Aguardam validação", REQUESTS],
+  ["Tarefas de hoje", countIn(/(\d+) tarefa\(s\)/)],
   ["Aguardando triagem", REQUESTS],
-  ["Aguardando validação", REQUESTS],
-  ["Com prazo vencido", REQUESTS],
   ["Novos hoje", REQUESTS],
   ["Por situação", REQUESTS],
   ["Pendências por motivo", REQUESTS],
   ["Pendências por responsável", REQUESTS],
-  ["Tarefas e visitas de hoje", countIn(/(\d+) tarefa\(s\)/)],
   ["Obras e unidades ativas", countIn(/(\d+) local\(is\) encontrado\(s\)/)],
   ["Atividades registradas", countIn(/(\d+) atividade\(s\) no período/)],
   ["Despesas aprovadas (custo interno)", moneyIn("approved")],
@@ -170,13 +174,13 @@ test("painel: cada cartão abre a lista com o mesmo número e os mesmos filtros"
   await test.step("filtro de cliente", async () => {
     const v = await expectCardsMatchLists(page, { cliente: condo });
     expect(Number(v["Pendências por responsável"]), "as duas pendências do teste contam").toBeGreaterThanOrEqual(2);
-    expect(Number(v["Tarefas e visitas de hoje"])).toBeGreaterThanOrEqual(1);
+    expect(Number(v["Tarefas de hoje"])).toBeGreaterThanOrEqual(1);
   });
 
   await test.step("filtro de profissional", async () => {
     const v = await expectCardsMatchLists(page, { pessoa: joao });
     expect(Number(v["Pendências por responsável"])).toBeGreaterThanOrEqual(2);
-    expect(Number(v["Tarefas e visitas de hoje"])).toBeGreaterThanOrEqual(1);
+    expect(Number(v["Tarefas de hoje"])).toBeGreaterThanOrEqual(1);
   });
 
   await test.step("filtro de local, profissional e período", async () => {
@@ -186,4 +190,20 @@ test("painel: cada cartão abre a lista com o mesmo número e os mesmos filtros"
   await test.step("filtro de cliente e profissional", async () => {
     await expectCardsMatchLists(page, { cliente: condo, pessoa: carlos });
   });
+});
+
+/** B-28 (GPT p. 5): os 4 indicadores do caderno vêm antes de tudo, cada um com a janela e a regra escritas. */
+test("painel: os 4 indicadores do caderno no topo, com janela e regra", async ({ page }) => {
+  await login(page, USERS.admin);
+  await openAdmin(page, "/admin");
+  const cards = page.locator("#conteudo div.relative").filter({ has: page.locator(".tipo-placa") });
+  for (const [i, title] of HEADLINE.entries()) {
+    const card = cards.nth(i);
+    await expect(card.getByRole("link", { name: title, exact: true }), `cartão ${i + 1}`).toBeVisible();
+    await expect(card).toContainText("Janela:");
+    await expect(card).toContainText("Regra:");
+  }
+  await expect(cards.nth(0)).toContainText("inclusive pendentes e executadas sem validação");
+  await expect(cards.nth(1)).toContainText("não muda a situação");
+  await expect(cards.nth(3)).toContainText("pela data programada");
 });

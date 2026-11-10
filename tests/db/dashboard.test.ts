@@ -276,3 +276,43 @@ describe("painel da administração", () => {
     }
   });
 });
+
+describe("cenário 12 (doc 07): atividade ligada a O.S. e tarefa", () => {
+  it("atividade ligada a O.S. e tarefa conta uma vez no cartão", async () => {
+    const foreman = await createUser("foreman", "Encarregado Cenário 12");
+    const { client, site } = await createClientWithSite("Cenário 12");
+    await addMembership(foreman.id, site.id);
+    const { data: req, error: reqErr } = await admin.db.rpc("request_open", {
+      p_client_request_id: uid(),
+      p_site_id: site.id,
+      p_title: "Vistoria do cenário 12 (fictícia)",
+      p_description: "Teste do painel",
+      p_requester_name: "Gerente (fictício)",
+    });
+    expect(reqErr).toBeNull();
+    await admin.db.rpc("request_schedule", { p_request_id: req!.id, p_assignee_ids: [foreman.id], p_scheduled_date: today });
+    const { data: task, error: taskErr } = await admin.db.rpc("task_create", {
+      p_client_request_id: uid(),
+      p_title: "Vistoria ligada à O.S. (fictícia)",
+      p_scheduled_date: today,
+      p_assignee_ids: [foreman.id],
+      p_occurrences: [{ site_id: site.id }],
+      p_service_request_id: req!.id,
+    });
+    expect(taskErr).toBeNull();
+    const { data: occ } = await foreman.db.from("task_occurrences").select("id").eq("task_id", task!.id).single();
+    const entry = await foreman.db.rpc("work_entry_create", {
+      p_client_request_id: uid(),
+      p_site_id: site.id,
+      p_activity_date: today,
+      p_description: "Vistoria feita (fictícia)",
+      p_task_occurrence_id: occ!.id,
+    });
+    expect(entry.error).toBeNull();
+    // O mesmo lançamento tem os dois vínculos; o cartão "Atividades registradas" conta 1.
+    expect([entry.data!.service_request_id, entry.data!.task_occurrence_id]).toEqual([req!.id, occ!.id]);
+
+    const { summary } = await loadDashboardRows(admin.db, filters({ clientId: client.id }));
+    expect(summary.work_entries).toEqual({ total: 1, by_site: [{ site_id: site.id, count: 1 }] });
+  }, 60_000);
+});
