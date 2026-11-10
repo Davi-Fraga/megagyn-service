@@ -34,6 +34,9 @@ export type DailyLogPlanned = {
   status: string;
   assigneeNames: string[];
   noShowReason: string | null;
+  /** B-38: observação e fotos do encerramento (só na visão da administração). */
+  finishNotes?: string | null;
+  photos?: DailyLogPhoto[];
 };
 
 export type DailyLogDay = {

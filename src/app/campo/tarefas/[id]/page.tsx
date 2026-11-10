@@ -12,6 +12,7 @@ import { FIELD_OCCURRENCE_SELECT } from "@/server/field-queries";
 import { createSupabaseServer } from "@/server/supabase/server";
 import { ButtonLink } from "@/ui/button";
 import { ActionForm, SelectField, TextAreaField, TextField } from "@/ui/form";
+import { MediaUploader } from "@/ui/media-uploader";
 import { OccurrenceBadge } from "@/ui/occurrence-status";
 import { Notice, PageHeader, Panel } from "@/ui/page";
 import { PhotoGrid } from "@/ui/photo-grid";
@@ -41,7 +42,11 @@ export default async function FieldTaskPage({ params, searchParams }: { params: 
     loadProfiles(db),
     loadFieldContext(db),
   ]);
-  const photos = await loadPhotos(db, "work_entry", (entries ?? []).map((e) => e.id));
+  const [photos, finishPhotos] = await Promise.all([
+    loadPhotos(db, "work_entry", (entries ?? []).map((e) => e.id)),
+    loadPhotos(db, "task_occurrence", [o.id]),
+  ]);
+  const closingPhotos = finishPhotos.get(o.id) ?? [];
   const open = o.status === "prevista" || o.status === "iniciada";
   const otherSites = ctx.sites.filter((s) => s.id !== o.site_id);
 
@@ -77,8 +82,11 @@ export default async function FieldTaskPage({ params, searchParams }: { params: 
               <input type="hidden" name="occurrence_id" value={o.id} />
             </ActionForm>
           )}
+          {/* B-38: observação e fotos do encerramento, opcionais (DP-05). */}
           <ActionForm action={finishOccurrenceAction} submitLabel="Finalizar neste local" submitVariant="dark" submitSize="lg">
             <input type="hidden" name="occurrence_id" value={o.id} />
+            <TextAreaField label="Observação do encerramento" name="notes" rows={2} maxLength={2000} hint="O que foi feito e o que ficou pendente, se houver." />
+            <MediaUploader name="photo_ids" label="Fotos do resultado" siteId={o.site_id} />
           </ActionForm>
           <ReasonAction
             action={notDoneOccurrenceAction}
@@ -157,9 +165,10 @@ export default async function FieldTaskPage({ params, searchParams }: { params: 
           </details>
         )}
 
-        {o.notes && (
-          <Panel title="Observação de encerramento">
-            <TextAreaField label="Observação" name="notes" defaultValue={o.notes} readOnly rows={2} />
+        {(o.notes || closingPhotos.length > 0) && (
+          <Panel title="Encerramento">
+            {o.notes && <p className="mb-3 whitespace-pre-line">{o.notes}</p>}
+            {closingPhotos.length > 0 && <PhotoGrid photos={closingPhotos} emptyText="Sem fotos." />}
           </Panel>
         )}
       </div>

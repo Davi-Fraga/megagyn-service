@@ -1,4 +1,5 @@
 import { beforeAll, describe, expect, it } from "vitest";
+import { loadDiary, toClientDay } from "@/server/daily-log";
 import { addMembership, createClientWithSite, createUser, fakePhoto, serviceClient, today, uid, type TestUser } from "./helpers";
 
 let admin: TestUser;
@@ -343,5 +344,57 @@ describe("B-06 — tarefa não fica presa em cancelada (A-05)", () => {
     const noStatus = await svc.from("tasks").update({ cancelled_at: new Date().toISOString() }).eq("id", task.id);
     expect(noStatus.error?.code).toBe("23514");
     expect(await taskStatus(task.id)).toBe("planejada");
+  });
+});
+
+describe("B-38 — finalizar tarefa com observação e fotos (A-14)", () => {
+  it("finalizar grava a observação e as fotos, que a equipe do local vê", async () => {
+    const { occ } = await singleSiteTask("Limpeza da caixa d'água");
+    const photo = await fakePhoto(foreman, siteA.id);
+    const { data, error } = await foreman.db.rpc("task_occurrence_finish", {
+      p_occurrence_id: occ.id,
+      p_notes: "Caixa lavada e tampa trocada",
+      p_photo_ids: [photo.id],
+    });
+    expect(error).toBeNull();
+    expect(data).toMatchObject({ status: "concluida", notes: "Caixa lavada e tampa trocada" });
+    const { data: links } = await admin.db
+      .from("attachment_links")
+      .select("attachment_id, evidence_role")
+      .eq("entity_type", "task_occurrence")
+      .eq("entity_id", occ.id);
+    expect(links).toEqual([{ attachment_id: photo.id, evidence_role: "resultado" }]);
+    const { data: seen } = await worker.db.from("attachments").select("id").eq("id", photo.id);
+    expect(seen).toEqual([{ id: photo.id }]);
+  });
+
+  it("foto de outro local é recusada e a tarefa não é finalizada", async () => {
+    const { occ } = await singleSiteTask("Pintura do muro");
+    const photo = await fakePhoto(foreman, siteB.id);
+    const { error } = await foreman.db.rpc("task_occurrence_finish", { p_occurrence_id: occ.id, p_photo_ids: [photo.id] });
+    expect(error?.message).toContain("outro local");
+    const { data } = await admin.db.from("task_occurrences").select("status").eq("id", occ.id).single();
+    expect(data?.status).toBe("prevista");
+  });
+
+  it("o diário da administração mostra a observação e as fotos; o que vai ao cliente não leva", async () => {
+    const { occ } = await singleSiteTask("Revisão do quadro elétrico");
+    const photo = await fakePhoto(foreman, siteA.id);
+    await foreman.db.rpc("task_occurrence_finish", { p_occurrence_id: occ.id, p_notes: "Disjuntor 3 trocado", p_photo_ids: [photo.id] });
+    const days = (await loadDiary(admin.db, [siteA.id], today(), today(), { clientView: false })).get(siteA.id) ?? [];
+    const planned = days.flatMap((d) => d.planned).find((p) => p.title === "Revisão do quadro elétrico");
+    expect(planned).toMatchObject({ status: "concluida", finishNotes: "Disjuntor 3 trocado" });
+    expect(planned?.photos.map((p) => p.id)).toEqual([photo.id]);
+    // PDF do diário e fechamento: lista branca, sem a observação nem as fotos do encerramento (sem revisão).
+    const client = days.map(toClientDay).flatMap((d) => d.planned);
+    expect(client.some((p) => p.title === "Revisão do quadro elétrico")).toBe(false);
+    for (const p of client) expect(Object.keys(p).sort()).toEqual(["assigneeNames", "noShowReason", "status", "title"]);
+  });
+
+  it("sem observação nem foto continua aceito (DP-05: não são obrigatórias)", async () => {
+    const { occ } = await singleSiteTask("Troca de lâmpadas");
+    const { data, error } = await foreman.db.rpc("task_occurrence_finish", { p_occurrence_id: occ.id });
+    expect(error).toBeNull();
+    expect(data?.status).toBe("concluida");
   });
 });

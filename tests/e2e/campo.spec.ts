@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { PHOTO_A, USERS, login, mobilePage, uploadPhotos } from "./helpers";
+import { PHOTO_A, PHOTO_B, USERS, login, mobilePage, uploadPhotos } from "./helpers";
 
 test.setTimeout(300_000);
 
@@ -30,8 +30,15 @@ test("encarregado: agenda multiobra e registro por local", async ({ page, browse
   await foreman.getByRole("button", { name: "Salvar registro" }).click();
   await expect(foreman.getByText("Atividade registrada neste local.")).toBeVisible({ timeout: 120_000 });
   await expect(foreman.getByText("Vistoria da cobertura da Torre A")).toBeVisible();
+  // B-38: finaliza com observação e foto do resultado; as duas ficam no encerramento.
+  const closingNote = `Calha desentupida (${title})`;
+  await foreman.getByLabel("Observação do encerramento").fill(closingNote);
+  await uploadPhotos(foreman, [PHOTO_B]);
   await foreman.getByRole("button", { name: "Finalizar neste local" }).click();
   await expect(foreman.getByText("Tarefa finalizada neste local.")).toBeVisible();
+  const closing = foreman.locator("section").filter({ has: foreman.getByRole("heading", { name: "Encerramento", exact: true }) });
+  await expect(closing).toContainText(closingNote);
+  await expect(closing.locator('img[src^="/api/files/"]')).toHaveCount(1);
 
   // No Galpão, informa que não deu para fazer, com motivo.
   await foreman.goto("/campo/tarefas");
@@ -45,6 +52,15 @@ test("encarregado: agenda multiobra e registro por local", async ({ page, browse
   // O diário da Torre A mostra o registro; o do Galpão não.
   await page.goto("/admin/agenda");
   await expect(page.getByText("Não realizada: Portão fechado, sem acesso").first()).toBeVisible();
+
+  // B-38: o diário da administração mostra a observação do encerramento.
+  const day = new Date().toLocaleDateString("sv-SE", { timeZone: "America/Sao_Paulo" });
+  await page.goto("/admin/diario");
+  await page.getByLabel("Obra ou unidade").selectOption({ label: "Condomínio Jardim Exemplo — Torre A" });
+  await page.getByLabel("De", { exact: true }).fill(day);
+  await page.getByLabel("Até", { exact: true }).fill(day);
+  await page.getByRole("button", { name: "Ver diário" }).click();
+  await expect(page.getByText(`Encerramento: ${closingNote}`)).toBeVisible({ timeout: 120_000 });
 });
 
 /** T-A3 — pendência por falta de material e retomada pela tela, sem perder histórico. */
