@@ -140,18 +140,53 @@ export default async function AdminDashboard({
       <header className="mb-10 flex flex-col items-start gap-x-10 gap-y-5 lg:flex-row lg:justify-between">
         <div className="min-w-0 max-w-5xl lg:flex-1">
           <h1 className="text-[2rem] sm:text-[2.75rem]">Hoje, {longDatePt(today).replace(/ de \d{4}$/, "")}</h1>
-          <p className="mt-4 text-[1.0625rem] leading-[1.45] text-balance sm:text-[1.3125rem]">
-            <SummaryLink href={reqLink({ status: "abertos" })}>{plural(notClosed, "ordem em aberto", "ordens em aberto")}</SummaryLink>,{" "}
-            <SummaryLink href={reqLink({ atrasados: "1" })}>{`${overdue} com prazo vencido`}</SummaryLink>,{" "}
-            <SummaryLink href={reqLink({ status: "executada" })}>{plural(byStatus.executada ?? 0, "aguarda sua validação", "aguardam sua validação")}</SummaryLink>,{" "}
-            <SummaryLink href={reqLink({ status: "aberta" })}>{plural(byStatus.aberta ?? 0, "aguarda triagem", "aguardam triagem")}</SummaryLink> e{" "}
-            <SummaryLink href={agendaToday}>{plural(occurrences.length, "tarefa para hoje", "tarefas para hoje")}</SummaryLink>.
-          </p>
         </div>
         <ButtonLink href="/admin/chamados/novo" className="shrink-0 lg:mt-1">
           Abrir chamado
         </ButtonLink>
       </header>
+
+      {/* B-28: os 4 indicadores do caderno (GPT p. 5), cada um com a janela e a regra escritas. */}
+      <section aria-labelledby="ind-principais" className="mb-12">
+        <h2 id="ind-principais" className="sr-only">
+          Indicadores principais
+        </h2>
+        <div className="grid gap-x-8 gap-y-10 sm:grid-cols-2 lg:grid-cols-4">
+          <Card
+            title="O.S. em aberto"
+            value={notClosed}
+            window="agora"
+            rule="não encerradas no momento da consulta, inclusive pendentes e executadas sem validação."
+            href={reqLink({ status: "abertos" })}
+          />
+          <Card
+            title="Prazo vencido"
+            value={overdue}
+            window="agora"
+            rule="prazo anterior a hoje e O.S. não encerrada. É um alerta: não muda a situação."
+            href={reqLink({ atrasados: "1" })}
+            alert={overdue > 0}
+          />
+          <Card
+            title="Aguardam validação"
+            value={byStatus.executada}
+            window="agora"
+            rule="executadas pela equipe; falta a Megagyn validar."
+            href={reqLink({ status: "executada" })}
+          />
+          <Card
+            title="Tarefas de hoje"
+            value={occurrences.length}
+            window={`hoje, ${formatDateBR(today)}`}
+            rule="ocorrências de tarefa em cada local, pela data programada."
+            href={agendaToday}
+          >
+            <p className="mt-1 text-[0.9375rem]">
+              {occBy("prevista")} previstas, {occBy("iniciada")} iniciadas, {occBy("concluida")} finalizadas e {occBy("nao_realizada")} não realizadas
+            </p>
+          </Card>
+        </div>
+      </section>
 
       <form method="get" className="mb-14 flex flex-wrap items-end gap-x-4 gap-y-3 border-b border-linha pb-6">
         <label className="w-full space-y-1 text-[0.8125rem] font-medium text-muted sm:w-48">
@@ -295,8 +330,6 @@ export default async function AdminDashboard({
         </h2>
         <div className="grid gap-x-8 gap-y-10 sm:grid-cols-2 lg:grid-cols-4">
           <Card title="Aguardando triagem" value={byStatus.aberta} window="agora" rule="situação Aberta." href={reqLink({ status: "aberta" })} />
-          <Card title="Aguardando validação" value={byStatus.executada} window="agora" rule="situação Executada (falta a Megagyn validar)." href={reqLink({ status: "executada" })} />
-          <Card title="Com prazo vencido" value={overdue} window="agora" rule="prazo anterior a hoje e não concluído nem cancelado." href={reqLink({ atrasados: "1" })} alert={overdue > 0} />
           <Card title="Novos hoje" value={newToday} window={`hoje, ${formatDateBR(today)}`} rule="aberto a partir de 00:00 (Brasília)." href={reqLink({ de: today, ate: today })} />
           <Card title="Por situação" value={notClosed} window="agora" rule="todos os não encerrados." href={reqLink({ status: "abertos" })}>
             <ul className="tipo-condensada mt-2 grid grid-cols-2 gap-x-4 text-[0.9375rem]">
@@ -327,11 +360,6 @@ export default async function AdminDashboard({
                 </li>
               ))}
             </ul>
-          </Card>
-          <Card title="Tarefas e visitas de hoje" value={occurrences.length} window={`hoje, ${formatDateBR(today)}`} rule="ocorrências de tarefa programadas para hoje." href={agendaToday}>
-            <p className="mt-1 text-[0.9375rem]">
-              {occBy("prevista")} previstas, {occBy("iniciada")} iniciadas, {occBy("concluida")} finalizadas e {occBy("nao_realizada")} não realizadas
-            </p>
           </Card>
         </div>
       </section>
@@ -395,14 +423,5 @@ export default async function AdminDashboard({
         </div>
       </section>
     </>
-  );
-}
-
-/** Número da frase do dia: leva à mesma lista do indicador correspondente. */
-function SummaryLink({ href, children }: { href: string; children: string }) {
-  return (
-    <Link href={href} className="font-[650] text-acento underline decoration-1 underline-offset-[3px] hover:decoration-2">
-      {children}
-    </Link>
   );
 }
