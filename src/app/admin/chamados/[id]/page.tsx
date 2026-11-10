@@ -1,9 +1,11 @@
 import { FileDown, Smartphone } from "lucide-react";
 import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { formatDateBR, formatDateTimeBR, todayIso } from "@/domain/dates";
 import { UUID_RE } from "@/domain/ids";
 import { isOverdue } from "@/domain/request-status";
+import { parseRequestTab } from "@/domain/request-tabs";
 import { rulerStageDates } from "@/domain/status-ruler";
 import {
   cancelRequestAction,
@@ -26,6 +28,7 @@ import { RequestTimeline } from "@/ui/request-timeline";
 import { AlertTape } from "@/ui/status";
 import { StatusRuler } from "@/ui/status-ruler";
 import { GenerateReportButton } from "@/ui/report-button";
+import { RequestPhotos, RequestTabsNav, TabSection, WorkEntries, photoCount } from "./sections";
 
 // Esta página pede PDFs; a geração roda após a resposta e precisa caber no tempo da função (Vercel Hobby: até 300 s).
 export const maxDuration = 300;
@@ -51,10 +54,11 @@ export default async function AdminRequestPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ feito?: string; aviso?: string }>;
+  searchParams: Promise<{ feito?: string; aviso?: string; aba?: string }>;
 }) {
   const { id } = await params;
-  const { feito, aviso } = await searchParams;
+  const { feito, aviso, aba } = await searchParams;
+  const tab = parseRequestTab(aba);
   if (!UUID_RE.test(id)) notFound();
   const db = await createSupabaseServer();
   const detail = await getRequestDetail(db, id);
@@ -116,31 +120,7 @@ export default async function AdminRequestPage({
       </div>
 
       <div className="grid gap-x-14 gap-y-10 lg:grid-cols-[minmax(0,1fr)_22rem]">
-        <div className="space-y-10">
-          <Panel title="Solicitação">
-            <DescriptionList
-              items={[
-                { label: "Cliente", value: r.client?.display_name },
-                { label: "Obra ou unidade", value: r.site?.name },
-                { label: "Setor ou ambiente", value: r.area?.name ?? "—" },
-                { label: "Origem", value: `${ORIGIN_LABEL[r.origin] ?? r.origin}${r.channel ? ` (${r.channel})` : ""}` },
-                { label: "Solicitante", value: r.requester_name ?? "—" },
-                { label: "Aberto em", value: `${formatDateTimeBR(r.opened_at)} por ${profiles.name(r.created_by)}` },
-                { label: "Categoria", value: r.category?.name ?? "—" },
-                { label: "Prioridade", value: r.priority?.name ?? "—" },
-                { label: "Responsáveis", value: detail.assigneeIds.map((a) => profiles.name(a)).join(", ") || "—" },
-                { label: "Data programada", value: formatDateBR(r.scheduled_date) },
-                { label: "Prazo", value: formatDateBR(r.due_date) },
-                { label: "Encerrado em", value: r.closed_at ? formatDateTimeBR(r.closed_at) : "—", hidden: !r.closed_at },
-              ]}
-            />
-            <p className="mt-4 whitespace-pre-line">{r.description}</p>
-            <div className="mt-4">
-              <h3 className="mb-2 font-semibold">Fotos do chamado</h3>
-              <PhotoGrid photos={detail.requestPhotos} emptyText="Nenhuma foto anexada à abertura." revokeAction={revokeAttachmentAction} />
-            </div>
-          </Panel>
-
+        <div className="min-w-0 space-y-8">
           {r.status === "pendente" && pending && (
             <section className="border-l-[3px] border-alerta pl-4">
               <div className="space-y-1">
@@ -158,15 +138,65 @@ export default async function AdminRequestPage({
             </section>
           )}
 
-          <Panel title="Histórico">
-            <RequestTimeline detail={detail} name={profiles.name} showInternal />
-          </Panel>
+          <div>
+            <RequestTabsNav
+              requestId={r.id}
+              current={tab}
+              counts={{ atendimentos: detail.entries.length, fotos: photoCount(detail), historico: detail.events.length }}
+            />
+            {tab === "solicitacao" && (
+              <TabSection title="Solicitação">
+                <DescriptionList
+                  items={[
+                    { label: "Cliente", value: r.client?.display_name },
+                    { label: "Obra ou unidade", value: r.site?.name },
+                    { label: "Setor ou ambiente", value: r.area?.name ?? "—" },
+                    { label: "Origem", value: `${ORIGIN_LABEL[r.origin] ?? r.origin}${r.channel ? ` (${r.channel})` : ""}` },
+                    { label: "Solicitante", value: r.requester_name ?? "—" },
+                    { label: "Aberto em", value: `${formatDateTimeBR(r.opened_at)} por ${profiles.name(r.created_by)}` },
+                    { label: "Categoria", value: r.category?.name ?? "—" },
+                    { label: "Prioridade", value: r.priority?.name ?? "—" },
+                    { label: "Responsáveis", value: detail.assigneeIds.map((a) => profiles.name(a)).join(", ") || "—" },
+                    { label: "Data programada", value: formatDateBR(r.scheduled_date) },
+                    { label: "Prazo", value: formatDateBR(r.due_date) },
+                    { label: "Encerrado em", value: r.closed_at ? formatDateTimeBR(r.closed_at) : "—", hidden: !r.closed_at },
+                  ]}
+                />
+                <p className="mt-4 whitespace-pre-line">{r.description}</p>
+                <div className="mt-4">
+                  <h3 className="mb-2 font-semibold">Fotos do chamado</h3>
+                  <PhotoGrid photos={detail.requestPhotos} emptyText="Nenhuma foto anexada à abertura." revokeAction={revokeAttachmentAction} />
+                </div>
+              </TabSection>
+            )}
+            {tab === "atendimentos" && (
+              <TabSection title="Atendimentos">
+                <WorkEntries detail={detail} name={profiles.name} />
+              </TabSection>
+            )}
+            {tab === "fotos" && (
+              <TabSection title="Fotos">
+                <RequestPhotos detail={detail} name={profiles.name} />
+              </TabSection>
+            )}
+            {tab === "historico" && (
+              <TabSection title="Histórico">
+                <RequestTimeline detail={detail} name={profiles.name} showInternal />
+              </TabSection>
+            )}
+          </div>
         </div>
 
         <div className="space-y-10">
           {r.status === "executada" && (
             <Panel title="Validar a execução">
-              <p className="mb-3 text-muted">Confira a solução e as fotos do resultado no histórico antes de decidir.</p>
+              <p className="mb-3 text-muted">
+                Confira a solução e as fotos do resultado na aba{" "}
+                <Link href={`/admin/chamados/${r.id}?aba=atendimentos`} scroll={false} className="font-semibold text-info underline">
+                  Atendimentos
+                </Link>{" "}
+                antes de decidir.
+              </p>
               <div className="space-y-3">
                 <ActionForm action={validateRequestAction} submitLabel="Validar e concluir" submitVariant="primary">
                   <input type="hidden" name="request_id" value={r.id} />

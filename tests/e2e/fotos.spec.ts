@@ -25,11 +25,13 @@ test("administração remove foto do chamado com motivo", async ({ page, browser
   await page.reload();
   await expect(page.getByText("Removida", { exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "Remover foto" })).toHaveCount(0);
+  const src = await page.locator('img[src*="/api/files/"]').first().getAttribute("src");
+  expect(src).toBeTruthy();
+  // O motivo fica no histórico da O.S. (aba Histórico, B-37).
+  await page.getByRole("navigation", { name: "Seções da O.S." }).getByRole("link", { name: /^Histórico/ }).click();
   await expect(page.getByText("Foto de outra obra").first()).toBeVisible();
 
   // A-02: pelo link direto, a administração ainda abre; a equipe do local recebe 404 sem cache.
-  const src = await page.locator('img[src*="/api/files/"]').first().getAttribute("src");
-  expect(src).toBeTruthy();
   expect((await page.request.get(src!)).status()).toBe(200);
   const worker = await mobilePage(browser);
   await login(worker, USERS.joao);
