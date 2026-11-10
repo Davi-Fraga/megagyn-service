@@ -171,7 +171,13 @@ export default async function AgendaPage({ searchParams }: { searchParams: Promi
                     <li key={o.id} className="space-y-2 px-4 py-3">
                       <div className="flex flex-wrap items-center justify-between gap-2">
                         <span>
-                          <span className="font-semibold">{o.task?.title}</span>
+                          {o.task ? (
+                            <Link href={`/admin/agenda/tarefas/${o.task.id}`} className="font-semibold hover:underline">
+                              {o.task.title}
+                            </Link>
+                          ) : (
+                            <span className="font-semibold">Tarefa</span>
+                          )}
                           <span className="block text-sm text-muted">
                             {o.task?.kind?.name ?? "Tarefa"} · {o.site?.name} · {(o.task?.assignments ?? []).map((a) => profiles.name(a.profile_id)).join(", ")}
                             {o.task?.priority ? ` · ${o.task.priority.name}` : ""}
