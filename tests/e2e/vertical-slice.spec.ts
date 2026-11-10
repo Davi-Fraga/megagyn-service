@@ -50,14 +50,31 @@ test("chamado de ponta a ponta com evidências e validação", async ({ page, br
   await expect(worker.getByRole("list", { name: "Situação: Executada", exact: true })).toBeVisible();
   await worker.context().close();
 
-  // 3. Administração valida.
+  // 3. Administração confere nas abas da O.S. (B-37) e valida.
   await page.goto(`/admin/chamados/${requestId}`);
+  const tabs = page.getByRole("navigation", { name: "Seções da O.S." });
+  await expect(tabs.getByRole("link")).toHaveText(["Solicitação", "Atendimentos (1)", "Fotos (2)", /^Histórico \(\d+\)$/]);
+  await expect(tabs.getByRole("link", { name: "Solicitação" })).toHaveAttribute("aria-current", "page");
+  await tabs.getByRole("link", { name: /^Atendimentos/ }).click();
+  await expect(tabs.getByRole("link", { name: /^Atendimentos/ })).toHaveAttribute("aria-current", "page");
+  await expect(page.getByText("Substituída a luva de 50 mm e refeita a vedação.").first()).toBeVisible();
+  await tabs.getByRole("link", { name: /^Fotos/ }).click();
+  await expect(page.getByRole("heading", { name: "Abertura do chamado" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /^Atendimento de \d{2}\/\d{2}\/\d{4} · João Funcionário \(demo\)$/ })).toBeVisible();
   await page.getByRole("button", { name: "Validar e concluir" }).click();
   await expect(page.getByText("Execução validada. Chamado concluído.")).toBeVisible();
   await page.reload();
   await expect(page.getByRole("list", { name: "Situação: Concluída", exact: true })).toBeVisible();
+
+  // Nota interna registrada aparece marcada no Histórico.
+  await page.getByLabel("Texto").fill("Cliente pediu nota fiscal separada (nota interna E2E).");
+  await page.getByRole("button", { name: "Registrar" }).click();
+  await expect(page.getByText("Comentário registrado.")).toBeVisible();
+  await tabs.getByRole("link", { name: /^Histórico/ }).click();
   await expect(page.getByText("Execução informada — aguardando validação")).toBeVisible();
   await expect(page.getByText("Validado e concluído")).toBeVisible();
+  const note = page.getByRole("listitem").filter({ hasText: "Cliente pediu nota fiscal separada (nota interna E2E)." });
+  await expect(note).toContainText("Nota interna");
 
   // 4. PDF da OS com o número no nome do arquivo.
   await page.getByRole("button", { name: "PDF da OS" }).click();
